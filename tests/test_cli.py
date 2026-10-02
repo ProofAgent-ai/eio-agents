@@ -97,3 +97,13 @@ def test_a_bundle_is_validated_from_its_bytes(tmp_path, capsys):
     deep = tmp_path / "deep.json"
     deep.write_text("[" * 100000 + "]" * 100000, encoding="utf-8")
     assert cli.main(["validate", str(deep)]) == 1 and "Traceback" not in capsys.readouterr().err
+
+
+def test_cli_json_depth_limit_is_python_version_independent():
+    value = cli._bounded_json(b"[" * 100 + b"0" + b"]" * 100)
+    for _ in range(100):
+        value = value[0]
+    assert value == 0
+    with pytest.raises(RecursionError, match="100 nesting levels"):
+        cli._bounded_json(b"[" * 101 + b"0" + b"]" * 101)
+    assert cli._bounded_json(json.dumps({"quote": "[\\\"{" * 120}).encode()) == {"quote": "[\\\"{" * 120}

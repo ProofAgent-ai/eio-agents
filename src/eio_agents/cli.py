@@ -21,10 +21,35 @@ from pathlib import Path
 
 from eio_agents import api, validation
 from eio_agents.validation.explain import _reason
+from eio_agents.validation.validate import MAX_DEPTH
+
+
+def _bounded_json(raw: bytes):
+    """Reject excessive JSON nesting before parser-specific recursion limits vary."""
+    depth = 0
+    quoted = False
+    escaped = False
+    for byte in raw:
+        if quoted:
+            if escaped:
+                escaped = False
+            elif byte == 0x5C:  # backslash
+                escaped = True
+            elif byte == 0x22:  # quote
+                quoted = False
+        elif byte == 0x22:
+            quoted = True
+        elif byte in (0x5B, 0x7B):  # [ {
+            depth += 1
+            if depth > MAX_DEPTH:
+                raise RecursionError(f"JSON document exceeds {MAX_DEPTH} nesting levels")
+        elif byte in (0x5D, 0x7D):  # ] }
+            depth -= 1
+    return json.loads(raw.decode("utf-8"))
 
 
 def _load(p: str) -> dict:
-    return json.loads(Path(p).read_text(encoding="utf-8"))
+    return _bounded_json(Path(p).read_bytes())
 
 
 def _print_failures(fails) -> None:
@@ -64,7 +89,7 @@ def _run(a) -> int:
         return 0
     if a.cmd == "validate":
         raw = Path(a.file).read_bytes()
-        doc = json.loads(raw.decode("utf-8"))
+        doc = _bounded_json(raw)
         is_bundle = isinstance(doc, dict) and doc.get("archive_schema") == 3 and "header" in doc and "stage_records" in doc
         # a bundle is checked from its bytes, so its reading as I-JSON (B0) is the one `project` applies (review R-2)
         fails = validation.validate_bundle(raw) if is_bundle else api.validate(doc)

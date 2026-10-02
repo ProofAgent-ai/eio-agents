@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Where EIO-Agents fits in the agent-evaluation stack</title>
+  <desc id="desc">Read bottom to top: agent infrastructure feeds an evaluation framework such as ProofAgent Harness. EIO-Agents applies the Evaluation Intelligence Ontology to standardize evidence and claims. The output is a Portable Evaluation Record.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#123a49"/>
+      <stop offset="1" stop-color="#081d2a"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-30%" width="120%" height="170%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#001b24" flood-opacity=".22"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="760" rx="28" fill="url(#background)"/>
+  <text x="76" y="65" fill="#9ff0e6" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" letter-spacing="3">THE AGENT-EVALUATION STACK</text>
+  <text x="76" y="108" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="700">From agent signals to portable evidence</text>
+
+  <g filter="url(#shadow)">
+    <rect x="76" y="138" width="1048" height="112" rx="18" fill="#f7fbfa"/>
+    <text x="105" y="170" fill="#397078" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" letter-spacing="2">PORTABLE OUTPUT</text>
+    <text x="105" y="205" fill="#103b43" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700">Portable Evaluation Record (PER)</text>
+    <text x="105" y="232" fill="#3d5d63" font-family="Arial, Helvetica, sans-serif" font-size="18">Versioned claims, evidence, scores, and provenance</text>
+
+    <rect x="76" y="287" width="1048" height="112" rx="18" fill="#9ff0e6" stroke="#b2fff1" stroke-width="3"/>
+    <text x="105" y="319" fill="#366c72" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" letter-spacing="2">SEMANTIC LAYER</text>
+    <text x="105" y="354" fill="#103b43" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700">EIO-Agents</text>
+    <text x="105" y="381" fill="#3d5d63" font-family="Arial, Helvetica, sans-serif" font-size="18">Evaluation Intelligence Ontology (EIO) · standardized evidence and claims</text>
+
+    <rect x="76" y="436" width="1048" height="112" rx="18" fill="#f7fbfa"/>
+    <text x="105" y="468" fill="#397078" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" letter-spacing="2">EVALUATION PRODUCER</text>
+    <text x="105" y="503" fill="#103b43" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700">Evaluation framework</text>
+    <text x="105" y="530" fill="#3d5d63" font-family="Arial, Helvetica, sans-serif" font-size="18">ProofAgent Harness is one example, not a requirement</text>
+
+    <rect x="76" y="585" width="1048" height="112" rx="18" fill="#f7fbfa"/>
+    <text x="105" y="617" fill="#397078" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" letter-spacing="2">OBSERVED SYSTEM</text>
+    <text x="105" y="652" fill="#103b43" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700">Agent infrastructure</text>
+    <text x="105" y="679" fill="#3d5d63" font-family="Arial, Helvetica, sans-serif" font-size="18">Agent · tools · context · runtime</text>
+  </g>
+  <g fill="#9ff0e6" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" text-anchor="middle">
+    <text x="600" y="281">↑</text>
+    <text x="600" y="430">↑</text>
+    <text x="600" y="579">↑</text>
+  </g>
+  <text x="1124" y="734" fill="#b9d9da" font-family="Arial, Helvetica, sans-serif" font-size="16" text-anchor="end">Read bottom to top</text>
+</svg>

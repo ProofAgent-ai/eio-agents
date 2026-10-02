@@ -211,6 +211,8 @@ def test_no_attested_adapter_document_is_package_data():
                 yield from documents(v)
     hits = [(p.name, d.get("id")) for p in SRC.parent.rglob("*.json")
             if not p.name.endswith(".schema.json") for d in documents(json.loads(p.read_text(encoding="utf-8")))]
-    assert hits == [("reference-profile-0.2.0-draft.1.json", "eio-agents.reference-scoring"),
-                    ("reference-profile-0.3.1-draft.1.json", "eio-agents.reference-scoring"),
-                    ("reference-profile-0.3.0-draft.1.json", "eio-agents.reference-scoring")]
+    assert sorted(hits) == sorted([
+        ("reference-profile-0.2.0-draft.1.json", "eio-agents.reference-scoring"),
+        ("reference-profile-0.3.1-draft.1.json", "eio-agents.reference-scoring"),
+        ("reference-profile-0.3.0-draft.1.json", "eio-agents.reference-scoring"),
+    ])

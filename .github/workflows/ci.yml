@@ -207,8 +207,8 @@ jobs:
 
           print("| native bundle | release state | per_sha256 |")
           print("|---|---|---|")
-          for name in ("native.bundle.json", "synthetic-cited-native.bundle.json"):
-              p = pathlib.Path("tests/data/native", name)
+          for name in ("source-complete.bundle.json", "synthetic-cited-native.bundle.json"):
+              p = pathlib.Path("tests/data/native/v0_6", name)
               record = eio_agents.convert(p.read_bytes())
               state = record["release_recommendation"]["state"]
               print(f"| {name} | {state} | `{eio_agents.per_sha256(record)}` |")
