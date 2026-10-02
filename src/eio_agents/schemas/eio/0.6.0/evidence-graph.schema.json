@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.proofagent.ai/eio-agents/schema/eio/0.6.0/evidence-graph.schema.json",
+  "title": "EIO local evidence graph",
+  "type": "object",
+  "required": ["schema_version", "run_id", "nodes", "edges", "evidence_refs", "provenance"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"type": "string"},
+    "run_id": {"type": "string", "minLength": 1},
+    "episode_id": {"type": "string"},
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "attributes"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "type": {"type": "string", "pattern": "^eio\\."},
+          "attributes": {"type": "object"}
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["subject", "relation", "object", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "subject": {"type": "string"},
+          "relation": {"type": "string", "pattern": "^eio\\.relation\\."},
+          "object": {"type": "string"},
+          "evidence": {"type": "array", "items": {"type": "string"}},
+          "resolver": {"type": "string", "pattern": "^eio\\.resolver\\."},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+        }
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "source_type"],
+        "properties": {
+          "id": {"type": "string"},
+          "kind": {"type": "string"},
+          "source_type": {"type": "string"},
+          "turn_index": {"type": "integer", "minimum": 0},
+          "text": {"type": "string"},
+          "char_start": {"type": "integer", "minimum": 0},
+          "char_end": {"type": "integer", "minimum": 0},
+          "source_ref": {"type": "string"},
+          "inputs": {"type": "object"},
+          "formula": {"type": "string"},
+          "output": {}
+        },
+        "additionalProperties": true
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["ontology_modules", "extractors", "source_hashes"],
+      "additionalProperties": false,
+      "properties": {
+        "ontology_modules": {"type": "object", "additionalProperties": {"type": "string"}},
+        "extractors": {"type": "object", "additionalProperties": {"type": "string"}},
+        "source_hashes": {"type": "object", "additionalProperties": {"type": "string"}},
+        "created_at": {"type": "string", "format": "date-time"}
+      }
+    }
+  }
+}

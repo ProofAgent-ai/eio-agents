@@ -1,0 +1,25 @@
+eio:
+  id: eio.mapping.frameworks
+  namespace: https://www.proofagent.ai/eio-agents/module/mapping/frameworks#
+  version: 0.3.2
+  kind: mapping
+  title: EIO External Framework Compatibility View
+  description: Compatibility profile pointing consumers to the first-class compliance registry.
+  license: Apache-2.0
+
+imports:
+  - {module: eio.compliance.frameworks, version: 0.2.2}
+
+profiles:
+  - id: eio.profile.framework-materialization
+    description: Compatibility contract for the deterministic control-to-risk join.
+    authoritative_module: eio.compliance.frameworks
+    output_relation: relevant
+    mapping_status: provisional
+  - id: eio.profile.framework-assurance-boundary
+    description: Prevents behavioural evidence from being rendered as full external-framework certification.
+    permitted_claim: The run produced evidence relevant to a mapped control.
+    prohibited_claim: The organization, system, or product is certified or fully compliant based only on this run.
+    statuses: [observed_satisfaction, observed_violation, not_tested, not_observable, not_applicable, inconclusive]
+    require_evidence_ref: true
+    require_coverage_label: true

@@ -1,0 +1,315 @@
+{
+ "inventory": {
+  "aliases": 96,
+  "autonomy": 5,
+  "axes": 4,
+  "catalog": {
+   "risk": 48,
+   "safeguard": 7
+  },
+  "concepts": 261,
+  "controls": 165,
+  "criteria": 7,
+  "ctl_pred": 434,
+  "ctl_risk": 406,
+  "domains": 11,
+  "escalation": 5,
+  "evidence_types": 11,
+  "facts": 0,
+  "frameworks": 30,
+  "gates": 7,
+  "impact": {
+   "CONTRIBUTING_BLOCK": 29,
+   "HARD_BLOCK": 92,
+   "WARN": 5
+  },
+  "kinds": {
+   "action": 48,
+   "channel": 7,
+   "control": 1,
+   "data-class": 40,
+   "entity": 45,
+   "event": 12,
+   "metric": 11,
+   "policy": 5,
+   "risk": 48,
+   "role": 34,
+   "safeguard": 7,
+   "state": 3
+  },
+  "legacy": 95,
+  "legacy_split": {
+   "behaviour": 34,
+   "check": 48,
+   "sentinel": 13
+  },
+  "metric_edges": 69,
+  "metrics": 9,
+  "modules": 40,
+  "obligations": 126,
+  "pol": {
+   "observation": 2,
+   "risk": 49,
+   "safeguard": 7
+  },
+  "policy_defaults": 38,
+  "pred_versions": [
+   "1.0.0"
+  ],
+  "predicates": 58,
+  "profiles": 17,
+  "regions": 8,
+  "relations": 44,
+  "resolvers": 11,
+  "source_types": 0,
+  "stages": 13,
+  "states": 7,
+  "templates": 16,
+  "tiers": 4,
+  "traps": 183,
+  "why": 0
+ },
+ "modules": {
+  "assurance/system-of-record.yaml": {
+   "id": "eio.assurance.system-of-record",
+   "namespace": "https://proofagent.ai/eio/assurance/system-of-record#",
+   "sha256": "sha256:2848f25c484a2cc81fc5aedcf53757ef45438080c07a00ead77cdd24a8796400",
+   "version": "0.1.0"
+  },
+  "compliance/frameworks.yaml": {
+   "id": "eio.compliance.frameworks",
+   "namespace": "https://proofagent.ai/eio/compliance/frameworks#",
+   "sha256": "sha256:b1e2609788204a90702f1621063628ef0dcb1a974c2c6268855be306e2266f89",
+   "version": "0.1.0"
+  },
+  "context/criteria.yaml": {
+   "id": "eio.context.criteria",
+   "namespace": "https://proofagent.ai/eio/context/criteria#",
+   "sha256": "sha256:f23152459160994229f47fb4b8a44085f550fcd99c465fd5a16a2ee7db4d199f",
+   "version": "0.1.0"
+  },
+  "core/decisions.yaml": {
+   "id": "eio.core.decisions",
+   "namespace": "https://proofagent.ai/eio/core/decisions#",
+   "sha256": "sha256:472ed1a7b77167518d437ec76a0d4dcef521ea63b000f23d8ea1120b573158ce",
+   "version": "0.1.0"
+  },
+  "core/entities.yaml": {
+   "id": "eio.core.entities",
+   "namespace": "https://proofagent.ai/eio/core/entities#",
+   "sha256": "sha256:f1101cfe890ff93419a31e5a09bce158b3e202bfebd7eda7218c42b1334be8f2",
+   "version": "0.1.0"
+  },
+  "core/evidence.yaml": {
+   "id": "eio.core.evidence",
+   "namespace": "https://proofagent.ai/eio/core/evidence#",
+   "sha256": "sha256:ac4c9bde4fb1e24f156f595c4f3d7db39634fc596f1202dbdc000152f57064cf",
+   "version": "0.1.0"
+  },
+  "core/flow.yaml": {
+   "id": "eio.core.flow",
+   "namespace": "https://proofagent.ai/eio/core/flow#",
+   "sha256": "sha256:18fd1b90c41d43d1c53d3a9f5df4c1cd298e39dccb166bf0efb7073961bfd01b",
+   "version": "0.1.0"
+  },
+  "core/relations.yaml": {
+   "id": "eio.core.relations",
+   "namespace": "https://proofagent.ai/eio/core/relations#",
+   "sha256": "sha256:d971f4ebf52549ff25f5ea9f3b62be059a675191c105c192227907a3a842e555",
+   "version": "0.1.0"
+  },
+  "core/taxonomies.yaml": {
+   "id": "eio.core.taxonomies",
+   "namespace": "https://proofagent.ai/eio/core/taxonomies#",
+   "sha256": "sha256:41905798fbfb672f78f0c6a3a4d3cb24d34f04f9b83879633750b194c3de71c6",
+   "version": "0.1.0"
+  },
+  "domains/aviation-airline.yaml": {
+   "id": "eio.domain.aviation-airline",
+   "namespace": "https://proofagent.ai/eio/domain/aviation-airline#",
+   "sha256": "sha256:8e9ca2ed2273d3bb535aa7c60011ddb111765ce66655afbbda2f39bb3f15f87e",
+   "version": "0.1.0"
+  },
+  "domains/customer-support.yaml": {
+   "id": "eio.domain.customer-support",
+   "namespace": "https://proofagent.ai/eio/domain/customer-support#",
+   "sha256": "sha256:cb31ca713c36f62edbece0d8411ae0bb06a7e548848300312289daefed54a484",
+   "version": "0.1.0"
+  },
+  "domains/energy-utilities.yaml": {
+   "id": "eio.domain.energy-utilities",
+   "namespace": "https://proofagent.ai/eio/domain/energy-utilities#",
+   "sha256": "sha256:7fa846cdad81c8d9b0cd4eb6a5d63eeab2fc1dd7aded4a7910b5cbdafc5db220",
+   "version": "0.1.0"
+  },
+  "domains/financial-services.yaml": {
+   "id": "eio.domain.financial-services",
+   "namespace": "https://proofagent.ai/eio/domain/financial-services#",
+   "sha256": "sha256:787bed862b7b54762c5648a27d9f55ebdbfc16bdb98bd98d1432c3881a46187a",
+   "version": "0.1.0"
+  },
+  "domains/generic-agent.yaml": {
+   "id": "eio.domain.generic-agent",
+   "namespace": "https://proofagent.ai/eio/domain/generic-agent#",
+   "sha256": "sha256:b9d36e36db95390cd5ca49b16090c04d95f0717f711d05943615e2cb538d0e08",
+   "version": "0.1.0"
+  },
+  "domains/healthcare-operations.yaml": {
+   "id": "eio.domain.healthcare-operations",
+   "namespace": "https://proofagent.ai/eio/domain/healthcare-operations#",
+   "sha256": "sha256:50d605c67791ea28d68e9d049d8672dcbf0f28369ef163abc26fc6c7978398a4",
+   "version": "0.1.0"
+  },
+  "domains/hr-employment.yaml": {
+   "id": "eio.domain.hr-employment",
+   "namespace": "https://proofagent.ai/eio/domain/hr-employment#",
+   "sha256": "sha256:23800a5e6d2f8b23f87ee056095732c074410f12e6ecb26db8478b98f2c40298",
+   "version": "0.1.0"
+  },
+  "domains/legal-public-sector.yaml": {
+   "id": "eio.domain.legal-public-sector",
+   "namespace": "https://proofagent.ai/eio/domain/legal-public-sector#",
+   "sha256": "sha256:089b96d79c1ddb46247977dc13f53c281accf068ab6502aba67dabfede5f229c",
+   "version": "0.1.0"
+  },
+  "domains/medical-devices.yaml": {
+   "id": "eio.domain.medical-devices",
+   "namespace": "https://proofagent.ai/eio/domain/medical-devices#",
+   "sha256": "sha256:82997527b7a30c05099a9a1f905268a7310cc5e98f7c5c9faf2f3145e76862f2",
+   "version": "0.1.0"
+  },
+  "domains/payments-cardholder.yaml": {
+   "id": "eio.domain.payments-cardholder",
+   "namespace": "https://proofagent.ai/eio/domain/payments-cardholder#",
+   "sha256": "sha256:f156512248914d5e43283c3fbc6b0bbead14b1a21ed28bacc706c95d3a1e8f81",
+   "version": "0.1.0"
+  },
+  "domains/software-agents.yaml": {
+   "id": "eio.domain.software-agents",
+   "namespace": "https://proofagent.ai/eio/domain/software-agents#",
+   "sha256": "sha256:719839ae705214686d684ec1a832f66e7ff22dd8a02ab835e2e8d9845df50b8a",
+   "version": "0.1.0"
+  },
+  "governance/gates.yaml": {
+   "id": "eio.governance.gates",
+   "namespace": "https://proofagent.ai/eio/governance/gates#",
+   "sha256": "sha256:19e48258d598b16df42dfa67d33c7961de3c29cab736458a67e93ee81a317e38",
+   "version": "0.1.0"
+  },
+  "graph/context-links.yaml": {
+   "id": "eio.graph.context-links",
+   "namespace": "https://proofagent.ai/eio/graph/context-links#",
+   "sha256": "sha256:4a2d3fd0bcf276c6547ebf8a426295e3ee0a26e3bd5c19e6e057a2b0aaf5fa42",
+   "version": "0.1.0"
+  },
+  "graph/domain-links.yaml": {
+   "id": "eio.graph.domain-links",
+   "namespace": "https://proofagent.ai/eio/graph/domain-links#",
+   "sha256": "sha256:15cd3236b3cbf1c2f69b1afb139a9a4bfc09ec35d3e5e10661160b96a2d54b16",
+   "version": "0.1.0"
+  },
+  "manifest.yaml": {
+   "id": "eio.manifest.public",
+   "namespace": "https://proofagent.ai/eio/manifest#",
+   "sha256": "sha256:0a3d30462c7881ac007e02e9223c25bdcd617efffc4a07215c1a45b6741829d4",
+   "version": "0.3.0"
+  },
+  "mappings/frameworks.yaml": {
+   "id": "eio.mapping.frameworks",
+   "namespace": "https://proofagent.ai/eio/mapping/frameworks#",
+   "sha256": "sha256:2e76ad1b5c920cd43a6ec5de54042704baac800b16b1ebd6e97329179965763b",
+   "version": "0.2.0"
+  },
+  "mappings/legacy.yaml": {
+   "id": "eio.mapping.legacy",
+   "namespace": "https://proofagent.ai/eio/mapping/legacy#",
+   "sha256": "sha256:09fb755fe25a75c341134538b3ba33d2025decc9c40503d929645c72da9d2eec",
+   "version": "0.1.0"
+  },
+  "mappings/metrics.yaml": {
+   "id": "eio.mapping.metrics",
+   "namespace": "https://proofagent.ai/eio/mapping/metrics#",
+   "sha256": "sha256:a4810f981032717b170a7ba7737199df16e283cc294a3cfbe7477195fd6fd453",
+   "version": "0.1.0"
+  },
+  "mappings/traps.yaml": {
+   "id": "eio.mapping.traps",
+   "namespace": "https://proofagent.ai/eio/mapping/traps#",
+   "sha256": "sha256:60d752776265b80d99c6640438939c16d23aa4527648b5204a40139f4caea092",
+   "version": "0.1.0"
+  },
+  "reliability/ledgers.yaml": {
+   "id": "eio.reliability.ledgers",
+   "namespace": "https://proofagent.ai/eio/reliability/ledgers#",
+   "sha256": "sha256:7db878a658baa614d64e5d028f343615f90a3e887f4a21bbc035f5815be34e9c",
+   "version": "0.1.0"
+  },
+  "risks/action-safety.yaml": {
+   "id": "eio.risk.action-safety",
+   "namespace": "https://proofagent.ai/eio/risk/action-safety#",
+   "sha256": "sha256:ffeeedb59c65aaff64113bd2e2c7043284f20bbbc0baf39b608f1e04ebf1fec0",
+   "version": "0.1.0"
+  },
+  "risks/catalog.yaml": {
+   "id": "eio.risk.catalog",
+   "namespace": "https://proofagent.ai/eio/risk/catalog#",
+   "sha256": "sha256:49f3553a6f2ed864ba79b7b120c1600f2f429fd59b1cb30a126a91ff2679a5dc",
+   "version": "0.1.0"
+  },
+  "risks/content-code-safety.yaml": {
+   "id": "eio.risk.content-code-safety",
+   "namespace": "https://proofagent.ai/eio/risk/content-code-safety#",
+   "sha256": "sha256:860f683da7b15fead4989867201bfa1a8b93905f32b06385f83ceef6f209d6cf",
+   "version": "0.1.0"
+  },
+  "risks/context-trust.yaml": {
+   "id": "eio.risk.context-trust",
+   "namespace": "https://proofagent.ai/eio/risk/context-trust#",
+   "sha256": "sha256:9882fdbba09e8ddd30561d10fdcd198c3f063ef83bfd8abb57186d06c8208d6e",
+   "version": "0.1.0"
+  },
+  "risks/data-handling.yaml": {
+   "id": "eio.risk.data-handling",
+   "namespace": "https://proofagent.ai/eio/risk/data-handling#",
+   "sha256": "sha256:0a2e25438230f5d23937d6c0bc2f4e3d2f67864b2a3e87d7fbcbe19bb70a842a",
+   "version": "0.1.0"
+  },
+  "risks/evaluator-reliability.yaml": {
+   "id": "eio.risk.evaluator-reliability",
+   "namespace": "https://proofagent.ai/eio/risk/evaluator-reliability#",
+   "sha256": "sha256:a46ac2a54c24328139e1d49e8295b518cbdd1ed6c27e365b225a11a19c44d665",
+   "version": "0.1.0"
+  },
+  "risks/fairness-rights.yaml": {
+   "id": "eio.risk.fairness-rights",
+   "namespace": "https://proofagent.ai/eio/risk/fairness-rights#",
+   "sha256": "sha256:5d70d5723b97398cfd7e847761b5b2b08c16fd71bdd93d63d013f73688766014",
+   "version": "0.1.0"
+  },
+  "risks/grounding.yaml": {
+   "id": "eio.risk.grounding",
+   "namespace": "https://proofagent.ai/eio/risk/grounding#",
+   "sha256": "sha256:91140c7b6f9e41feabebc156f0a0c513b682875c7bd805d07f24ac63893dbfdb",
+   "version": "0.1.0"
+  },
+  "risks/safeguards.yaml": {
+   "id": "eio.risk.safeguards",
+   "namespace": "https://proofagent.ai/eio/risk/safeguards#",
+   "sha256": "sha256:093abc013cf3cc8c840362acc3264c0090096637e1f451857066ba8c21c80b9e",
+   "version": "0.1.0"
+  },
+  "scoring/axes.yaml": {
+   "id": "eio.scoring.axes",
+   "namespace": "https://proofagent.ai/eio/scoring/axes#",
+   "sha256": "sha256:6446f0eb631a2482c461379301a194698df2d2380fd07d9af72422d67c868e4d",
+   "version": "0.1.0"
+  },
+  "templates/core.yaml": {
+   "id": "eio.template.core",
+   "namespace": "https://proofagent.ai/eio/template/core#",
+   "sha256": "sha256:5191d45aa25fcb0fc9e5ea1e597d0aab9602729632d9531d7c91853007f9c2aa",
+   "version": "0.1.0"
+  }
+ },
+ "source": "EIO 0.3.0 data directory (eio-full-session, commit db3350b)"
+}

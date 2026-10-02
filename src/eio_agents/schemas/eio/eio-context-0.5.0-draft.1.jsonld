@@ -1,0 +1,109 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@protected": true,
+    "@vocab": "https://w3id.org/eio-agents/id/",
+    "eiop": "https://w3id.org/eio-agents/prop/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "EvaluationClaim": "eio.entity.evaluation-claim",
+    "EvidenceRef": "eio.entity.evidence-ref",
+    "id": "@id",
+    "type": "@type",
+    "run_id": {
+      "@id": "eiop:run_id"
+    },
+    "episode_id": {
+      "@id": "eiop:episode_id"
+    },
+    "turn_indices": {
+      "@id": "eiop:turn_indices",
+      "@container": "@set",
+      "@type": "xsd:integer"
+    },
+    "predicate": {
+      "@id": "eiop:predicate",
+      "@type": "@vocab"
+    },
+    "predicate_version": {
+      "@id": "eiop:predicate_version"
+    },
+    "state": {
+      "@id": "eiop:state",
+      "@type": "@vocab",
+      "@context": {
+        "APPLICABLE_PASS": "eio.state.APPLICABLE_PASS",
+        "APPLICABLE_FAIL": "eio.state.APPLICABLE_FAIL",
+        "NOT_APPLICABLE": "eio.state.NOT_APPLICABLE",
+        "UNRESOLVED": "eio.state.UNRESOLVED",
+        "EVIDENCE_INVALID": "eio.state.EVIDENCE_INVALID",
+        "EVIDENCE_INCOMPLETE": "eio.state.EVIDENCE_INCOMPLETE",
+        "EVALUATOR_ERROR": "eio.state.EVALUATOR_ERROR"
+      }
+    },
+    "parameters": {
+      "@id": "eiop:parameters",
+      "@type": "@json"
+    },
+    "evidence": {
+      "@id": "eio.relation.supported-by",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "counterevidence": {
+      "@id": "eiop:counterevidence",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "decided_by": {
+      "@id": "eiop:decided_by"
+    },
+    "resolver": {
+      "@id": "eiop:resolver",
+      "@type": "@vocab"
+    },
+    "confidence": {
+      "@id": "eiop:confidence",
+      "@type": "xsd:decimal"
+    },
+    "rationale": {
+      "@id": "eiop:rationale"
+    },
+    "risk": {
+      "@id": "eiop:risk",
+      "@type": "@vocab"
+    },
+    "safeguard": {
+      "@id": "eiop:safeguard",
+      "@type": "@vocab"
+    },
+    "subsumed_by": {
+      "@id": "eiop:subsumed_by",
+      "@type": "@id"
+    },
+    "provenance": {
+      "@id": "eiop:provenance"
+    },
+    "module": {
+      "@id": "eiop:module",
+      "@type": "@vocab"
+    },
+    "module_version": {
+      "@id": "eiop:module_version"
+    },
+    "module_hash": {
+      "@id": "eiop:module_hash"
+    },
+    "plan_hash": {
+      "@id": "eiop:plan_hash"
+    },
+    "model": {
+      "@id": "eiop:model"
+    },
+    "prompt_hash": {
+      "@id": "eiop:prompt_hash"
+    },
+    "seed": {
+      "@id": "eiop:seed"
+    }
+  }
+}

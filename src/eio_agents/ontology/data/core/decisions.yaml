@@ -1,0 +1,93 @@
+eio:
+  id: eio.core.decisions
+  namespace: https://www.proofagent.ai/eio-agents/module/core/decisions#
+  version: 0.3.0
+  kind: core
+  title: EIO Decision States
+  description: Non-conflated terminal states for predicate evaluation and evaluator failure.
+  license: Apache-2.0
+
+decision_states:
+  - id: APPLICABLE_PASS
+    scored: true
+    evaluator_fault: false
+    description: The predicate applied and its required safeguard held or its violation was absent.
+  - id: APPLICABLE_FAIL
+    scored: true
+    evaluator_fault: false
+    description: The predicate applied and its violation was established or required safeguard failed.
+  - id: NOT_APPLICABLE
+    scored: false
+    evaluator_fault: false
+    description: A declared applicability precondition did not hold for this instance.
+  - id: UNRESOLVED
+    scored: false
+    evaluator_fault: false
+    description: The predicate applied but available evaluators could not establish either outcome.
+  - id: EVIDENCE_INVALID
+    scored: false
+    evaluator_fault: true
+    description: A proposed decision cited evidence that was absent, disallowed, or incorrectly attributed.
+  - id: EVIDENCE_INCOMPLETE
+    scored: false
+    evaluator_fault: true
+    description: Required sources were truncated, omitted, inaccessible, or outside the evaluator view.
+  - id: EVALUATOR_ERROR
+    scored: false
+    evaluator_fault: true
+    description: Evaluation failed because a resolver, rule engine, model call, or validator errored.
+
+profiles:
+  - id: eio.profile.decision-policy
+    description: Scoring and reporting policy applied consistently to all predicate decisions.
+    scored_states: [APPLICABLE_PASS, APPLICABLE_FAIL]
+    denominator_exclusions: [NOT_APPLICABLE, UNRESOLVED, EVIDENCE_INVALID, EVIDENCE_INCOMPLETE, EVALUATOR_ERROR]
+    evaluator_fault_states: [EVIDENCE_INVALID, EVIDENCE_INCOMPLETE, EVALUATOR_ERROR]
+    unknown_is_pass: false
+    # EIO-34 / EIO-203. On an observation predicate (polarity observation) APPLICABLE_FAIL means
+    # "the observed condition holds" and APPLICABLE_PASS "it does not"; neither is a violation.
+    observation_fail_is_violation: false
+    observation_state_meaning:
+      APPLICABLE_FAIL: observed
+      APPLICABLE_PASS: not observed
+    observation_fail_effects:
+      finding: false
+      severity: false
+      cap: false
+      control_violation: false
+      occurrence_ledger_row: true
+      developer_view_observation: true
+    polarity_meaning:
+      risk: APPLICABLE_FAIL is a violation of the predicate's risk.
+      safeguard: APPLICABLE_FAIL is a missing safeguard.
+      observation: APPLICABLE_FAIL is an observation, never a violation, a finding, a severity, a cap or a control violation.
+
+  # EIO-33 / PER-20. The single proof rule. PROVEN is a property of a claim; a finding is PROVEN
+  # iff some claim of it is PROVEN. Only PROVEN claims or declared facts may make a release
+  # recommendation BLOCK (eio.profile.resolver-authority in eio.core.evidence).
+  - id: eio.profile.proof-status
+    description: 'S1b proof-status profile: when a claim or a finding is PROVEN. Native origin alone never proves a claim; everything else is UNPROVEN.'
+    values: [PROVEN, UNPROVEN]
+    claim_proven_when:
+      all:
+        - "decided_by is deterministic or human (a semantic-model decision is never PROVEN)"
+        - "a verified role=proof citation binds the claim to a contract-eligible witnessing anchored ref, including its full source locator and anchor (W1 of eio.core.evidence)"
+        - "parameters.fidelity is exact or the claim's recurrence band is CONFIRMED; native provenance alone is not an exemption"
+    decided_by_proves: [deterministic, human]
+    requires_witnessing_anchored_ref: true
+    requires_verified_proof_citation: true
+    exact_mapping_proves: true
+    native_claim_proves: false
+    narrower_requires_recurrence: CONFIRMED
+    semantic_never_proven: true
+    finding_proven_when: some claim of the finding is PROVEN
+    controls: >
+      A control violation whose failing claims are all narrower stays observed_violation with
+      proxy_only true (eio.profile.compliance-materialization) and is never decisive.
+    test_vectors:
+      - {synthetic: true, native: true, decided_by: deterministic, fidelity: exact, verified_proof_citation: true, witnessing_anchored: true, recurrence: NOT_RETESTED, expected: PROVEN, note: "exact native source-bound proof is sufficient without recurrence"}
+      - {synthetic: true, native: true, decided_by: deterministic, fidelity: exact, verified_proof_citation: false, witnessing_anchored: true, recurrence: NOT_RETESTED, expected: UNPROVEN, note: "native origin and an anchored ref without its verified proof citation are insufficient"}
+      - {synthetic: true, native: true, decided_by: deterministic, fidelity: narrower, verified_proof_citation: true, witnessing_anchored: true, recurrence: CONFIRMED, expected: PROVEN, note: "a narrower claim needs confirmed recurrence and source-bound proof"}
+      - {synthetic: true, native: true, decided_by: deterministic, fidelity: narrower, verified_proof_citation: true, witnessing_anchored: true, recurrence: UNCONFIRMED, expected: UNPROVEN, note: "a narrower unconfirmed claim remains unproven"}
+      - {synthetic: true, native: true, decided_by: semantic, fidelity: exact, verified_proof_citation: true, witnessing_anchored: true, recurrence: CONFIRMED, expected: UNPROVEN, note: "semantic decisions never prove at S1b"}
+      - {synthetic: true, native: true, decided_by: deterministic, fidelity: exact, verified_proof_citation: true, witnessing_anchored: false, recurrence: CONFIRMED, expected: UNPROVEN, note: "a proof citation to a non-witnessing ref cannot prove"}

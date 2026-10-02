@@ -1,0 +1,43 @@
+# Python caches and builds
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+
+# Tool caches and reports
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local environment files
+.env
+
+# Local working directories
+.progress/
+
+# Owner-only publishing checklist (not for publication)
+PUBLISHING_CHECKLIST.md
+
+# Outputs of the quick start, written to the repository root
+/*.per.json
+/*.per.jcs

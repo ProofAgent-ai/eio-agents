@@ -1,0 +1,54 @@
+name: Feature request
+description: Suggest an improvement to the library, the command line or the documentation.
+labels: ["enhancement", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for the library, the command line and the documentation. A change of meaning in EIO or PER (a
+        predicate, evidence type, claim state, witness rule, release rule, scoring rule, record field or framework
+        mapping) follows the proposal process: use the "EIO or PER change proposal" form instead.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: The behaviour, API or command you would like. A short example helps.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+
+  - type: dropdown
+    id: change-class
+    attributes:
+      label: Expected change class
+      description: See "Change classes" in CONTRIBUTING.md. Maintainers confirm the class during triage.
+      options:
+        - "A: editorial (documentation, comments, docstrings)"
+        - "B: library (record bytes stay identical)"
+        - "C: normative (EIO data, schemas, rules or record bytes)"
+        - not sure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to open a pull request for this.
+          required: false

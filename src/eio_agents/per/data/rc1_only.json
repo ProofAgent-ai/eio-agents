@@ -1,0 +1,166 @@
+{
+ "description": "The PER 2.0.0-rc1 schema requirements that carry ProofAgent vocabulary (split plan §5.3). A record projected from a native producer's bundle cannot meet them, and every one is removed by the named §5.3 row (L5a, or S2 where noted). Each row is pinned to the exact rc1 error its §5.3 row removes: the path, the validator and the full message (no row accepts any message). The projector's step 7 accepts exactly these schema errors and no other: the rows marked `native` for a `kind: native` bundle, and the two `no_scoring_profile` rows (`scores` null, and the null readiness a policy rule then observes) for any bundle that declares no scoring profile (split plan §6.2 L2 task 4). The two pointer rows accept only pointers into the bundle itself: the projector requires a native bundle's archive pointer to point into its own `/sources` and each tool call's pointer to be that call's location (`per.bundle.check_native_sources`), and it rejects a declared source archive on a native bundle, so `archive_schema` is 3. X-NATIVE pins them. This file leaves with rc1 at L5a.",
+ "rows": [
+  {
+   "path": "claims/\\d+/parameters",
+   "validator": "required",
+   "message": "'legacy_check' is a required property",
+   "removed_by": "§5.3 parameters.legacy_check: renamed parameters.source_key, null natively (LS4)",
+   "applies_to": "native"
+  },
+  {
+   "path": "claims/\\d+/parameters",
+   "validator": "required",
+   "message": "'mapping_relation' is a required property",
+   "removed_by": "§5.3 parameters.mapping_relation: parameters.fidelity, required on every claim",
+   "applies_to": "native"
+  },
+  {
+   "path": "claims/\\d+/parameters",
+   "validator": "required",
+   "message": "'trap' is a required property",
+   "removed_by": "§5.3 parameters.trap: parameters.scenario, nullable",
+   "applies_to": "native"
+  },
+  {
+   "path": "claims/\\d+/parameters",
+   "validator": "required",
+   "message": "'(legacy_decided_by|state_source)' is a required property",
+   "removed_by": "§5.3 parameters.legacy_decided_by, state_source: parameters.ext.<extension-id>",
+   "applies_to": "native"
+  },
+  {
+   "path": "claims/\\d+/parameters/votes",
+   "validator": "anyOf",
+   "message": "\\{'(?:distinct_pairs|observed|not_observed|split)': (?:0|[1-9][0-9]*)(?:, '(?:distinct_pairs|observed|not_observed|split)': (?:0|[1-9][0-9]*)){3}\\} is not valid under any of the given schemas",
+   "removed_by": "§5.3 votes.archive_observed / archive_total: parameters.ext.<extension-id>",
+   "applies_to": "native"
+  },
+  {
+   "path": "claims/\\d+/parameters/votes",
+   "validator": "required",
+   "message": "'(archive_observed|archive_total)' is a required property",
+   "removed_by": "§5.3 votes.archive_observed / archive_total: parameters.ext.<extension-id>",
+   "applies_to": "native"
+  },
+  {
+   "path": "evidence/archive_pointer",
+   "validator": "additionalProperties",
+   "message": "Additional properties are not allowed \\('[A-Za-z0-9_]+'(?:, '[A-Za-z0-9_]+')* (?:was|were) unexpected\\)",
+   "removed_by": "§5.3 (not part of L5a) sources[] (S2): the rc1 archive pointer '/transcript'",
+   "applies_to": "native"
+  },
+  {
+   "path": "evidence/archive_pointer",
+   "validator": "required",
+   "message": "'transcript' is a required property",
+   "removed_by": "§5.3 (not part of L5a) sources[] (S2): the rc1 archive pointer '/transcript'",
+   "applies_to": "native"
+  },
+  {
+   "path": "evidence/refs/\\d+/tool/arguments_pointer",
+   "validator": "pattern",
+   "message": "'/sources/turns/(?:0|[1-9][0-9]*)/tool_calls/(?:0|[1-9][0-9]*)/arguments' does not match '\\^/transcript/\\(0\\|\\[1-9\\]\\[0-9\\]\\*\\)/tools_called/\\(0\\|\\[1-9\\]\\[0-9\\]\\*\\)/\\(arguments\\|args\\)\\$'",
+   "removed_by": "§5.3 (not part of L5a) sources[] (S2): the rc1 tool-call pointer '/transcript/{i}/tools_called/{j}'",
+   "applies_to": "native"
+  },
+  {
+   "path": "evidence/completeness",
+   "validator": "required",
+   "message": "'(sentinel_locations|code_check_offsets)' is a required property",
+   "removed_by": "§5.3 evidence.completeness.sentinel_locations, .code_check_offsets: neutral evidence-class names (LS9)",
+   "applies_to": "native"
+  },
+  {
+   "path": "findings/\\d+/traps",
+   "validator": "minItems",
+   "message": "\\[\\] should be non-empty",
+   "removed_by": "§5.3 evidence.turns[].trap, finding.traps: scenario, scenarios with minItems 0 (LS5)",
+   "applies_to": "native"
+  },
+  {
+   "path": "header",
+   "validator": "required",
+   "message": "'adjudication_source' is a required property",
+   "removed_by": "§5.3 header.adjudication_source: adapter extension",
+   "applies_to": "native"
+  },
+  {
+   "path": "header/archive_schema",
+   "validator": "enum",
+   "message": "3 is not one of \\[1, 2\\]",
+   "removed_by": "§5.3 header.archive_schema 1 | 2: 3, the EIO-Agents archive",
+   "applies_to": "native"
+  },
+  {
+   "path": "provenance",
+   "validator": "required",
+   "message": "'harness_llm' is a required property",
+   "removed_by": "§5.3 provenance.harness_llm: evaluator_models (N7, LS7)",
+   "applies_to": "native"
+  },
+  {
+   "path": "provenance/inputs",
+   "validator": "required",
+   "message": "'traps' is a required property",
+   "removed_by": "§5.3 provenance.inputs.traps: scenarios {loaded, selected, selected_digest} (N6)",
+   "applies_to": "native"
+  },
+  {
+   "path": "provenance/inputs",
+   "validator": "required",
+   "message": "'checks_version' is a required property",
+   "removed_by": "§5.3 provenance.inputs.checks_version: the header crosswalk version",
+   "applies_to": "native"
+  },
+  {
+   "path": "provenance/producer",
+   "validator": "additionalProperties",
+   "message": "Additional properties are not allowed \\('(?:name|version|kind|revision|source_format)'(?:, '(?:name|version|kind|revision|source_format)')* (?:was|were) unexpected\\)",
+   "removed_by": "§5.3 provenance.producer.harness_version: producer {name, version, kind, revision, source_format} (N8)",
+   "applies_to": "native"
+  },
+  {
+   "path": "provenance/producer",
+   "validator": "required",
+   "message": "'(harness_version|source_revision|source_dirty|patch_digest)' is a required property",
+   "removed_by": "§5.3 provenance.producer.harness_version: producer {name, version, kind, revision, source_format} (N8)",
+   "applies_to": "native"
+  },
+  {
+   "path": "provenance/run",
+   "validator": "required",
+   "message": "'config_fingerprint' is a required property",
+   "removed_by": "§5.3 provenance.run.config_fingerprint: adapter extension",
+   "applies_to": "native"
+  },
+  {
+   "path": "provenance/run/run_id_source",
+   "validator": "enum",
+   "message": "'producer' is not one of \\['harness', 'archive_digest'\\]",
+   "removed_by": "§5.3 provenance.run.run_id_source harness | archive_digest: producer | archive_digest",
+   "applies_to": "native"
+  },
+  {
+   "path": "scores",
+   "validator": "type",
+   "message": "None is not of type 'object'",
+   "removed_by": "§5.3 scores (required): null when no scoring profile applies, with a core limitation (L5a)",
+   "applies_to": "no_scoring_profile"
+  },
+  {
+   "path": "release_recommendation/policy/rules/\\d+/observed",
+   "validator": "type",
+   "message": "None is not of type 'number', 'string'",
+   "removed_by": "§5.3 scores (required): null when no scoring profile applies (L5a); the readiness a policy rule observes is then null",
+   "applies_to": "no_scoring_profile"
+  },
+  {
+   "path": "telemetry",
+   "validator": "required",
+   "message": "'harness_llm' is a required property",
+   "removed_by": "§5.3 telemetry.harness_llm: the evaluator-model rename (LS7)",
+   "applies_to": "native"
+  }
+ ]
+}

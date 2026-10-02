@@ -1,0 +1,12 @@
+# Text files use LF line endings in the repository and in checkouts.
+* text=auto eol=lf
+
+# Byte-exact files: record digests, module digests and sha256 pins are computed over their raw bytes.
+# Git must never convert their line endings.
+*.jcs -text
+src/eio_agents/ontology/data/** -text
+src/eio_agents/schemas/** -text
+src/eio_agents/per/data/** -text
+src/eio_agents/_vendored/** -text
+tests/data/** -text
+tools/snapshots/** -text

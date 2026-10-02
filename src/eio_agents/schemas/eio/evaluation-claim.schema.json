@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/eio-agents/schema/0.5.0/evaluation-claim.schema.json",
+  "title": "EIO canonical evaluation claim",
+  "description": "EIO 0.5.0-draft.1. One canonical decision for one versioned predicate instance. Proof is governed by the pinned eio.profile.proof-status: a native claim needs a verified witnessing citation and exact fidelity or confirmed recurrence; native origin alone does not prove it. Identifier, run, turn, version and hash constraints introduced in 0.4.0 remain in force. `safeguard` is available to native producers.",
+  "type": "object",
+  "required": [
+    "id",
+    "run_id",
+    "predicate",
+    "predicate_version",
+    "state",
+    "parameters",
+    "evidence",
+    "decided_by",
+    "provenance"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{20}$",
+      "description": "stable_digest({run_id, predicate, predicate_version, legacy_check, turn_indices}, 20): 20 lowercase hex characters."
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|archive:[0-9a-f]{64})$",
+      "description": "A UUIDv4 minted by the producer, or 'archive:' + sha256 hex of a legacy archive."
+    },
+    "episode_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{20}$",
+      "description": "stable_digest({run_id, binding_id or trap_name}, 20) of eio.entity.episode (one trap binding). PER 2.0.0 records do not carry it."
+    },
+    "turn_indices": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "uniqueItems": true,
+      "description": "1-based turn indices, ascending."
+    },
+    "predicate": {
+      "type": "string",
+      "pattern": "^eio\\.predicate\\."
+    },
+    "predicate_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "state": {
+      "enum": [
+        "APPLICABLE_PASS",
+        "APPLICABLE_FAIL",
+        "NOT_APPLICABLE",
+        "UNRESOLVED",
+        "EVIDENCE_INVALID",
+        "EVIDENCE_INCOMPLETE",
+        "EVALUATOR_ERROR"
+      ]
+    },
+    "parameters": {
+      "type": "object"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "counterevidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "decided_by": {
+      "enum": [
+        "deterministic",
+        "semantic",
+        "human"
+      ]
+    },
+    "resolver": {
+      "type": "string",
+      "pattern": "^eio\\.resolver\\."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "rationale": {
+      "type": "string",
+      "description": "If present, deterministic rendering of an EIO explanation template, never private evaluator prose."
+    },
+    "risk": {
+      "type": "string",
+      "pattern": "^eio\\.risk\\."
+    },
+    "safeguard": {
+      "type": "string",
+      "pattern": "^eio\\.safeguard\\.",
+      "description": "The safeguard concept of a safeguard predicate (native producers). PER 2.0.0 claims do not carry it; it is derivable from the predicate."
+    },
+    "subsumed_by": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{20}$"
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "module",
+        "module_version",
+        "module_hash",
+        "plan_hash"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "type": "string",
+          "pattern": "^eio\\."
+        },
+        "module_version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$"
+        },
+        "module_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "plan_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "model": {
+          "type": "string"
+        },
+        "prompt_hash": {
+          "type": "string"
+        },
+        "seed": {
+          "type": [
+            "string",
+            "integer"
+          ]
+        }
+      }
+    }
+  }
+}

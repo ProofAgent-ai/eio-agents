@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/eio-agents/scoring/native-score-block/0.3.1-draft.1.schema.json",
+  "$comment": "Unpublished rc4 full-score draft; source verification is required independently.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "scoring_profile", "score_basis_version", "score_basis_sha256", "score_sha256", "metrics", "axes", "proof_sets", "readiness"],
+  "properties": {
+    "kind": {"const": "reference-draft"},
+    "scoring_profile": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "version", "sha256", "ontology_sha256"],
+      "properties": {
+        "id": {"const": "eio-agents.reference-scoring"},
+        "version": {"const": "0.3.1-draft.1"},
+        "sha256": {"$ref": "#/$defs/digest"},
+        "ontology_sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "score_basis_version": {"const": "eio-agents.score-basis/0.3.0-draft.1"},
+    "score_basis_sha256": {"$ref": "#/$defs/digest"},
+    "score_sha256": {"$ref": "#/$defs/digest"},
+    "metrics": {"type": "array", "items": {"$ref": "#/$defs/metric"}, "uniqueItems": true},
+    "axes": {
+      "type": "array", "minItems": 4, "maxItems": 4,
+      "prefixItems": [
+        {"allOf": [{"$ref": "#/$defs/axis"}, {"properties": {"axis": {"const": "eio.axis.context"}}}]},
+        {"allOf": [{"$ref": "#/$defs/axis"}, {"properties": {"axis": {"const": "eio.axis.behaviour"}}}]},
+        {"allOf": [{"$ref": "#/$defs/axis"}, {"properties": {"axis": {"const": "eio.axis.compliance"}}}]},
+        {"allOf": [{"$ref": "#/$defs/axis"}, {"properties": {"axis": {"const": "eio.axis.governance"}, "basis_ids": {"const": ["release_gate", "human_oversight", "policy_conformance", "obligation_coverage"]}}}]}
+      ],
+      "items": false
+    },
+    "proof_sets": {
+      "type": "object", "additionalProperties": false,
+      "required": ["reportable_finding_ids", "decisive_finding_ids", "decisive_claim_ids"],
+      "properties": {
+        "reportable_finding_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[0-9a-f]{20}$"}},
+        "decisive_finding_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[0-9a-f]{20}$"}},
+        "decisive_claim_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[0-9a-f]{20}$"}}
+      }
+    },
+    "readiness": {
+      "type": "object", "additionalProperties": false,
+      "required": ["value", "status", "withheld_codes", "raw", "cap"],
+      "properties": {
+        "value": {"$ref": "#/$defs/value"},
+        "status": {"enum": ["MEASURED", "WITHHELD"]},
+        "withheld_codes": {"type": "array", "uniqueItems": true, "items": {"const": "REQUIRED_AXIS_WITHHELD"}},
+        "raw": {"$ref": "#/$defs/value"},
+        "cap": {"type": "object", "additionalProperties": false,
+          "required": ["applied", "ceiling", "claim_ids", "prohibited_use"],
+          "properties": {
+            "applied": {"type": "boolean"},
+            "ceiling": {"enum": [null, 49.0]},
+            "claim_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[0-9a-f]{20}$"}},
+            "prohibited_use": {"type": "boolean"}
+          }}
+      },
+      "allOf": [
+        {"if": {"properties": {"status": {"const": "WITHHELD"}}},
+         "then": {"properties": {"value": {"type": "null"}, "raw": {"type": "null"},
+                                 "withheld_codes": {"const": ["REQUIRED_AXIS_WITHHELD"]}}}},
+        {"if": {"properties": {"status": {"const": "MEASURED"}}},
+         "then": {"properties": {"value": {"type": "number"}, "raw": {"type": "number"},
+                                 "withheld_codes": {"const": []}}}}
+      ]
+    }
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "value": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+    "identifier": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)+$"},
+    "metric": {
+      "type": "object", "additionalProperties": false,
+      "required": ["metric", "value", "member_claim_ids", "pre_cap", "cap_claim_ids", "context_ceiling", "status", "withheld_code"],
+      "properties": {
+        "metric": {"type": "string", "pattern": "^eio[.]metric[.][a-z0-9-]+$"},
+        "value": {"$ref": "#/$defs/value"},
+        "member_claim_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[0-9a-f]{20}$"}},
+        "pre_cap": {"$ref": "#/$defs/value"},
+        "cap_claim_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[0-9a-f]{20}$"}},
+        "context_ceiling": {"$ref": "#/$defs/value"},
+        "status": {"enum": ["MEASURED", "WITHHELD"]},
+        "withheld_code": {"enum": [null, "NO_APPLICABLE_CLAIM", "SCENARIO_BINDING_ABSENT", "SCENARIO_SEVERITY_ABSENT", "TOOLS_NOT_USED"]}
+      },
+      "allOf": [
+        {"if": {"properties": {"status": {"const": "WITHHELD"}}}, "then": {"properties": {"value": {"type": "null"}, "withheld_code": {"type": "string"}}}},
+        {"if": {"properties": {"status": {"const": "MEASURED"}}}, "then": {"properties": {"value": {"type": "number"}, "withheld_code": {"type": "null"}}}}
+      ]
+    },
+    "axis": {
+      "type": "object", "additionalProperties": false,
+      "required": ["axis", "value", "basis_ids", "status", "withheld_code"],
+      "properties": {
+        "axis": {"enum": ["eio.axis.context", "eio.axis.behaviour", "eio.axis.compliance", "eio.axis.governance"]},
+        "value": {"$ref": "#/$defs/value"},
+        "basis_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/identifier"}},
+        "status": {"enum": ["MEASURED", "WITHHELD"]},
+        "withheld_code": {"enum": [null, "NO_APPLICABLE_CLAIM", "CONTEXT_ARTIFACT_UNVERIFIED", "ASSESSOR_RATING_ABSENT", "NO_CONTEXT_CRITERION", "CONTROL_SAMPLE_INSUFFICIENT", "FRESHNESS_UNVERIFIED", "DECISIVE_SET_UNVERIFIED"]}
+      },
+      "allOf": [
+        {"if": {"properties": {"status": {"const": "WITHHELD"}}}, "then": {"properties": {"value": {"type": "null"}, "withheld_code": {"type": "string"}}}},
+        {"if": {"properties": {"status": {"const": "MEASURED"}}}, "then": {"properties": {"value": {"type": "number"}, "withheld_code": {"type": "null"}}}}
+      ]
+    }
+  }
+}

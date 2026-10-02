@@ -1,0 +1,545 @@
+{
+ "source": "04-mapping-raw-to-PER.md §5.13, converter 0.13.0 (PER 2.0.0-rc1)",
+ "note": "The one closed limitation catalogue of PER 2.0.0-rc1, in table order. `paths` are the field_path column; the first is the default path of a row.",
+ "limitations": [
+  {
+   "id": "per.lim.scoring_profile.none",
+   "status": "NOT_SUPPLIED",
+   "paths": ["/scores"],
+   "raised_when": "a native evaluation bundle declares no scoring profile",
+   "reason": "No scoring profile was declared for this evaluation.",
+   "impact": "Readiness and score-dependent release rules were not evaluated.",
+   "next_step": "Declare an applicable scoring profile and re-evaluate."
+  },
+  {
+   "id": "per.lim.run_id.archive_digest",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/provenance/run/run_id"
+   ],
+   "raised_when": "schema 1",
+   "reason": "The archive carries no run identifier; run_id is derived from archive_sha256.",
+   "impact": "Two uploads of byte-identical archives share a run_id; runs cannot be ordered in time.",
+   "next_step": "Upgrade to archive schema 2 (harness mints a UUIDv4 at evaluate() start)."
+  },
+  {
+   "id": "per.lim.anchor.turn_scope",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/evidence/refs/{ref}"
+   ],
+   "raised_when": "a turn-scope `AGENT_SPAN` cited by a claim whose row carried a quote that is not a span of the answer (a code or gated annotation, or a semantic quote found neither exactly nor by casefold)",
+   "reason": "The citing claim's quote is not a span of this answer; the whole answer is cited.",
+   "impact": "The ref shows what the agent said on turn {turn} but does not point at the sentence and is not a witnessing anchored ref.",
+   "next_step": "Emit offsets from code checks and anchorable quotes from jurors (migration step 4)."
+  },
+  {
+   "id": "per.lim.tool_output.not_captured",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/evidence/completeness/tool_outputs"
+   ],
+   "raised_when": "no `tools_called[].result` anywhere",
+   "reason": "Tool results are returned to the agent as stubs and not recorded.",
+   "impact": "TOOL_RESULT refs cannot be cited; state-changing effects are inferred from the call only.",
+   "next_step": "Record tool results in tools_called[].result."
+  },
+  {
+   "id": "per.lim.context.not_supplied",
+   "status": "NOT_SUPPLIED",
+   "paths": [
+    "/provenance/inputs/context_artifacts"
+   ],
+   "raised_when": "no `context_engineering` and no artifacts",
+   "reason": "No context artifact is embedded in the archive.",
+   "impact": "Explanations carry no context refs; the Q axis is not evaluated.",
+   "next_step": "Run with --assess-context and embed the artifacts."
+  },
+  {
+   "id": "per.lim.plan_hash.proxy",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/provenance/run/plan_hash"
+   ],
+   "raised_when": "no `metadata.plan_hash`",
+   "reason": "The planner does not emit a frozen plan hash; plan_hash is computed from seed, selected traps and turns.",
+   "impact": "The obligation set frozen at plan time cannot be verified.",
+   "next_step": "Emit the evaluation-plan hash from the planner."
+  },
+  {
+   "id": "per.lim.policy.none",
+   "status": "NOT_SUPPLIED",
+   "paths": [
+    "/release_recommendation/policy"
+   ],
+   "raised_when": "no profile and no tier",
+   "reason": "The archive carries no governance profile.",
+   "impact": "No profile rule (readiness floor, block on severity, sign-off) was evaluated; only evaluation conditions apply.",
+   "next_step": "Run with --governance-profile so the profile is embedded."
+  },
+  {
+   "id": "per.lim.policy.tier_reconstructed",
+   "status": "NOT_SUPPLIED",
+   "paths": [
+    "/release_recommendation/policy"
+   ],
+   "raised_when": "schema 1 with `governance_tier`",
+   "reason": "The profile was reconstructed from the tier label \"{tier}\"; its intake answers are not in the archive.",
+   "impact": "Profile rules use the tier's default controls; facts derived from the intake are unknown.",
+   "next_step": "Embed the governance profile object in the archive (archive schema 2)."
+  },
+  {
+   "id": "per.lim.severity.none",
+   "status": "NOT_APPLICABLE",
+   "paths": [
+    "/findings/{finding_id}/severity"
+   ],
+   "raised_when": "finding without an in-scope obligation",
+   "reason": "No in-scope coverage obligation targets {predicate}.",
+   "impact": "The finding carries no severity and cannot trigger a block-on-severity rule.",
+   "next_step": "Add an obligation for {predicate} to the domain module, or accept the finding as unrated."
+  },
+  {
+   "id": "per.lim.timestamps.not_captured",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/provenance/run/started_at",
+    "/provenance/run/completed_at"
+   ],
+   "raised_when": "schema 1",
+   "reason": "The archive records no run start or end time.",
+   "impact": "The record cannot be placed in time except by upload time.",
+   "next_step": "Record started_at and completed_at (archive schema 2)."
+  },
+  {
+   "id": "per.lim.producer.version_not_captured",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/provenance/producer/harness_version"
+   ],
+   "raised_when": "no `metadata.harness_version`",
+   "reason": "The producer's harness version is not recorded; only the source revision is.",
+   "impact": "The record cannot name the released harness that produced the archive.",
+   "next_step": "Record the harness version in metadata (archive schema 2)."
+  },
+  {
+   "id": "per.lim.harness_llm.per_stage",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/provenance/harness_llm/per_stage"
+   ],
+   "raised_when": "no `metadata.stage_models`",
+   "reason": "The archive does not record which harness LLM served each flow stage.",
+   "impact": "Semantic claims name the primary model, which may not be the model that decided them.",
+   "next_step": "Record stage models (archive schema 2)."
+  },
+  {
+   "id": "per.lim.harness_llm.fallback_unattributed",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/provenance/harness_llm/fallback"
+   ],
+   "raised_when": "`fallback_call_count > 0`",
+   "reason": "{calls} of {total} harness-LLM calls were served by the fallback model; the archive does not record which.",
+   "impact": "Some semantic claims may have been decided by the fallback model.",
+   "next_step": "Record the model per call or per stage."
+  },
+  {
+   "id": "per.lim.profile.not_embedded",
+   "status": "NOT_SUPPLIED",
+   "paths": [
+    "/provenance/inputs/governance_profile"
+   ],
+   "raised_when": "`governance_profile_source` present, schema 1",
+   "reason": "A governance profile was used by the run but only its name was archived.",
+   "impact": "profile_sha256 is null; the policy is reconstructed.",
+   "next_step": "Embed the profile object (archive schema 2)."
+  },
+  {
+   "id": "per.lim.context.artifacts_not_embedded",
+   "status": "NOT_SUPPLIED",
+   "paths": [
+    "/provenance/inputs/context_artifacts"
+   ],
+   "raised_when": "`context_engineering` present but no artifact bytes/digests",
+   "reason": "Context artifacts were assessed but not embedded.",
+   "impact": "Context refs cannot be anchored; the Q axis value is carried from the harness assessor and checklist.",
+   "next_step": "Embed context artifacts or their digests (archive schema 2)."
+  },
+  {
+   "id": "per.lim.agent.not_captured",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/subject/agent/agent_id",
+    "/subject/agent/version"
+   ],
+   "raised_when": "not in metadata",
+   "reason": "The agent id or version passed on the command line is not persisted in the archive.",
+   "impact": "The record cannot be joined to an agent registration except by name.",
+   "next_step": "Persist --agent and --agent-version (archive schema 2)."
+  },
+  {
+   "id": "per.lim.ai_bom.no_digests",
+   "status": "NOT_SUPPLIED",
+   "paths": [
+    "/subject/ai_bom/content_hash"
+   ],
+   "raised_when": "no component digest",
+   "reason": "No AI-BOM component carries a content digest.",
+   "impact": "The AI-BOM names components but cannot identify their versions.",
+   "next_step": "Embed context digests (archive schema 2)."
+  },
+  {
+   "id": "per.lim.domain.default",
+   "status": "NOT_SUPPLIED",
+   "paths": [
+    "/scope/domains"
+   ],
+   "raised_when": "no domain matched",
+   "reason": "No domain was identified from the profile or the inferred domains.",
+   "impact": "Only generic-agent obligations apply; domain-specific risk is untested.",
+   "next_step": "Declare the domain in the governance profile."
+  },
+  {
+   "id": "per.lim.facts.not_declared",
+   "status": "NOT_SUPPLIED",
+   "paths": [
+    "/scope/facts"
+   ],
+   "raised_when": "any fact `null`",
+   "reason": "{n} facts used by required_when are not declared.",
+   "impact": "Obligations depending on them have required: null.",
+   "next_step": "Declare intake answers in the governance profile."
+  },
+  {
+   "id": "per.lim.retrieval_text.not_captured",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/evidence/completeness/retrieval_text"
+   ],
+   "raised_when": "retrievals carry `source` only",
+   "reason": "Retrieved text is not recorded; only the source name is.",
+   "impact": "RETRIEVAL refs cannot be cited; the channel an injection came through is not evidenced.",
+   "next_step": "Record retrieval text or digests."
+  },
+  {
+   "id": "per.lim.sentinel_locations.not_captured",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/evidence/completeness/sentinel_locations"
+   ],
+   "raised_when": "schema 1",
+   "reason": "Planted sentinel positions are not recorded.",
+   "impact": "Injected instructions are cited as the whole user turn.",
+   "next_step": "Record sentinel offsets (archive schema 2)."
+  },
+  {
+   "id": "per.lim.code_check_offsets.not_captured",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/evidence/completeness/code_check_offsets"
+   ],
+   "raised_when": "schema 1",
+   "reason": "Code checks record annotations, not offsets.",
+   "impact": "Code-decided evidence is reconstructed by recipe.",
+   "next_step": "Emit offsets from code checks."
+  },
+  {
+   "id": "per.lim.reliability_pass_transcripts.not_captured",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/evidence/completeness/reliability_pass_transcripts"
+   ],
+   "raised_when": "reliability present, no pass text",
+   "reason": "Re-test answers are not stored; only counts survive.",
+   "impact": "Recurrence rows carry no evidence refs.",
+   "next_step": "Store per-pass answers or digests (migration step 14)."
+  },
+  {
+   "id": "per.lim.anchor.no_quote",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/evidence/refs/{ref}"
+   ],
+   "raised_when": "turn-scope `AGENT_SPAN` cited only by claims without a quote",
+   "reason": "The claims citing this answer recorded no span.",
+   "impact": "The ref shows the judged answer, not the sentence the decision rests on.",
+   "next_step": "Require a quote on every semantic decision."
+  },
+  {
+   "id": "per.lim.anchor.sentinel_location",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/evidence/refs/{ref}"
+   ],
+   "raised_when": "turn-scope `USER_INPUT`",
+   "reason": "The location of the planted instruction in the user turn is not recorded.",
+   "impact": "The whole user turn is cited as the instruction source.",
+   "next_step": "Record sentinel offsets (archive schema 2)."
+  },
+  {
+   "id": "per.lim.juror_view.not_captured",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/evidence/refs/{ref}"
+   ],
+   "raised_when": "rule A-6",
+   "reason": "The evaluator cited text as user input that is not in this turn's question.",
+   "impact": "The juror's view is wider than the archived transcript; the citation cannot be verified.",
+   "next_step": "Archive the exact evaluator input per turn."
+  },
+  {
+   "id": "per.lim.tool_args.conflict",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/evidence/refs/{ref}"
+   ],
+   "raised_when": "`arguments` ≠ `args`",
+   "reason": "The tool call carries different `arguments` and `args`; `arguments` was used.",
+   "impact": "—",
+   "next_step": "Emit one arguments key."
+  },
+  {
+   "id": "per.lim.trap_bindings.not_captured",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/coverage/dispatch"
+   ],
+   "raised_when": "schema 1",
+   "reason": "The checks each trap declared are not in the archive.",
+   "impact": "A declared check that produced no verdict is indistinguishable from one never selected.",
+   "next_step": "Record declared checks per turn (archive schema 2)."
+  },
+  {
+   "id": "per.lim.metric.trap_severity_weights",
+   "status": "NOT_APPLICABLE",
+   "paths": [
+    "/scores/metrics"
+   ],
+   "raised_when": "semantics 2.x with `score_attribution`",
+   "reason": "Semantics 2.x metric values weight each claim by its trap's scenario severity.",
+   "impact": "Metric values are not the EIO metric view; finding severities are unaffected.",
+   "next_step": "None in PER 2.0: the EIO metric weights apply only when semantics 3@ is activated."
+  },
+  {
+   "id": "per.lim.metric.claims_without_value",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/scores/metrics/{metric}"
+   ],
+   "raised_when": "NOT_EVALUATED with scored claims",
+   "reason": "{scored} claims were decided for this metric but the harness published no value.",
+   "impact": "The metric is excluded from the E axis although evidence exists.",
+   "next_step": "Publish metric values whenever a claim is scored."
+  },
+  {
+   "id": "per.lim.metric.attribution_mismatch",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/scores/metrics/{metric}"
+   ],
+   "raised_when": "MAP-25 fails",
+   "reason": "The score attribution does not reconcile with the published value ({delta}).",
+   "impact": "Driver contributions are approximate.",
+   "next_step": "Fix the attribution in the harness."
+  },
+  {
+   "id": "per.lim.metric.attribution_absent",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/scores/metrics"
+   ],
+   "raised_when": "no `score_attribution` (main tree)",
+   "reason": "The archive has no per-claim score attribution.",
+   "impact": "Metric drivers are ranked by state and carry no points.",
+   "next_step": "Emit score_attribution."
+  },
+  {
+   "id": "per.lim.scores.producer_divergence",
+   "status": "NOT_APPLICABLE",
+   "paths": [
+    "/scores/readiness/value"
+   ],
+   "raised_when": "recomputed PAI differs from the archive by > 0.05",
+   "reason": "The converter's readiness {converter} differs from the producer's {producer}.",
+   "impact": "The record uses the converter's value.",
+   "next_step": "Re-run with the converter's harness version."
+  },
+  {
+   "id": "per.lim.cap.no_claim",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/scores/readiness/cap_reasons"
+   ],
+   "raised_when": "a harness-2.x hard block fired for a reason other than a deterministic, witnessed cap claim (`prohibited_use`, `critical_floor`, `critical_technical_issue`)",
+   "reason": "The readiness index is hard-blocked by \"{trigger}\", which no claim triggers.",
+   "impact": "The block is recorded as a claimless readiness block; it reaches the release recommendation only through the rule that carries it (prohibited use, a critical metric floor), and a critical technical issue only through the readiness floor.",
+   "next_step": "None: a claimless block is reported, never converted into a claim."
+  },
+  {
+   "id": "per.lim.cache.ballot_hits",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/provenance/capsule"
+   ],
+   "raised_when": "`ballot_cache.hits > 0`",
+   "reason": "{hits} ballots were replayed from the ballot cache; cache identity is not captured.",
+   "impact": "Those semantic decisions were not re-adjudicated in this run.",
+   "next_step": "Record cache identity (capsule)."
+  },
+  {
+   "id": "per.lim.transcript.replayed",
+   "status": "NOT_APPLICABLE",
+   "paths": [
+    "/provenance/run/transcript_source"
+   ],
+   "raised_when": "`transcript_source == replayed`",
+   "reason": "The transcript was replayed from an earlier run; this run re-scored it.",
+   "impact": "Agent behaviour was observed at the earlier run; this record is not independent evidence of recurrence.",
+   "next_step": "Treat as a re-adjudication, not a new trial."
+  },
+  {
+   "id": "per.lim.checks_version.mismatch",
+   "status": "NOT_APPLICABLE",
+   "paths": [
+    "/provenance/inputs/checks_version"
+   ],
+   "raised_when": "producer `capsule.checks_version` ≠ `eio.profile.legacy-crosswalk` `checks_version` (MAP-5), every check id known",
+   "reason": "The producer's checks vocabulary {producer} differs from the vocabulary {converter} that the EIO crosswalk covers.",
+   "impact": "Polarity, metric membership, resolvers and the not-implemented registry were read from eio.mapping.legacy, keyed to {converter}.",
+   "next_step": "Convert with an EIO release whose legacy crosswalk covers the producer's vocabulary."
+  },
+  {
+   "id": "per.lim.ontology.producer_differs",
+   "status": "NOT_APPLICABLE",
+   "paths": [
+    "/header/eio/ontology_digest"
+   ],
+   "raised_when": "`capsule.ontology.ontology_digest` ≠ converter's",
+   "reason": "The run was produced under EIO {producer_release} ({producer_digest}).",
+   "impact": "Claims are re-projected with the converter's crosswalk.",
+   "next_step": "—"
+  },
+  {
+   "id": "per.lim.context.unknown_criterion",
+   "status": "NOT_APPLICABLE",
+   "paths": [
+    "/scores/axes"
+   ],
+   "raised_when": "a harness criterion id has no EIO criterion, or a context-gap absence entry matches no control by the §4.6 control join",
+   "reason": "The context assessment reports \"{id}\", which has no EIO criterion or control.",
+   "impact": "It is excluded from components and context-gap findings.",
+   "next_step": "Align the harness checklist with eio.context.criteria."
+  },
+  {
+   "id": "per.lim.context_gap.no_claim",
+   "status": "NOT_APPLICABLE",
+   "paths": [
+    "/findings/{finding_id}"
+   ],
+   "raised_when": "each CONTEXT_GAP finding",
+   "reason": "Context gaps are evidenced by typed absence, not by a claim.",
+   "impact": "Context-criterion assessments are not claims in EIO 0.4.0; the finding rests on typed absence evidence only.",
+   "next_step": "Add context-criterion claims to EIO."
+  },
+  {
+   "id": "per.lim.reliability.orphan_row",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/reliability/recurrence"
+   ],
+   "raised_when": "a `per_finding` row without a FAIL claim",
+   "reason": "A re-test row names {ledger_key}, which has no failing claim.",
+   "impact": "The row is not joined.",
+   "next_step": "—"
+  },
+  {
+   "id": "per.lim.archive.unknown_keys",
+   "status": "NOT_APPLICABLE",
+   "paths": [
+    "/header/archive_schema"
+   ],
+   "raised_when": "unknown top-level keys",
+   "reason": "The archive has keys this converter does not map: {keys}.",
+   "impact": "They are retained in the archive only.",
+   "next_step": "Upgrade the converter."
+  },
+  {
+   "id": "per.lim.state.null_with_ballots",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/claims"
+   ],
+   "raised_when": "`state` absent and `observed: null` with `votes_total > 0` (F-17)",
+   "reason": "{n} verdicts have observed: null although ballots were cast; the archive does not say whether the panel found the check inapplicable or voided an ungrounded citation.",
+   "impact": "They are recorded NOT_APPLICABLE with applicability_basis.source observed_null; up to {m} of them may be evaluator faults.",
+   "next_step": "Record `state` on every verdict (archive schema 2)."
+  },
+  {
+   "id": "per.lim.vote_rule.not_captured",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/claims"
+   ],
+   "raised_when": "the record has at least one semantic claim from `check_verdicts` and the archive records no vote rule (every archive schema 1)",
+   "reason": "The archive does not record the vote rule that turned the harness LLM's ballots into claim states.",
+   "impact": "Semantic states follow a vote rule the record cannot name; votes are recounted per (persona, round) pair and never re-decided.",
+   "next_step": "Record the vote rule in metadata (archive schema 2)."
+  },
+  {
+   "id": "per.lim.subject_key.not_declared",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/claims"
+   ],
+   "raised_when": "the tool schema declares no `subject_argument` and no `action_class` (every archive schema 1)",
+   "reason": "No tool declares its subject argument or action class.",
+   "impact": "No claim is bound to a subject; a subject-free state fact or typed absence never satisfies a subject-constrained predicate.",
+   "next_step": "Declare subject_argument and action_class for every tool (archive schema 2)."
+  },
+  {
+   "id": "per.lim.state.applicability_embedded",
+   "status": "NOT_APPLICABLE",
+   "paths": [
+    "/claims/{claim_id}"
+   ],
+   "raised_when": "an `APPLICABLE_PASS` claim of a legacy check declared `applicability_embedded: true` in `eio.mapping.legacy` (seed: `invented_rule_or_deadline`)",
+   "reason": "The legacy question embeds its applicability precondition, so this pass may mean that the precondition did not hold.",
+   "impact": "The claim counts as a pass although the predicate may not have applied.",
+   "next_step": "Split the question into an applicability ballot and a violation ballot."
+  },
+  {
+   "id": "per.lim.frameworks.not_in_eio",
+   "status": "NOT_APPLICABLE",
+   "paths": [
+    "/scope/frameworks"
+   ],
+   "raised_when": "the embedded profile names a framework that `runtime_crosswalk.frameworks` maps to null (e.g. \"Model Risk (SR 11-7)\")",
+   "reason": "The governance profile names \"{name}\", which is not an EIO 0.4.0 framework.",
+   "impact": "No control rows are materialised for it.",
+   "next_step": "Add the framework to EIO or remove it from the profile."
+  },
+  {
+   "id": "per.lim.cap.unwitnessed_claim",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/scores/readiness/cap_reasons"
+   ],
+   "raised_when": "the harness-2.x hard block fired through a code-decided claim on a cap predicate that cites no witnessing anchored ref (rule W1)",
+   "reason": "The harness blocked readiness because of claim {claim_id}, which cites no witnessing anchored ref.",
+   "impact": "The claim is not a cap: it names no cap reason, is never PROVEN and is never a release condition; the readiness value keeps the harness-2.x number.",
+   "next_step": "Record the tool call, state change or planted span the code check observed (archive schema 2)."
+  },
+  {
+   "id": "per.lim.checker.outcome_mismatch",
+   "status": "NOT_CAPTURED",
+   "paths": [
+    "/claims/{claim_id}"
+   ],
+   "raised_when": "checker-authoritative mode: a record whose `outcome` disagrees with its cell resolution (§4.7)",
+   "reason": "The checker record's outcome disagrees with its cell resolution; the resolution was used.",
+   "impact": "The claim state follows the cell jury, not the record outcome.",
+   "next_step": "Emit checker records whose outcome equals the cell resolution."
+  }
+ ]
+}

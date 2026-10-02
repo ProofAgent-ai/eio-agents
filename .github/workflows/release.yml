@@ -1,0 +1,119 @@
+name: Release
+
+# Manual only: Actions > Release > Run workflow, then choose the ref and the package index.
+# Builds the sdist and the wheel from the chosen ref, checks them, runs the test suite against the built wheel in a clean
+# virtual environment, and publishes through PyPI trusted publishing (OpenID Connect; no API token is stored).
+# pypa/gh-action-pypi-publish also uploads PEP 740 attestations for both files.
+#
+# Before the first run:
+#   - create the GitHub environments `testpypi` and `pypi` (with required reviewers for `pypi`);
+#   - register a pending trusted publisher on test.pypi.org and on pypi.org: owner ProofAgent-ai, repository
+#     eio-agents, workflow release.yml, environment `testpypi` or `pypi` respectively.
+#
+# Publishing to PyPI requires a tag `v<version>` as the ref and refuses `.devN` versions (GOVERNANCE.md: development
+# builds are never published). TestPyPI accepts any ref.
+
+on:
+  workflow_dispatch:
+    inputs:
+      index:
+        description: "Package index to publish to"
+        type: choice
+        options: [testpypi, pypi]
+        default: testpypi
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+
+jobs:
+  build:
+    name: Build and check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Check the version and the ref
+        env:
+          INDEX: ${{ inputs.index }}
+        run: |
+          version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          echo "Version $version, ref $GITHUB_REF, index $INDEX"
+          if ! grep -qx "__version__ = \"$version\"" src/eio_agents/__init__.py; then
+            echo "::error::src/eio_agents/__init__.py does not set __version__ = \"$version\""
+            exit 1
+          fi
+          if [ "$INDEX" = "pypi" ]; then
+            case "$version" in
+              *dev*) echo "::error::$version is a development build; .devN versions are never published to PyPI"; exit 1 ;;
+            esac
+            if [ "$GITHUB_REF" != "refs/tags/v$version" ]; then
+              echo "::error::publish to PyPI from the tag v$version (the chosen ref is $GITHUB_REF)"
+              exit 1
+            fi
+          fi
+      - name: Install the build tools
+        run: python -m pip install "build>=1.2" "twine>=6.1"
+      - name: Build
+        run: python -m build
+      - name: twine check
+        run: python -m twine check --strict dist/*
+      - name: Check the contents of the distributions
+        run: python .github/scripts/check_dist.py dist
+      - name: Test suite against the built wheel (clean virtual environment, ProofAgent Harness absent)
+        run: |
+          python -m venv "$RUNNER_TEMP/wheel-venv"
+          "$RUNNER_TEMP/wheel-venv/bin/python" -m pip install dist/eio_agents-*.whl "pytest>=7"
+          "$RUNNER_TEMP/wheel-venv/bin/python" -c "import importlib.util, sys; sys.exit(importlib.util.find_spec('proofagent_harness') is not None)"
+          "$RUNNER_TEMP/wheel-venv/bin/python" -c "import eio_agents, pathlib; assert 'site-packages' in pathlib.Path(eio_agents.__file__).resolve().parts"
+          "$RUNNER_TEMP/wheel-venv/bin/python" -m pytest -q -p no:cacheprovider
+          "$RUNNER_TEMP/wheel-venv/bin/python" -m pytest -q -p no:cacheprovider tests/test_verifier_selftest.py
+      - name: SHA-256 of the distributions (job summary)
+        run: |
+          {
+            echo '```'
+            sha256sum dist/*
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish to ${{ inputs.index }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: ${{ inputs.index }}
+      url: ${{ inputs.index == 'pypi' && 'https://pypi.org/p/eio-agents' || 'https://test.pypi.org/p/eio-agents' }}
+    permissions:
+      id-token: write  # trusted publishing and attestations
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: dist
+          path: dist
+      - name: Publish to TestPyPI
+        if: inputs.index == 'testpypi'
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33  # v1.14.2
+        with:
+          repository-url: https://test.pypi.org/legacy/
+      - name: Publish to PyPI
+        if: inputs.index == 'pypi'
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33  # v1.14.2

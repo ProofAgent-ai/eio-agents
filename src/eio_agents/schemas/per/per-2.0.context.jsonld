@@ -1,0 +1,1061 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@protected": true,
+    "@vocab": "https://w3id.org/eio-agents/id/",
+    "eioid": "https://w3id.org/eio-agents/id/",
+    "eiop": "https://w3id.org/eio-agents/prop/",
+    "per": "https://w3id.org/eio-agents/per/terms/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "dct": "http://purl.org/dc/terms/",
+    "id": "@id",
+    "type": "@type",
+    "Report": "eioid:eio.entity.report",
+    "EvaluationClaim": "eioid:eio.entity.evaluation-claim",
+    "EvidenceRef": "eioid:eio.entity.evidence-ref",
+    "Finding": "eioid:eio.entity.finding",
+    "ControlStatus": "eioid:eio.entity.control-status",
+    "ReleaseDecision": "eioid:eio.entity.release-decision",
+    "Run": "eioid:eio.entity.run",
+    "Explanation": "per:Explanation",
+    "Limitation": "per:Limitation",
+    "header": {
+      "@id": "per:header",
+      "@context": {
+        "per_version": "per:per_version",
+        "per_semantics_version": "per:per_semantics_version",
+        "release_semantics": "per:release_semantics",
+        "converter": {
+          "@id": "per:converter",
+          "@context": {
+            "name": "per:converter_name"
+          }
+        },
+        "eio": {
+          "@id": "per:eio_release",
+          "@context": {
+            "release": "per:eio_release_version",
+            "ontology_digest": "per:ontology_digest",
+            "ontology_sha256": "per:ontology_sha256",
+            "modules": {
+              "@id": "per:eio_module_hashes",
+              "@type": "@json"
+            }
+          }
+        },
+        "archive_schema": {
+          "@id": "per:archive_schema",
+          "@type": "xsd:integer"
+        },
+        "schema_uri": {
+          "@id": "dct:conformsTo",
+          "@type": "@id"
+        }
+      }
+    },
+    "provenance": {
+      "@id": "per:provenance",
+      "@context": {
+        "run": {
+          "@id": "per:run",
+          "@context": {
+            "run_id": "eiop:run_id",
+            "run_id_source": "per:run_id_source",
+            "started_at": {
+              "@id": "prov:startedAtTime",
+              "@type": "xsd:dateTime"
+            },
+            "completed_at": {
+              "@id": "prov:endedAtTime",
+              "@type": "xsd:dateTime"
+            },
+            "config_fingerprint": "per:config_fingerprint",
+            "turns": {
+              "@id": "per:turn_counts",
+              "@type": "@json"
+            },
+            "transcript_source": "per:transcript_source"
+          }
+        },
+        "producer": {
+          "@id": "per:producer",
+          "@context": {
+            "producer_version": "per:producer_version_declared",
+            "source_revision": "eiop:revision",
+            "source_dirty": "per:source_dirty",
+            "patch_digest": "eiop:patch_digest"
+          }
+        },
+        "evaluator_models": {
+          "@id": "per:evaluator_models",
+          "@context": {
+            "primary": {
+              "@id": "per:primary_model",
+              "@context": {
+                "calls": {
+                  "@id": "per:calls",
+                  "@type": "xsd:integer"
+                }
+              }
+            },
+            "fallback": {
+              "@id": "per:fallback_model",
+              "@context": {
+                "calls": {
+                  "@id": "per:calls",
+                  "@type": "xsd:integer"
+                }
+              }
+            },
+            "per_stage": {
+              "@id": "per:per_stage_models",
+              "@type": "@json"
+            },
+            "consensus": {
+              "@id": "per:consensus",
+              "@type": "@json"
+            }
+          }
+        },
+        "inputs": {
+          "@id": "per:inputs",
+          "@context": {
+            "governance_profile": {
+              "@id": "per:governance_profile",
+              "@context": {
+                "name": "per:profile_name",
+                "profile_sha256": "per:profile_sha256",
+                "embedded": "per:embedded"
+              }
+            },
+            "context_artifacts": {
+              "@id": "per:context_artifact",
+              "@context": {
+                "artifact_kind": {
+                  "@id": "eiop:kind",
+                  "@type": "@vocab"
+                },
+                "name": "eiop:artifact_id",
+                "sha256": "eiop:content_hash",
+                "code_points": {
+                  "@id": "eiop:char_count",
+                  "@type": "xsd:integer"
+                },
+                "embedded": "per:embedded",
+                "data_class": {
+                  "@id": "eiop:data_class",
+                  "@type": "@vocab"
+                }
+              },
+              "@container": "@set"
+            },
+            "scenarios": {
+              "@id": "per:scenario_selection",
+              "@context": {
+                "loaded": {
+                  "@id": "per:scenarios_loaded",
+                  "@type": "xsd:integer"
+                },
+                "selected": {
+                  "@id": "per:scenario_selected",
+                  "@container": "@list"
+                },
+                "selected_digest": "per:selected_digest"
+              }
+            },
+            "checks_version": "per:checks_version"
+          }
+        },
+        "capsule": {
+          "@id": "per:capsule",
+          "@context": {
+            "reproducible": "eiop:reproducible",
+            "reproducible_declared": "per:reproducible_declared",
+            "missing_fields": {
+              "@id": "per:missing_capsule_field",
+              "@container": "@set"
+            },
+            "lock_digest": "per:lock_digest",
+            "caveats": {
+              "@id": "eiop:caveats",
+              "@container": "@set"
+            }
+          }
+        }
+      }
+    },
+    "subject": {
+      "@id": "per:subject",
+      "@context": {
+        "agent": {
+          "@id": "per:agent",
+          "@context": {
+            "agent_id": "eiop:agent_id",
+            "class": "per:agent_class",
+            "determinism": "per:agent_determinism",
+            "role": "per:agent_role",
+            "goal": "per:agent_goal",
+            "business_case": "per:agent_business_case"
+          }
+        },
+        "ai_bom": {
+          "@id": "per:ai_bom",
+          "@context": {
+            "content_hash": "eiop:content_hash",
+            "components": {
+              "@id": "eioid:eio.relation.documents-component-of",
+              "@context": {
+                "kind": "per:component_kind",
+                "name": "per:component_name",
+                "sha256": "eiop:content_hash"
+              },
+              "@container": "@set"
+            }
+          }
+        }
+      }
+    },
+    "scope": {
+      "@id": "per:scope",
+      "@context": {
+        "domains": {
+          "@id": "per:domain_resolution",
+          "@context": {
+            "id": {
+              "@id": "per:domain",
+              "@type": "@vocab"
+            },
+            "source": "per:resolution_source",
+            "matched": "per:matched"
+          },
+          "@container": "@set"
+        },
+        "tier": {
+          "@id": "per:tier_resolution",
+          "@context": {
+            "id": {
+              "@id": "eiop:tier",
+              "@type": "@vocab"
+            },
+            "source": "per:resolution_source"
+          }
+        },
+        "autonomy": {
+          "@id": "eiop:autonomy_level",
+          "@type": "@vocab"
+        },
+        "region": {
+          "@id": "eiop:region",
+          "@type": "@vocab"
+        },
+        "facts": {
+          "@id": "per:facts",
+          "@type": "@json"
+        },
+        "escalations": {
+          "@id": "per:escalations",
+          "@type": "@json"
+        },
+        "frameworks": {
+          "@id": "per:framework_selection",
+          "@context": {
+            "id": {
+              "@id": "per:framework",
+              "@type": "@vocab"
+            },
+            "registry_id": "per:registry_id",
+            "state": "per:framework_state",
+            "basis": {
+              "@id": "per:selection_basis",
+              "@container": "@set"
+            }
+          },
+          "@container": "@set"
+        },
+        "caveats": {
+          "@id": "per:scope_caveat",
+          "@context": {
+            "id": "per:caveat_id",
+            "text": "per:caveat_text"
+          },
+          "@container": "@set"
+        }
+      }
+    },
+    "evidence": {
+      "@id": "per:evidence",
+      "@context": {
+        "cited_refs_hash": "per:cited_refs_hash",
+        "transcript_sha256": "per:transcript_sha256",
+        "archive_pointer": {
+          "@id": "per:archive_pointer",
+          "@type": "@json"
+        },
+        "refs": {
+          "@id": "per:evidence_ref",
+          "@context": {
+            "@base": null,
+            "kind": {
+              "@id": "eiop:kind",
+              "@type": "@vocab",
+              "@context": {
+                "AGENT_SPAN": "eioid:eio.evidence.AGENT_SPAN",
+                "POLICY_SPAN": "eioid:eio.evidence.POLICY_SPAN",
+                "TOOL_RECEIPT": "eioid:eio.evidence.TOOL_RECEIPT",
+                "STATE_FACT": "eioid:eio.evidence.STATE_FACT",
+                "STATE_TRANSITION": "eioid:eio.evidence.STATE_TRANSITION",
+                "TYPED_ABSENCE": "eioid:eio.evidence.TYPED_ABSENCE",
+                "CALCULATION": "eioid:eio.evidence.CALCULATION",
+                "PROVENANCE": "eioid:eio.evidence.PROVENANCE",
+                "HUMAN_SIGNOFF": "eioid:eio.evidence.HUMAN_SIGNOFF",
+                "USER_INPUT": "eioid:eio.evidence.USER_INPUT",
+                "RETRIEVAL": "eioid:eio.evidence.RETRIEVAL"
+              }
+            },
+            "source_type": {
+              "@id": "eiop:source_type",
+              "@type": "@vocab",
+              "@context": {
+                "AGENT_ANSWER": "eioid:eio.source.AGENT_ANSWER",
+                "AGENT_TOOL_CALL": "eioid:eio.source.AGENT_TOOL_CALL",
+                "TOOL_RESULT": "eioid:eio.source.TOOL_RESULT",
+                "USER_INPUT": "eioid:eio.source.USER_INPUT",
+                "RETRIEVAL": "eioid:eio.source.RETRIEVAL",
+                "POLICY_SOURCE": "eioid:eio.source.POLICY_SOURCE",
+                "HARNESS_SIGNAL": "eioid:eio.source.HARNESS_SIGNAL",
+                "JUROR_INFERENCE": "eioid:eio.source.JUROR_INFERENCE",
+                "STATE_LEDGER": "eioid:eio.source.STATE_LEDGER",
+                "HUMAN_REVIEW": "eioid:eio.source.HUMAN_REVIEW"
+              }
+            },
+            "can_prove_agent_behaviour": "eiop:can_prove_agent_behaviour",
+            "anchor": "per:anchor",
+            "char_start": {
+              "@id": "eiop:char_start",
+              "@type": "xsd:integer"
+            },
+            "char_end": {
+              "@id": "eiop:char_end",
+              "@type": "xsd:integer"
+            },
+            "span_sha256": "eiop:text_hash",
+            "excerpt": "per:excerpt",
+            "excerpt_truncated": "per:excerpt_truncated",
+            "excerpt_redacted": "per:excerpt_redacted",
+            "source_ref": "eiop:source_ref",
+            "source_sha256": "per:source_sha256",
+            "tool": {
+              "@id": "per:tool_receipt",
+              "@context": {
+                "name": "eiop:tool_name",
+                "call_index": {
+                  "@id": "per:call_index",
+                  "@type": "xsd:integer"
+                },
+                "arguments_sha256": "eiop:arguments_hash",
+                "arguments_pointer": "per:arguments_pointer",
+                "output": {
+                  "@id": "per:tool_output",
+                  "@type": "@json"
+                }
+              }
+            },
+            "statement": {
+              "@id": "per:statement",
+              "@type": "@json"
+            },
+            "valid_from": {
+              "@id": "eiop:valid_from",
+              "@type": "xsd:integer"
+            },
+            "valid_until": {
+              "@id": "eiop:valid_until",
+              "@type": "xsd:integer"
+            }
+          },
+          "@container": "@set"
+        },
+        "turns": {
+          "@id": "per:turn",
+          "@context": {
+            "scenario": "per:scenario",
+            "question_sha256": "per:question_sha256",
+            "answer_sha256": "per:answer_sha256",
+            "tool_calls": {
+              "@id": "per:tool_call",
+              "@context": {
+                "name": "eiop:tool_name",
+                "arguments_sha256": "eiop:arguments_hash"
+              },
+              "@container": "@list"
+            },
+            "retrievals": {
+              "@id": "per:retrieval",
+              "@context": {
+                "source": "eiop:source"
+              },
+              "@container": "@list"
+            }
+          },
+          "@container": "@list"
+        },
+        "counts": {
+          "@id": "per:evidence_counts",
+          "@type": "@json"
+        },
+        "completeness": {
+          "@id": "per:evidence_completeness",
+          "@type": "@json"
+        }
+      }
+    },
+    "claims": {
+      "@id": "per:claim",
+      "@context": {
+        "@base": null,
+        "run_id": "eiop:run_id",
+        "state": {
+          "@id": "eiop:state",
+          "@type": "@vocab",
+          "@context": {
+            "APPLICABLE_PASS": "eioid:eio.state.APPLICABLE_PASS",
+            "APPLICABLE_FAIL": "eioid:eio.state.APPLICABLE_FAIL",
+            "NOT_APPLICABLE": "eioid:eio.state.NOT_APPLICABLE",
+            "UNRESOLVED": "eioid:eio.state.UNRESOLVED",
+            "EVIDENCE_INVALID": "eioid:eio.state.EVIDENCE_INVALID",
+            "EVIDENCE_INCOMPLETE": "eioid:eio.state.EVIDENCE_INCOMPLETE",
+            "EVALUATOR_ERROR": "eioid:eio.state.EVALUATOR_ERROR"
+          }
+        },
+        "parameters": {
+          "@id": "eiop:parameters",
+          "@type": "@json"
+        },
+        "evidence": {
+          "@id": "eioid:eio.relation.supported-by",
+          "@type": "@id",
+          "@context": {
+            "@base": null
+          },
+          "@container": "@set"
+        },
+        "counterevidence": {
+          "@id": "eiop:counterevidence",
+          "@type": "@id",
+          "@context": {
+            "@base": null
+          },
+          "@container": "@set"
+        },
+        "resolver": {
+          "@id": "eiop:resolver",
+          "@type": "@vocab"
+        },
+        "provenance": {
+          "@id": "eiop:provenance",
+          "@context": {
+            "module": {
+              "@id": "eiop:module",
+              "@type": "@vocab"
+            },
+            "module_version": "eiop:module_version",
+            "module_hash": "eiop:module_hash"
+          }
+        }
+      },
+      "@container": "@set"
+    },
+    "coverage": {
+      "@id": "per:coverage",
+      "@context": {
+        "obligations": {
+          "@id": "per:obligation_result",
+          "@context": {
+            "id": {
+              "@id": "per:obligation",
+              "@type": "@vocab"
+            },
+            "domain": {
+              "@id": "per:domain",
+              "@type": "@vocab"
+            },
+            "required": "per:required",
+            "minimum_cases": {
+              "@id": "eiop:minimum_cases",
+              "@type": "xsd:integer"
+            },
+            "cases": {
+              "@id": "per:cases",
+              "@type": "xsd:integer"
+            },
+            "release_impact_declared": "per:release_impact_declared",
+            "cause_if_unmet": "per:cause_if_unmet"
+          },
+          "@container": "@set"
+        },
+        "dispatch": {
+          "@id": "per:dispatch_record",
+          "@context": {
+            "dispatched": {
+              "@id": "eiop:dispatched",
+              "@type": "xsd:integer"
+            },
+            "states": {
+              "@id": "eiop:states",
+              "@type": "@json"
+            },
+            "cause_if_silent": "eiop:cause_if_silent"
+          },
+          "@container": "@set"
+        },
+        "state_counts": {
+          "@id": "per:state_counts",
+          "@type": "@json"
+        },
+        "decided_by_counts": {
+          "@id": "per:decided_by_counts",
+          "@type": "@json"
+        },
+        "summary": {
+          "@id": "per:coverage_summary",
+          "@type": "@json"
+        }
+      }
+    },
+    "findings": {
+      "@id": "per:finding",
+      "@context": {
+        "@base": null,
+        "finding_id": "@id",
+        "fingerprint": "per:fingerprint",
+        "issue_signature": "per:issue_signature",
+        "kind": "per:finding_kind",
+        "criterion": {
+          "@id": "per:criterion",
+          "@type": "@vocab"
+        },
+        "control": "per:context_control",
+        "display_label": "rdfs:label",
+        "status": "per:finding_status",
+        "severity_source": {
+          "@id": "per:severity_source",
+          "@context": {
+            "kind": "per:severity_source_kind"
+          }
+        },
+        "scenario_severity": "per:scenario_severity",
+        "recurrence": {
+          "@id": "eiop:recurrence",
+          "@context": {
+            "band": "per:recurrence_band",
+            "retests": {
+              "@id": "per:retests",
+              "@type": "xsd:integer"
+            },
+            "reproduced_in": {
+              "@id": "per:reproduced_in",
+              "@type": "xsd:integer"
+            },
+            "trial_kind": {
+              "@id": "per:trial_kind",
+              "@type": "@vocab"
+            },
+            "ledger_key": "per:ledger_key"
+          }
+        },
+        "mitigations": {
+          "@id": "per:mitigation",
+          "@context": {
+            "category": "per:mitigation_category",
+            "action": "per:mitigation_action",
+            "verification": "per:mitigation_verification"
+          },
+          "@container": "@set"
+        }
+      },
+      "@container": "@set"
+    },
+    "controls": {
+      "@id": "per:control_status",
+      "@context": {
+        "control_id": {
+          "@id": "per:control",
+          "@type": "@vocab"
+        },
+        "framework": {
+          "@id": "per:framework",
+          "@type": "@vocab"
+        },
+        "external_ref": "eiop:external_ref",
+        "title": "dct:title",
+        "framework_state": "per:framework_state",
+        "status": "eiop:status",
+        "evidence_refs_omitted": {
+          "@id": "per:evidence_refs_omitted",
+          "@type": "xsd:integer"
+        },
+        "proxy_only": "per:proxy_only",
+        "mapping_status": "eiop:mapping_status",
+        "legal_review_required": "eiop:legal_review_required",
+        "assurance_boundary": "eiop:assurance_boundary"
+      },
+      "@container": "@set"
+    },
+    "scores": {
+      "@id": "per:scores",
+      "@context": {
+        "scoring_profile": "per:scoring_profile",
+        "readiness": {
+          "@id": "per:readiness_index",
+          "@context": {
+            "raw": "per:raw",
+            "band": "eiop:band",
+            "blocked": "eiop:blocked",
+            "complete": "per:complete",
+            "missing_axes": {
+              "@id": "per:missing_axis",
+              "@type": "@vocab",
+              "@container": "@set"
+            },
+            "cap_reasons": {
+              "@id": "eiop:cap_reasons",
+              "@context": {
+                "cap": {
+                  "@id": "eiop:cap",
+                  "@type": "@vocab"
+                },
+                "trigger": "per:hard_block_trigger",
+                "scope": "per:cap_scope",
+                "ceiling": "per:ceiling",
+                "turn": {
+                  "@id": "eiop:turn_index",
+                  "@type": "xsd:integer"
+                }
+              },
+              "@container": "@set"
+            },
+            "margin": "per:margin",
+            "interval": {
+              "@id": "per:interval",
+              "@container": "@list"
+            },
+            "method": "per:aggregation_method"
+          }
+        },
+        "axes": {
+          "@id": "per:axis_score",
+          "@context": {
+            "symbol": "per:axis_symbol",
+            "weight": "per:weight",
+            "measurement_status": "per:measurement_status",
+            "components": {
+              "@id": "per:axis_component",
+              "@context": {
+                "id": "per:component_id"
+              },
+              "@container": "@list"
+            }
+          },
+          "@container": "@list"
+        },
+        "metrics": {
+          "@id": "per:metric_view",
+          "@context": {
+            "metric": {
+              "@id": "per:metric",
+              "@type": "@vocab"
+            },
+            "source_metric": "per:source_metric",
+            "measurement_status": "per:measurement_status",
+            "evidence_fraction": "per:evidence_fraction",
+            "pre_cap": "per:pre_cap",
+            "cap": {
+              "@id": "per:cap_applied",
+              "@context": {
+                "cap": {
+                  "@id": "eiop:cap",
+                  "@type": "@vocab"
+                },
+                "scope": "per:cap_scope",
+                "ceiling": "per:ceiling",
+                "turn": {
+                  "@id": "eiop:turn_index",
+                  "@type": "xsd:integer"
+                }
+              }
+            },
+            "confidence": "per:metric_confidence"
+          },
+          "@container": "@list"
+        }
+      }
+    },
+    "reliability": {
+      "@id": "per:reliability",
+      "@context": {
+        "status": "per:reliability_status",
+        "trial_kind": {
+          "@id": "per:trial_kind",
+          "@type": "@vocab"
+        },
+        "passes": {
+          "@id": "per:passes",
+          "@type": "xsd:integer"
+        },
+        "k": {
+          "@id": "eiop:k",
+          "@type": "xsd:integer"
+        },
+        "tasks": {
+          "@id": "per:tasks",
+          "@type": "xsd:integer"
+        },
+        "occurrence": {
+          "@id": "per:occurrence_entry",
+          "@context": {
+            "occurred": "per:occurred"
+          },
+          "@container": "@set"
+        },
+        "recurrence": {
+          "@id": "per:recurrence_entry",
+          "@context": {
+            "ledger_key": "per:ledger_key",
+            "retests": {
+              "@id": "per:retests",
+              "@type": "xsd:integer"
+            },
+            "reproduced_in": {
+              "@id": "per:reproduced_in",
+              "@type": "xsd:integer"
+            },
+            "band": "per:recurrence_band",
+            "may_auto_block": "per:may_auto_block"
+          },
+          "@container": "@set"
+        },
+        "rate": {
+          "@id": "per:reliability_rate",
+          "@context": {
+            "pass_1": "per:pass_1",
+            "pass_k": "per:pass_k",
+            "pass_1_se": "per:pass_1_se",
+            "pass_k_se": "per:pass_k_se",
+            "published": "eiop:published",
+            "suppressed_state": "per:suppressed_state",
+            "floor": {
+              "@id": "per:publication_floor",
+              "@type": "xsd:integer"
+            },
+            "denominator": "per:rate_denominator"
+          }
+        },
+        "named_lists": {
+          "@id": "per:named_lists",
+          "@type": "@json"
+        }
+      }
+    },
+    "release_recommendation": {
+      "@id": "eiop:release_recommendation",
+      "@context": {
+        "state": "per:release_state",
+        "semantics": "per:release_semantics",
+        "decisive": {
+          "@id": "per:decisive_condition",
+          "@context": {
+            "kind": "per:condition_kind",
+            "id": "per:condition_id",
+            "metric": {
+              "@id": "per:metric",
+              "@type": "@vocab"
+            },
+            "violated": "per:violated",
+            "effect": "per:effect"
+          },
+          "@container": "@list"
+        },
+        "contributing": {
+          "@id": "per:contributing_condition",
+          "@context": {
+            "kind": "per:condition_kind",
+            "id": "per:condition_id",
+            "metric": {
+              "@id": "per:metric",
+              "@type": "@vocab"
+            },
+            "violated": "per:violated",
+            "effect": "per:effect"
+          },
+          "@container": "@list"
+        },
+        "gate_results": {
+          "@id": "eiop:gate_results",
+          "@context": {
+            "gate": {
+              "@id": "eiop:gate_id",
+              "@type": "@vocab"
+            },
+            "blocking": "eiop:blocking",
+            "unmet_state": "eiop:unmet_state",
+            "evaluated_at": {
+              "@id": "eiop:evaluated_at",
+              "@type": "@vocab"
+            }
+          },
+          "@container": "@list"
+        },
+        "metric_floors": {
+          "@id": "per:metric_floor_result",
+          "@context": {
+            "metric": {
+              "@id": "per:metric",
+              "@type": "@vocab"
+            },
+            "floor": "per:floor",
+            "result": "per:floor_result"
+          },
+          "@container": "@list"
+        },
+        "policy": {
+          "@id": "per:policy",
+          "@context": {
+            "source": "per:policy_source",
+            "origin": "per:policy_origin",
+            "profile_sha256": "per:profile_sha256",
+            "name": "per:profile_name",
+            "tier": {
+              "@id": "eiop:tier",
+              "@type": "@vocab"
+            },
+            "rules": {
+              "@id": "per:policy_rule",
+              "@context": {
+                "rule": "per:rule",
+                "result": "per:rule_result"
+              },
+              "@container": "@list"
+            },
+            "declared": {
+              "@id": "per:declared_policy",
+              "@context": {
+                "origin": "per:policy_origin",
+                "name": "per:profile_name",
+                "profile_sha256": "per:profile_sha256",
+                "state": "per:declared_state"
+              }
+            }
+          }
+        },
+        "signoff": {
+          "@id": "per:signoff",
+          "@context": {
+            "required": "per:signoff_required",
+            "status": "per:signoff_status"
+          }
+        }
+      }
+    },
+    "limitations": {
+      "@id": "per:limitation",
+      "@context": {
+        "limitation_id": "per:limitation_id",
+        "field_path": "per:field_path",
+        "status": "per:limitation_status",
+        "reason": "per:limitation_reason",
+        "impact": "per:limitation_impact",
+        "next_step": "per:limitation_next_step"
+      },
+      "@container": "@set"
+    },
+    "telemetry": {
+      "@id": "per:telemetry",
+      "@type": "@json"
+    },
+    "claim_ids": {
+      "@id": "eiop:claim_ids",
+      "@type": "@id",
+      "@context": {
+        "@base": null
+      },
+      "@container": "@set"
+    },
+    "claim_id": {
+      "@id": "eiop:claim_id",
+      "@type": "@id",
+      "@context": {
+        "@base": null
+      }
+    },
+    "evidence_refs": {
+      "@id": "eiop:evidence_refs",
+      "@type": "@id",
+      "@context": {
+        "@base": null
+      },
+      "@container": "@set"
+    },
+    "ref": {
+      "@id": "per:ref",
+      "@type": "@id",
+      "@context": {
+        "@base": null
+      }
+    },
+    "ref_id": {
+      "@id": "per:ref",
+      "@type": "@id",
+      "@context": {
+        "@base": null
+      }
+    },
+    "finding_ids": {
+      "@id": "per:finding_ref",
+      "@type": "@id",
+      "@context": {
+        "@base": null
+      },
+      "@container": "@set"
+    },
+    "finding_id": {
+      "@id": "eiop:finding_id",
+      "@type": "@id",
+      "@context": {
+        "@base": null
+      }
+    },
+    "obligation_ids": {
+      "@id": "eiop:obligation_ids",
+      "@type": "@vocab",
+      "@container": "@set"
+    },
+    "control_ids": {
+      "@id": "per:control_ids",
+      "@type": "@vocab",
+      "@container": "@set"
+    },
+    "field_refs": {
+      "@id": "per:field_ref",
+      "@container": "@set"
+    },
+    "explanation": {
+      "@id": "per:explanation",
+      "@context": {
+        "template_id": "per:template_id",
+        "params": {
+          "@id": "per:template_params",
+          "@type": "@json"
+        },
+        "summary": {
+          "@id": "eiop:rationale",
+          "@language": "en"
+        },
+        "basis": {
+          "@id": "per:basis",
+          "@type": "@json"
+        },
+        "drivers": {
+          "@id": "per:driver",
+          "@context": {
+            "rank": {
+              "@id": "per:rank",
+              "@type": "xsd:integer"
+            },
+            "role": "per:driver_role",
+            "contribution": {
+              "@id": "per:contribution",
+              "@type": "@json"
+            }
+          },
+          "@container": "@list"
+        },
+        "evidence_refs": {
+          "@id": "eiop:evidence_refs",
+          "@type": "@id",
+          "@context": {
+            "@base": null
+          },
+          "@container": "@list"
+        },
+        "context_refs": {
+          "@id": "per:context_ref",
+          "@context": {
+            "relation": "per:context_relation",
+            "via": "per:via"
+          },
+          "@container": "@set"
+        },
+        "omitted": {
+          "@id": "per:omitted",
+          "@type": "@json"
+        }
+      }
+    },
+    "turn_index": {
+      "@id": "eiop:turn_index",
+      "@type": "xsd:integer"
+    },
+    "turn_indices": {
+      "@id": "eiop:turn_indices",
+      "@container": "@set",
+      "@type": "xsd:integer"
+    },
+    "predicate": {
+      "@id": "eiop:predicate",
+      "@type": "@vocab"
+    },
+    "predicate_version": "eiop:predicate_version",
+    "risk": {
+      "@id": "eiop:risk",
+      "@type": "@vocab"
+    },
+    "decided_by": "eiop:decided_by",
+    "fidelity": "per:fidelity",
+    "severity": "eiop:severity",
+    "release_impact": "eiop:release_impact",
+    "witnessed": "per:witnessed",
+    "proof_status": "per:proof_status",
+    "scenario": "per:scenario",
+    "scenarios": {
+      "@id": "per:scenario",
+      "@container": "@set"
+    },
+    "model": "eiop:model",
+    "version": "eiop:version",
+    "seed": {
+      "@id": "eiop:seed",
+      "@type": "xsd:integer"
+    },
+    "plan_hash": "eiop:plan_hash",
+    "archive_sha256": "per:archive_sha256",
+    "value": "eiop:value",
+    "axis": {
+      "@id": "eiop:axis",
+      "@type": "@vocab"
+    },
+    "met": "per:met",
+    "expected": "per:expected",
+    "observed": "per:observed",
+    "cap": {
+      "@id": "eiop:cap",
+      "@type": "@vocab"
+    },
+    "summary": {
+      "@id": "eiop:rationale",
+      "@language": "en"
+    },
+    "basis": {
+      "@id": "per:basis",
+      "@type": "@json"
+    },
+    "state": "per:state",
+    "status": "per:status",
+    "kind": "per:kind",
+    "name": "per:name",
+    "source": "per:source",
+    "band": "per:band",
+    "required": "per:required"
+  }
+}

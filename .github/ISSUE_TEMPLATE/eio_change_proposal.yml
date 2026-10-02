@@ -1,0 +1,95 @@
+name: EIO or PER change proposal
+description: Propose a change of meaning in EIO or PER, or a new, corrected or removed framework mapping (Class C).
+title: "[Proposal] "
+labels: ["EIO change proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This form starts the proposal process in GOVERNANCE.md ("Proposals to change EIO or PER"). A proposal stays
+        open for public comment for at least 14 days. The implementing pull request needs the approval of both
+        maintainers and ships in a new EIO release (and a new PER version if the record format changes).
+
+        EIO and PER are open specifications. Framework mappings express evidence relevance and are provisional; a
+        mapping is not a certification, attestation or statement of legal conformity.
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of change
+      multiple: true
+      options:
+        - predicate (new or changed)
+        - evidence type or evidence contract
+        - claim state
+        - witness rule
+        - release rule
+        - scoring rule
+        - PER record field
+        - framework or control mapping
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected-ids
+    attributes:
+      label: Affected ids
+      description: Every EIO or PER id the change touches, with its module and version where known.
+      placeholder: |
+        eio.predicate.autonomy-boundary-exceeded (module risks/action-safety.yaml)
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current semantics
+      description: What the ids mean or do today. Cite the module, schema or document section.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed semantics
+      description: What they should mean or do after the change, precisely enough to implement and test.
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation and evidence
+      description: |
+        Why the change is needed. For a mapping change: the framework and control id, and why the mapped predicates
+        give relevant evidence for that control. Link sources; quote no more of a framework text than its identifier
+        and short title.
+    validations:
+      required: true
+
+  - type: textarea
+    id: records
+    attributes:
+      label: Effect on records and digests
+      description: Which record fields, claims, scores or release recommendations change, and whether the golden records and the release digests move.
+    validations:
+      required: true
+
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility impact
+      description: The EIO and PER version bumps you expect, and what producers, verifiers and stores of existing records must do.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Acknowledgements
+      options:
+        - label: I understand that the proposal stays open for comment for at least 14 days and needs approval from ProofAI LLC's release authority.
+          required: true
+        - label: I did not paste confidential data, personal data or copyrighted framework text into this proposal.
+          required: true

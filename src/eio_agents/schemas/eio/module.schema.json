@@ -1,0 +1,2389 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/eio-agents/schema/0.5.0/module.schema.json",
+  "title": "EIO-Agents ontology module",
+  "type": "object",
+  "required": [
+    "eio"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "eio": {
+      "$ref": "#/$defs/header"
+    },
+    "imports": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/import"
+      },
+      "uniqueItems": true,
+      "default": []
+    },
+    "concepts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/concept"
+      },
+      "default": []
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relation"
+      },
+      "default": []
+    },
+    "decision_states": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/decisionState"
+      },
+      "default": []
+    },
+    "evidence_types": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidenceType"
+      },
+      "default": []
+    },
+    "source_types": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sourceType"
+      },
+      "default": [],
+      "description": "The source_type vocabulary of evidence refs (EIO-11). Declared once, in eio.core.evidence."
+    },
+    "resolvers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/resolver"
+      },
+      "default": []
+    },
+    "predicates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/predicate"
+      },
+      "default": []
+    },
+    "domain": {
+      "$ref": "#/$defs/domain"
+    },
+    "mappings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/mapping"
+      },
+      "default": []
+    },
+    "templates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/template"
+      },
+      "default": []
+    },
+    "explanation_templates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/explanationTemplate"
+      },
+      "default": [],
+      "description": "The normative explanation ('why') template catalogue (EIO-49). Declared in eio.template.why."
+    },
+    "profiles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/profile"
+      },
+      "default": []
+    },
+    "context_criteria": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/context_criterion"
+      },
+      "minItems": 1
+    },
+    "governance": {
+      "$ref": "#/$defs/governance"
+    },
+    "scoring": {
+      "$ref": "#/$defs/scoring"
+    },
+    "reliability": {
+      "$ref": "#/$defs/reliability"
+    },
+    "flow": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/flow_stage"
+      },
+      "minItems": 1
+    },
+    "frameworks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/framework"
+      },
+      "minItems": 1
+    },
+    "controls": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/control"
+      },
+      "minItems": 1
+    },
+    "domain_links": {
+      "$ref": "#/$defs/domain_link_rules"
+    },
+    "context_links": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/context_link"
+        }
+      },
+      "default": {}
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^eio\\.[a-z0-9][a-z0-9.-]*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "header": {
+      "type": "object",
+      "required": [
+        "id",
+        "namespace",
+        "version",
+        "kind",
+        "title",
+        "description",
+        "license"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "namespace": {
+          "type": "string",
+          "format": "uri"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "kind": {
+          "enum": [
+            "core",
+            "risk",
+            "domain",
+            "mapping",
+            "template",
+            "reference",
+            "context",
+            "governance",
+            "scoring",
+            "reliability",
+            "flow",
+            "compliance",
+            "assurance",
+            "graph"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10
+        },
+        "license": {
+          "const": "Apache-2.0"
+        }
+      }
+    },
+    "import": {
+      "type": "object",
+      "required": [
+        "module",
+        "version"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "$ref": "#/$defs/id"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "module_sha256 of the imported module: 'sha256:' + hex(sha256(raw module file bytes)). REQUIRED on every import of the manifest (eio.manifest.public), optional elsewhere (EIO-3, EIO-201)."
+        }
+      },
+      "description": "An exact version pin. A loader MUST reject an import whose module is absent or whose header version differs from the pin (gate IMPORT_VERSION, EIO-2). EIO has no version ranges."
+    },
+    "concept": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "description"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "entity",
+            "event",
+            "state",
+            "risk",
+            "safeguard",
+            "policy",
+            "data-class",
+            "action",
+            "role",
+            "channel",
+            "metric",
+            "framework",
+            "control"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 5
+        },
+        "parent": {
+          "$ref": "#/$defs/id"
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "closed_values": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "relation": {
+      "type": "object",
+      "required": [
+        "id",
+        "description",
+        "domain",
+        "range"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 5
+        },
+        "domain": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1
+        },
+        "range": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1
+        },
+        "inverse": {
+          "$ref": "#/$defs/id",
+          "description": "Id of the inverse relation, which MUST declare this relation as its inverse (gate RELATION_INVERSE)."
+        },
+        "characteristics": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "functional",
+              "inverse-functional",
+              "symmetric",
+              "transitive",
+              "irreflexive",
+              "temporal",
+              "monotonic",
+              "derived-view"
+            ]
+          },
+          "uniqueItems": true,
+          "description": "functional: a subject has at most one object; inverse-functional: an object has at most one subject; symmetric: (a r b) entails (b r a); transitive: a consumer MAY infer the closure but MUST NOT store inferred edges; irreflexive: (a r a) never holds; temporal: both endpoints carry a turn or time; monotonic: never lowers a value; derived-view: holds only between views, never in an evidence graph."
+        },
+        "cardinality": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "subject",
+            "object"
+          ],
+          "properties": {
+            "subject": {
+              "enum": [
+                "0..1",
+                "1",
+                "0..n",
+                "1..n"
+              ],
+              "description": "How many subjects one object may have."
+            },
+            "object": {
+              "enum": [
+                "0..1",
+                "1",
+                "0..n",
+                "1..n"
+              ],
+              "description": "How many objects one subject may have."
+            }
+          },
+          "description": "Cardinality of the relation (EIO-9). object '0..1' or '1' iff characteristic functional; subject '0..1' or '1' iff inverse-functional (gate RELATIONS)."
+        }
+      }
+    },
+    "decisionState": {
+      "type": "object",
+      "required": [
+        "id",
+        "scored",
+        "evaluator_fault",
+        "description"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z_]+$"
+        },
+        "scored": {
+          "type": "boolean"
+        },
+        "evaluator_fault": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 5
+        }
+      }
+    },
+    "evidenceType": {
+      "type": "object",
+      "required": [
+        "id",
+        "description",
+        "can_prove_agent_behaviour",
+        "required_fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z_]+$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 5
+        },
+        "can_prove_agent_behaviour": {
+          "type": "boolean"
+        },
+        "required_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "compatible_source_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z_]+$"
+          },
+          "uniqueItems": true,
+          "minItems": 1,
+          "description": "Source types a ref of this kind may carry (01 §6.1). A native producer MUST emit only these pairs; a converter keeps a legacy pair verbatim. An incompatible pair never witnesses."
+        }
+      }
+    },
+    "resolver": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "description",
+        "output"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "deterministic",
+            "semantic",
+            "human"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 5
+        },
+        "output": {
+          "enum": [
+            "fact",
+            "relation",
+            "decision"
+          ]
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "max_scope": {
+          "type": "string"
+        },
+        "abstain_when": {
+          "type": "string"
+        }
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "required": [
+        "name",
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "type": {
+          "$ref": "#/$defs/id"
+        },
+        "required": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "relationExpression": {
+      "type": "object",
+      "required": [
+        "relation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "relation": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/id"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "minItems": 3,
+          "maxItems": 3
+        }
+      }
+    },
+    "expression": {
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/$defs/relationExpression"
+        },
+        {
+          "type": "object",
+          "required": [
+            "fact"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "fact": {
+              "type": "string",
+              "minLength": 1
+            },
+            "where": {
+              "type": "object"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "all"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "all": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/expression"
+              },
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "any"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "any": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/expression"
+              },
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "not"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "not": {
+              "$ref": "#/$defs/expression"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "exists"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "exists": {
+              "type": "object",
+              "required": [
+                "type",
+                "where"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "$ref": "#/$defs/id"
+                },
+                "where": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "compare"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "compare": {
+              "type": "object",
+              "required": [
+                "left",
+                "op",
+                "right"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "left": {},
+                "op": {
+                  "enum": [
+                    "eq",
+                    "ne",
+                    "lt",
+                    "lte",
+                    "gt",
+                    "gte",
+                    "contains",
+                    "subset"
+                  ]
+                },
+                "right": {}
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "temporal"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "temporal": {
+              "type": "object",
+              "required": [
+                "event",
+                "op",
+                "reference"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "event": {
+                  "type": "string"
+                },
+                "op": {
+                  "enum": [
+                    "before",
+                    "after",
+                    "during",
+                    "active_at",
+                    "persists_until"
+                  ]
+                },
+                "reference": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "evidenceContract": {
+      "type": "object",
+      "required": [
+        "minimum_refs",
+        "scope"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "require_any": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "require_all": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "require_groups": {
+          "type": "array",
+          "description": "Each inner group requires at least one of its evidence types.",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "minItems": 1
+        },
+        "forbid_as_agent_proof": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "minimum_refs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "scope": {
+          "enum": [
+            "span",
+            "turn",
+            "episode",
+            "paired-episode",
+            "artifact",
+            "run"
+          ]
+        },
+        "typed_absence": {
+          "type": "boolean",
+          "default": false
+        },
+        "counterevidence_required": {
+          "type": "boolean",
+          "default": false
+        },
+        "pass_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "require_any": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z_]+$"
+              },
+              "uniqueItems": true
+            },
+            "require_all": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z_]+$"
+              },
+              "uniqueItems": true
+            },
+            "minimum_refs": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "witnessing_anchored": {
+              "type": "boolean",
+              "description": "At least one witnessing anchored ref (01 §6.3) in scope."
+            },
+            "typed_absence_allowed": {
+              "type": "boolean"
+            }
+          },
+          "description": "What an APPLICABLE_PASS claim must cite. When absent the normative default applies: safeguard predicate -> W1 (>= 1 witnessing anchored ref in scope); risk predicate -> >= 1 agent ref in scope (a turn-anchored AGENT_SPAN is allowed) or a TYPED_ABSENCE over the scope (EIO-18). contract_check evaluates it for PASS claims."
+        },
+        "not_applicable_basis": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "accepted_sources"
+          ],
+          "properties": {
+            "accepted_sources": {
+              "type": "array",
+              "uniqueItems": true,
+              "minItems": 1,
+              "items": {
+                "enum": [
+                  "declared_applicability",
+                  "premise_gate",
+                  "observed_null",
+                  "checker"
+                ]
+              }
+            }
+          },
+          "description": "What a NOT_APPLICABLE claim must disclose (parameters.applicability_basis.source). When absent the normative default applies: a native producer -> declared_applicability (the declared applicable_when fact(s) that did not hold); a converter of a legacy archive -> any of declared_applicability, premise_gate (EIO-29), observed_null (EIO-59), checker (EIO-18)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "require_any"
+          ]
+        },
+        {
+          "required": [
+            "require_all"
+          ]
+        },
+        {
+          "required": [
+            "require_groups"
+          ]
+        }
+      ],
+      "description": "The contract that governs APPLICABLE_FAIL for every polarity (risk, safeguard and observation). pass_contract, else eio.profile.contract-defaults, governs APPLICABLE_PASS; not_applicable_basis, else the same profile, governs NOT_APPLICABLE (01 §6.5; EIO-18)."
+    },
+    "resolverRef": {
+      "description": "A bare resolver id, or {id, relation} pinning the one relation a semantic resolver may decide. The 0.3.0 member `threshold` is removed: it had no calibrated meaning (EIO-31); calibrated floors come with eio.gate.evaluator-calibrated.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/id"
+        },
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "relation"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/id"
+            },
+            "relation": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        }
+      ]
+    },
+    "mitigation": {
+      "type": "object",
+      "required": [
+        "category",
+        "action",
+        "verification"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "enum": [
+            "PROMPT",
+            "CONTEXT",
+            "TOOL_SCHEMA",
+            "AUTHORIZATION",
+            "RUNTIME_GUARDRAIL",
+            "WORKFLOW",
+            "HUMAN_OVERSIGHT",
+            "MONITORING",
+            "DATA",
+            "IDENTITY",
+            "ACCESS_CONTROL",
+            "POLICY",
+            "MODEL"
+          ]
+        },
+        "action": {
+          "type": "string",
+          "minLength": 10
+        },
+        "verification": {
+          "type": "string",
+          "minLength": 5
+        }
+      }
+    },
+    "predicate": {
+      "type": "object",
+      "required": [
+        "id",
+        "version",
+        "description",
+        "polarity",
+        "parameters",
+        "applicable_when",
+        "evidence_contract",
+        "resolvers",
+        "unknown_policy"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10
+        },
+        "polarity": {
+          "enum": [
+            "risk",
+            "safeguard",
+            "observation"
+          ]
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameter"
+          },
+          "minItems": 1
+        },
+        "applicable_when": {
+          "$ref": "#/$defs/expression"
+        },
+        "satisfied_when": {
+          "$ref": "#/$defs/expression"
+        },
+        "violated_when": {
+          "$ref": "#/$defs/expression"
+        },
+        "evidence_contract": {
+          "$ref": "#/$defs/evidenceContract"
+        },
+        "resolvers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resolverRef"
+          },
+          "minItems": 1,
+          "description": "An ORDERED list (EIO-19, RS3): deterministic resolvers other than graph-rule first, then semantic resolvers, then eio.resolver.graph-rule and eio.resolver.human-adjudication (the decision combinators). Execution order within a stage follows this list (gate PREDICATE_RESOLVER_ORDER)."
+        },
+        "unknown_policy": {
+          "enum": [
+            "UNRESOLVED",
+            "EVIDENCE_INCOMPLETE",
+            "NOT_APPLICABLE",
+            "EVALUATOR_ERROR"
+          ]
+        },
+        "risk": {
+          "$ref": "#/$defs/id"
+        },
+        "safeguard": {
+          "$ref": "#/$defs/id"
+        },
+        "subsumes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "mitigations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mitigation"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "severity_source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "properties": {
+            "kind": {
+              "const": "NONE"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 5
+            }
+          },
+          "description": "Declared iff no coverage obligation of any domain targets the predicate (EIO-36). A finding on it has severity null, severity_source.kind NONE and limitation per.lim.severity.none. Finding severity otherwise = max severity of the in-scope obligations on the predicate with required != false (gate SEVERITY_DECLARED)."
+        },
+        "applicability_inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "predicate",
+              "scope",
+              "provides_fact",
+              "fact_true_when_state"
+            ],
+            "properties": {
+              "predicate": {
+                "$ref": "#/$defs/id"
+              },
+              "scope": {
+                "enum": [
+                  "same_turn",
+                  "same_episode"
+                ]
+              },
+              "provides_fact": {
+                "type": "string",
+                "minLength": 1
+              },
+              "fact_true_when_state": {
+                "enum": [
+                  "APPLICABLE_PASS",
+                  "APPLICABLE_FAIL"
+                ]
+              }
+            }
+          },
+          "description": "A claim of another predicate that establishes a fact named in applicable_when (EIO-227). The fact is true when that claim is in fact_true_when_state, false when it is in the other scored state, and unknown otherwise. applicable_when itself is unchanged."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "satisfied_when"
+          ]
+        },
+        {
+          "required": [
+            "violated_when"
+          ]
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "polarity": {
+                "const": "risk"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "risk",
+              "violated_when"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "polarity": {
+                "const": "safeguard"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "safeguard",
+              "satisfied_when"
+            ]
+          }
+        }
+      ]
+    },
+    "coverageObligation": {
+      "type": "object",
+      "required": [
+        "id",
+        "predicate",
+        "required_when",
+        "minimum_cases",
+        "release_impact"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "predicate": {
+          "$ref": "#/$defs/id"
+        },
+        "required_when": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "type": [
+              "boolean",
+              "string"
+            ]
+          },
+          "description": "Conjunction of declared canonical facts (governance.facts) and their required values. required = true if every fact holds, false if any is declared otherwise, null if any is undeclared (gate FACTS_DECLARED; eio.profile.coverage-evaluation)."
+        },
+        "minimum_cases": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "release_impact": {
+          "enum": [
+            "HARD_BLOCK",
+            "CONTRIBUTING_BLOCK",
+            "WARN",
+            "MONITOR",
+            "NONE"
+          ]
+        },
+        "severity": {
+          "enum": [
+            "CRITICAL",
+            "HIGH",
+            "MEDIUM",
+            "LOW",
+            "INFORMATIONAL"
+          ]
+        }
+      }
+    },
+    "domain": {
+      "type": "object",
+      "required": [
+        "id",
+        "description",
+        "aliases",
+        "roles",
+        "data_classes",
+        "actions",
+        "coverage_obligations"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "uniqueItems": true,
+          "description": "Normalised tokens (lower case, '-' separators). Domain resolution step 2 compares normalise(token) for exact equality with every alias and domain id suffix; no alias belongs to two domains (gate ALIAS_UNIQUE, EIO-24)."
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "data_classes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "coverage_obligations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/coverageObligation"
+          },
+          "minItems": 1
+        },
+        "policy_defaults": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rule",
+              "applies_when"
+            ],
+            "properties": {
+              "rule": {
+                "type": "string",
+                "minLength": 10
+              },
+              "applies_when": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*$",
+                "description": "A declared fact id (governance.facts)."
+              }
+            }
+          },
+          "description": "Informative domain policy defaults: exactly {rule, applies_when} (EIO-207, gate POLICY_DEFAULTS_SHAPE)."
+        },
+        "qualifier_hints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "mapping": {
+      "type": "object",
+      "required": [
+        "source",
+        "target",
+        "relation",
+        "status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relation": {
+          "oneOf": [
+            {
+              "const": "exact",
+              "description": "Source and target denote the same proposition; a source observation decides the target."
+            },
+            {
+              "const": "narrower",
+              "description": "The source is a lexical, marker, same-turn or tool-name proxy observation of the target: it establishes the target only under conditions the source does not check, and on its own it never makes a claim PROVEN (eio.profile.proof-status, EIO-33)."
+            },
+            {
+              "const": "broader",
+              "description": "The source concept is more general than the target."
+            },
+            {
+              "const": "relevant",
+              "description": "The source supports evaluation of the target (a fixture) and carries no decision semantics."
+            },
+            {
+              "const": "derived-view",
+              "description": "The target is an arithmetic projection of claims on the source."
+            },
+            {
+              "const": "deprecated-alias",
+              "description": "The source is a retired name for the target."
+            },
+            {
+              "const": "instance-of",
+              "description": "The source is an instance of the target's class."
+            }
+          ],
+          "description": "Mapping relation (definitions normative; eio.profile.mapping-relations)."
+        },
+        "status": {
+          "oneOf": [
+            {
+              "const": "normative",
+              "description": "Binding: a consumer MUST apply the mapping as stated."
+            },
+            {
+              "const": "provisional",
+              "description": "Candidate pending qualified review; MUST be labelled provisional wherever shown."
+            },
+            {
+              "const": "informative",
+              "description": "Explanatory only; no decision or scoring effect."
+            }
+          ]
+        },
+        "note": {
+          "type": "string"
+        },
+        "evidence_scope": {
+          "enum": [
+            "transcript",
+            "tool-trace",
+            "artifact",
+            "run",
+            "organizational"
+          ]
+        },
+        "family": {
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "critical",
+            "high",
+            "medium",
+            "low",
+            "informational"
+          ]
+        },
+        "predicates_covered": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "remediation": {
+          "type": "string",
+          "minLength": 10,
+          "description": "Required when implemented is false: what would make the check implementable."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "source": {
+                  "pattern": "^legacy\\.check\\."
+                }
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "polarity"
+                  ]
+                },
+                {
+                  "required": [
+                    "legacy_metrics"
+                  ]
+                },
+                {
+                  "required": [
+                    "resolver"
+                  ]
+                },
+                {
+                  "required": [
+                    "implemented"
+                  ]
+                },
+                {
+                  "required": [
+                    "remediation"
+                  ]
+                },
+                {
+                  "required": [
+                    "applicability_embedded"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "pattern": "^legacy\\.check\\."
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "polarity",
+              "legacy_metrics"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "implemented": {
+                "const": false
+              }
+            },
+            "required": [
+              "implemented"
+            ]
+          },
+          "then": {
+            "required": [
+              "remediation"
+            ]
+          }
+        }
+      ]
+    },
+    "template": {
+      "type": "object",
+      "required": [
+        "id",
+        "version",
+        "kind",
+        "description",
+        "predicates",
+        "requires",
+        "variables",
+        "stages",
+        "evidence_opportunities",
+        "seed_policy"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "kind": {
+          "enum": [
+            "gold",
+            "generative",
+            "metamorphic"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10
+        },
+        "predicates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "requires": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "type": [
+              "boolean",
+              "string"
+            ]
+          },
+          "description": "Declared canonical facts (governance.facts) the template needs (gate FACTS_DECLARED)."
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "minItems": 1
+        },
+        "evidence_opportunities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "transformations": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "seed_policy": {
+          "enum": [
+            "fixed",
+            "recorded-random",
+            "external"
+          ]
+        },
+        "minimum_cases": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "required": [
+        "id",
+        "description"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 5
+        }
+      }
+    },
+    "context_criterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "scoring",
+        "description"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10
+        },
+        "scoring": {
+          "enum": [
+            "checklist",
+            "assessor",
+            "non_scoring"
+          ]
+        },
+        "non_scoring_reason": {
+          "type": "string",
+          "minLength": 10
+        },
+        "controls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "requires_any"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "requires_any": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              }
+            }
+          }
+        },
+        "evaluates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "axis": {
+          "$ref": "#/$defs/id"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tiers",
+        "gates"
+      ],
+      "properties": {
+        "tiers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label",
+              "description",
+              "obligation_floor"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "obligation_floor": {
+                "enum": [
+                  "HARD_BLOCK",
+                  "CONTRIBUTING_BLOCK",
+                  "WARN",
+                  "MONITOR",
+                  "NONE"
+                ]
+              }
+            }
+          },
+          "minItems": 1
+        },
+        "autonomy_levels": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 3
+              }
+            },
+            "description": "escalates_tier is removed in 0.4.0 (EIO-245): the only autonomy promotion is the L4 impact_escalation rule."
+          }
+        },
+        "regions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label",
+              "framework_sets"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^eio\\.region\\.[a-z0-9][a-z0-9_-]*$",
+                "description": "Region id. eio.region.emea_other is the one grandfathered id with an underscore (01 §3.1); no new id may use one (gate ID_GRAMMAR)."
+              },
+              "label": {
+                "type": "string"
+              },
+              "framework_sets": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
+              }
+            }
+          }
+        },
+        "gates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "description",
+              "evaluated_at",
+              "blocking",
+              "unmet_state"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "description": {
+                "type": "string"
+              },
+              "evaluated_at": {
+                "$ref": "#/$defs/id",
+                "description": "A flow stage id. Release-scoped reference: MUST resolve to a stage of the release (gate GATE_EVALUATED_AT); exempt from IMPORT_CLOSURE because eio.core.flow imports this module."
+              },
+              "blocking": {
+                "type": "boolean"
+              },
+              "unmet_state": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z_]+$"
+              },
+              "required_when": {
+                "type": "object"
+              },
+              "note": {
+                "type": "string"
+              },
+              "test_vectors": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "met"
+                  ]
+                },
+                "description": "Inputs and the expected met value (true, false or null) of the evaluation rule of 02 §5.5 (gate GATE_VECTORS)."
+              }
+            }
+          },
+          "minItems": 1
+        },
+        "impact_escalation": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "when",
+              "promote"
+            ],
+            "properties": {
+              "when": {
+                "type": "object",
+                "minProperties": 1
+              },
+              "promote": {
+                "type": "object",
+                "propertyNames": {
+                  "enum": [
+                    "WARN",
+                    "CONTRIBUTING_BLOCK",
+                    "MONITOR",
+                    "NONE"
+                  ]
+                },
+                "additionalProperties": {
+                  "enum": [
+                    "CONTRIBUTING_BLOCK",
+                    "HARD_BLOCK",
+                    "WARN"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "framework_selection": {
+          "type": "object"
+        },
+        "facts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "type",
+              "description",
+              "source"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              "type": {
+                "enum": [
+                  "boolean",
+                  "enum"
+                ]
+              },
+              "values": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true
+              },
+              "description": {
+                "type": "string",
+                "minLength": 10
+              },
+              "source": {
+                "enum": [
+                  "profile",
+                  "manifest",
+                  "tool_schema",
+                  "archive",
+                  "plan"
+                ]
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "enum"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "values"
+                  ]
+                }
+              }
+            ]
+          },
+          "description": "Canonical facts read by required_when, gates, impact_escalation, policy_defaults and test templates (EIO-211). An undeclared or unknown fact is null; producer-specific intake and archive bindings belong to a declared adapter."
+        }
+      }
+    },
+    "scoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "axes",
+        "aggregation"
+      ],
+      "properties": {
+        "axes": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "minItems": 1
+        },
+        "aggregation": {
+          "type": "object"
+        },
+        "caps": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "floors": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "reliability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ledgers",
+        "estimator"
+      ],
+      "properties": {
+        "ledgers": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "minItems": 1
+        },
+        "estimator": {
+          "type": "object"
+        },
+        "trial_kinds": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "publication": {
+          "type": "object"
+        },
+        "recurrence_bands": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "rank",
+              "rule"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z_]+$"
+              },
+              "rank": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "rule": {
+                "type": "string",
+                "minLength": 10
+              },
+              "test_vectors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reproduced_in",
+                    "retests"
+                  ],
+                  "properties": {
+                    "reproduced_in": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "retests": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "description": "The recurrence band of a claim from the re-test passes it reproduced in (r) and the re-test passes run (n); rank orders the bands from weakest (0). A finding's band is the weakest over its claims. The PER 2.0 recurrence_band enum is this list."
+        }
+      }
+    },
+    "flow_stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "order",
+        "description",
+        "produces"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10
+        },
+        "consumes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "produces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "resolvers_allowed": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "invariants": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "may_write_claims": {
+          "type": "boolean"
+        },
+        "gate": {
+          "type": "string"
+        }
+      }
+    },
+    "framework": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "registry_id",
+        "title",
+        "category",
+        "authority",
+        "jurisdictions",
+        "controls",
+        "mapping_status",
+        "applicability",
+        "assurance_boundary"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "registry_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3
+        },
+        "category": {
+          "enum": [
+            "ai-regulation",
+            "privacy-regulation",
+            "security-standard",
+            "ai-management-standard",
+            "sector-regulation",
+            "assurance-standard",
+            "security-taxonomy",
+            "risk-framework"
+          ]
+        },
+        "authority": {
+          "enum": [
+            "law",
+            "regulation",
+            "standard",
+            "attestation-criteria",
+            "government-framework",
+            "industry-standard",
+            "industry-guidance",
+            "security-taxonomy",
+            "proposal"
+          ]
+        },
+        "jurisdictions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 2
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "controls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "mapping_status": {
+          "enum": [
+            "normative",
+            "provisional",
+            "informative"
+          ]
+        },
+        "applicability": {
+          "type": "string",
+          "minLength": 10
+        },
+        "version_label": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "legal_review_required": {
+          "type": "boolean"
+        },
+        "assurance_boundary": {
+          "type": "string",
+          "minLength": 20
+        }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "framework",
+        "external_id",
+        "external_ref",
+        "title",
+        "control_type",
+        "risk_targets",
+        "predicate_targets",
+        "mapping_status",
+        "applicability",
+        "evidence_semantics",
+        "assurance_boundary"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "framework": {
+          "$ref": "#/$defs/id"
+        },
+        "external_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "external_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2
+        },
+        "control_type": {
+          "enum": [
+            "requirement",
+            "control",
+            "control-family",
+            "guidance",
+            "taxonomy-entry"
+          ]
+        },
+        "risk_targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "predicate_targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "mapping_status": {
+          "enum": [
+            "normative",
+            "provisional",
+            "informative"
+          ]
+        },
+        "applicability": {
+          "type": "string",
+          "minLength": 10
+        },
+        "evidence_semantics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scope",
+            "statuses",
+            "inherits_predicate_contracts"
+          ],
+          "properties": {
+            "scope": {
+              "enum": [
+                "transcript",
+                "tool-trace",
+                "artifact",
+                "run",
+                "organizational",
+                "mixed"
+              ]
+            },
+            "statuses": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "observed_satisfaction",
+                  "observed_violation",
+                  "not_tested",
+                  "not_observable",
+                  "not_applicable",
+                  "inconclusive"
+                ]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "inherits_predicate_contracts": {
+              "const": true
+            }
+          }
+        },
+        "legal_review_required": {
+          "type": "boolean"
+        },
+        "assurance_boundary": {
+          "type": "string",
+          "minLength": 20
+        }
+      }
+    },
+    "domain_link_rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "universal_domain"
+      ],
+      "properties": {
+        "universal_domain": {
+          "$ref": "#/$defs/id"
+        },
+        "universal_families": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "family_defaults": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        }
+      }
+    },
+    "context_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "criterion"
+      ],
+      "properties": {
+        "criterion": {
+          "$ref": "#/$defs/id"
+        },
+        "controls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "strength": {
+          "enum": [
+            "primary",
+            "incidental"
+          ]
+        }
+      }
+    },
+    "sourceType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "origin",
+        "may_witness"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z_]+$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 5
+        },
+        "origin": {
+          "type": "string",
+          "minLength": 5,
+          "description": "Where the referenced content comes from (e.g. the archive JSON Pointer family)."
+        },
+        "may_witness": {
+          "type": "boolean",
+          "description": "Member of W, the set of source types that may witness agent behaviour."
+        },
+        "witness_requires": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z_]+$",
+          "description": "A ref of this source type witnesses only together with a ref of the named source type for the same call."
+        }
+      }
+    },
+    "explanationTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "text",
+        "params",
+        "max_length"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^eio\\.why\\.[a-z0-9_.]+@[0-9]+$"
+        },
+        "use_when": {
+          "type": "string",
+          "minLength": 5,
+          "description": "Which view or claim selects this template (informative)."
+        },
+        "text": {
+          "type": "string",
+          "minLength": 5,
+          "description": "Template text; placeholders are {name} and every placeholder is a declared param. No other syntax; conditional wording is a param rendered from a label table."
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "type",
+              "source"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z_][a-z0-9_]*$"
+              },
+              "type": {
+                "type": "string",
+                "description": "A param type of eio.profile.why-rendering (param_types)."
+              },
+              "source": {
+                "type": "string",
+                "minLength": 3,
+                "description": "Declared source of a rendered value: record field, view value, or ontology label."
+              },
+              "labels": {
+                "type": "object",
+                "description": "For type label: value (as JSON text) -> rendered string."
+              }
+            }
+          }
+        },
+        "max_length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600,
+          "description": "Maximum rendered length in code points (PER E-3: 600)."
+        }
+      },
+      "description": "A registered explanation template, eio.why.<subject>[.<variant>]@<n>. A changed text is a new @n; the old one stays renderable."
+    }
+  },
+  "description": "EIO 0.5.0-draft.1 module. The S1b proof-status profile removes automatic proof from native provenance and requires a verified witnessing citation plus exact fidelity or confirmed recurrence. Top-level sections (MODULE_SECTIONS): eio, imports, concepts, relations, decision_states, evidence_types, source_types, resolvers, predicates, domain, mappings, templates, explanation_templates, profiles, context_criteria, governance, scoring, reliability, flow, frameworks, controls, domain_links, context_links. Every `id` in every section is unique across the distribution except the domain module id = domain id pairs (gate ID_UNIQUENESS). Every eio id a module references is declared in the module or in a module it imports, transitively (gate IMPORT_CLOSURE); two reference kinds are release-scoped and resolve against the manifest instead: a module-id pointer, and governance.gates[].evaluated_at (eio.core.flow imports eio.governance.gates, so the gate-to-stage binding cannot be an import)."
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.proofagent.ai/eio-agents/schema/eio/0.6.0/reference-case.schema.json",
+  "title": "EIO predicate reference case",
+  "type": "object",
+  "required": ["id", "predicate", "case_type", "expected_state", "inputs", "evidence", "rationale", "review"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^eio\\.case\\."},
+    "predicate": {"type": "string", "pattern": "^eio\\.predicate\\."},
+    "case_type": {"enum": ["positive", "negative", "not-applicable", "insufficient-evidence", "evaluator-fault"]},
+    "expected_state": {"enum": ["APPLICABLE_PASS", "APPLICABLE_FAIL", "NOT_APPLICABLE", "UNRESOLVED", "EVIDENCE_INVALID", "EVIDENCE_INCOMPLETE", "EVALUATOR_ERROR"]},
+    "inputs": {"type": "object"},
+    "evidence": {"type": "array", "items": {"type": "object"}},
+    "rationale": {"type": "string", "minLength": 15},
+    "review": {
+      "type": "object",
+      "required": ["status", "reviewers"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {"enum": ["seed", "single-reviewed", "adjudicated"]},
+        "reviewers": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "adjudication": {"type": "string"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "adjudicated"}}},
+          "then": {"properties": {"reviewers": {"minItems": 2}}, "required": ["adjudication"]}
+        }
+      ]
+    }
+  }
+}

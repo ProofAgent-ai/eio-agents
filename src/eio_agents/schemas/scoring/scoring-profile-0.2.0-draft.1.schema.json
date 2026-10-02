@@ -1,0 +1,55 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://w3id.org/eio-agents/schemas/scoring-profile/0.2.0-draft.1.schema.json",
+ "title": "EIO-Agents scoring-profile document (draft 0.2.0-draft.1)",
+ "description": "A scoring profile (split plan §4.3, N3): the parameters the readiness-index engine reads (it has no numeric defaults), the published metric set, the G component ids and the formulas. A rederivable profile is in the EIO-Agents registry (eio_agents.scoring.profiles); an attested profile is declared by its producer in the bundle's score-input section together with its sha256 (the SHA-256 of the RFC 8785 bytes of the document without its own sha256 member), which EIO-Agents recomputes. A draft profile may leave a parameter null when EIO has no value for it yet (an EIO gap, listed in gaps); the engine refuses a null parameter.",
+ "type": "object",
+ "additionalProperties": false,
+ "required": ["id", "version", "verifiability", "parameters", "published_metrics", "g_component_ids", "formulas"],
+ "properties": {
+  "id": {"type": "string", "pattern": "^[a-z][a-z0-9._-]{0,79}$", "description": "Public profile identifier, never producer free text."},
+  "version": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$", "description": "The profile version."},
+  "verifiability": {"enum": ["rederivable", "attested"], "description": "rederivable: EIO-Agents ships and recomputes it; attested: the producer declares the inputs and the document by digest."},
+  "status": {"enum": ["draft", "active"], "description": "A draft profile is a registry entry whose rules are not yet in force."},
+  "description": {"type": "string"},
+  "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "Optional: the document digest; when present it must equal the recomputed one."},
+  "ontology_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "For a rederivable reference profile, the complete manifest-pinned ontology release used by its rule inputs."},
+  "parameters": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": ["method", "epsilon", "readiness_ceiling", "axis_order", "axis_weights", "required_axes", "band_ramp", "verdict_ramp", "severity_bands", "max_margin", "sampling_axis", "sampling_pseudo_counts", "scale", "decimals"],
+   "properties": {
+    "method": {"const": "weighted-geometric-mean"},
+    "epsilon": {"type": ["number", "null"], "exclusiveMinimum": 0, "description": "Geometric-mean floor."},
+    "readiness_ceiling": {"type": ["number", "null"], "description": "The ceiling of a blocked readiness index."},
+    "axis_order": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+    "axis_weights": {"type": "object", "additionalProperties": {"type": "number", "minimum": 0}},
+    "required_axes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "band_ramp": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/band_ramp"}]},
+    "verdict_ramp": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/verdict_ramp"}]},
+    "severity_bands": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/severity_bands"}]},
+    "max_margin": {"type": ["number", "null"], "minimum": 0},
+    "sampling_axis": {"type": ["string", "null"]},
+    "sampling_pseudo_counts": {"oneOf": [{"type": "null"}, {"type": "array", "prefixItems": [{"type": "number", "minimum": 0}, {"type": "number", "minimum": 0}], "minItems": 2, "maxItems": 2}]},
+    "scale": {"type": "array", "prefixItems": [{"type": "number"}, {"type": "number"}], "minItems": 2, "maxItems": 2},
+    "decimals": {"type": ["integer", "null"], "minimum": 0}
+   }
+  },
+  "published_metrics": {"type": "array", "items": {"type": "string", "pattern": "^eio[.]metric[.][a-z0-9][a-z0-9_.-]*$"}, "uniqueItems": true, "description": "The published metric set, in publication order."},
+  "g_component_ids": {"oneOf": [{"type": "null"}, {"type": "array", "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}, "uniqueItems": true}], "description": "The ids a G axis component may carry under this profile (null: an EIO gap)."},
+  "formulas": {"type": "object", "additionalProperties": {"type": "string"}},
+  "gaps": {"type": "array", "items": {"type": "string"}, "description": "What EIO does not define yet for this profile."}
+ },
+ "$defs": {
+  "band_ramp": {"type": "object", "additionalProperties": false, "required": ["bands", "otherwise"], "properties": {
+   "bands": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["min", "band"], "additionalProperties": false, "properties": {
+    "min": {"type": "number"}, "band": {"type": "string"}, "label": {"type": "string"}, "tone": {"type": "string"}, "color": {"type": "string"}}}},
+   "otherwise": {"type": "string"}}},
+  "verdict_ramp": {"type": "object", "additionalProperties": false, "required": ["bands", "otherwise", "caveat", "blocked", "incomplete"], "properties": {
+   "bands": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["min", "verdict"], "additionalProperties": false, "properties": {"min": {"type": "number"}, "verdict": {"type": "string"}}}},
+   "otherwise": {"type": "string"}, "caveat": {"type": "string"}, "blocked": {"type": "string"}, "incomplete": {"type": "string"}}},
+  "severity_bands": {"type": "object", "additionalProperties": false, "required": ["bands", "otherwise"], "properties": {
+   "bands": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["min", "severity"], "additionalProperties": false, "properties": {"min": {"type": "number"}, "severity": {"type": "string"}}}},
+   "otherwise": {"type": "string"}}}
+ }
+}

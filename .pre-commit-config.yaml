@@ -1,0 +1,37 @@
+# pre-commit hooks for EIO-Agents. Install once with `pre-commit install`; run on every file with
+# `pre-commit run --all-files`. CI runs the same hooks.
+#
+# Byte-exact paths are excluded from every hook. Record digests, module digests and the sha256 pins are computed over
+# their raw bytes, so a whitespace or end-of-file fix there would break the golden records and the digest pins:
+#   src/eio_agents/_vendored/     byte copies of ProofAgent Harness files (pinned by sha256)
+#   src/eio_agents/ontology/data/ the EIO release (RELEASE-DIGESTS.json)
+#   src/eio_agents/schemas/       the EIO and PER schemas
+#   src/eio_agents/per/data/      the limitation catalogue
+#   tests/data/                   fixtures, golden records and review aids
+#   tools/snapshots/              the EIO 0.3.0 baseline
+#   *.jcs                         canonical record bytes, wherever they are
+exclude: ^(src/eio_agents/_vendored/|src/eio_agents/ontology/data/|src/eio_agents/schemas/|src/eio_agents/per/data/|tests/data/|tools/snapshots/)|\.jcs$
+
+# Revisions are pinned by commit; `pre-commit autoupdate --freeze` refreshes them. Keep the ruff version equal to the
+# `lint` extra in pyproject.toml.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=512]
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: a56c0b927e6465d37cae3e97d35d4d18ab2b96cd  # frozen: v0.16.9
+    hooks:
+      - id: ruff-check

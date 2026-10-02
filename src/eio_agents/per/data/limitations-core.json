@@ -1,0 +1,294 @@
+{
+  "id": "per.lim.core",
+  "version": "2.0.0-rc2-draft",
+  "limitations": [
+    {
+      "id": "per.lim.scoring_profile.none",
+      "status": "NOT_SUPPLIED",
+      "paths": [
+        "/scores"
+      ],
+      "raised_when": "a native evaluation bundle declares no scoring profile",
+      "reason": "No scoring profile was declared for this evaluation.",
+      "impact": "Readiness and score-dependent release rules were not evaluated.",
+      "next_step": "Declare an applicable scoring profile and re-evaluate."
+    },
+    {
+      "id": "per.lim.anchor.turn_scope",
+      "status": "NOT_CAPTURED",
+      "paths": [
+        "/evidence/refs/{ref}"
+      ],
+      "raised_when": "a turn-scope `AGENT_SPAN` cited by a claim whose row carried a quote that is not a span of the answer (a code or gated annotation, or a semantic quote found neither exactly nor by casefold)",
+      "reason": "The citing claim's quote is not a span of this answer; the whole answer is cited.",
+      "impact": "The ref shows what the agent said on turn {turn} but does not point at the sentence and is not a witnessing anchored ref.",
+      "next_step": "Emit offsets from deterministic checks and anchorable quotations from evaluators."
+    },
+    {
+      "id": "per.lim.tool_output.not_captured",
+      "status": "NOT_CAPTURED",
+      "paths": [
+        "/evidence/completeness/tool_outputs"
+      ],
+      "raised_when": "no `tools_called[].result` anywhere",
+      "reason": "Tool results were not captured in the evaluation bundle.",
+      "impact": "TOOL_RESULT refs cannot be cited; state-changing effects are inferred from the call only.",
+      "next_step": "Capture tool-result content or an anchored digest."
+    },
+    {
+      "id": "per.lim.context.not_supplied",
+      "status": "NOT_SUPPLIED",
+      "paths": [
+        "/provenance/inputs/context_artifacts"
+      ],
+      "raised_when": "no `context_engineering` and no artifacts",
+      "reason": "No context artifact is embedded in the archive.",
+      "impact": "Explanations carry no context refs; the Q axis is not evaluated.",
+      "next_step": "Declare context artifacts and embed their content or digests."
+    },
+    {
+      "id": "per.lim.policy.none",
+      "status": "NOT_SUPPLIED",
+      "paths": [
+        "/release_recommendation/policy"
+      ],
+      "raised_when": "no profile and no tier",
+      "reason": "The archive carries no governance profile.",
+      "impact": "No profile rule (readiness floor, block on severity, sign-off) was evaluated; only evaluation conditions apply.",
+      "next_step": "Declare an applicable governance policy in the evaluation bundle."
+    },
+    {
+      "id": "per.lim.severity.none",
+      "status": "NOT_APPLICABLE",
+      "paths": [
+        "/findings/{finding_id}/severity"
+      ],
+      "raised_when": "finding without an in-scope obligation",
+      "reason": "No in-scope coverage obligation targets {predicate}.",
+      "impact": "The finding carries no severity and cannot trigger a block-on-severity rule.",
+      "next_step": "Add an obligation for {predicate} to the domain module, or accept the finding as unrated."
+    },
+    {
+      "id": "per.lim.timestamps.not_captured",
+      "status": "NOT_CAPTURED",
+      "paths": [
+        "/provenance/run/started_at",
+        "/provenance/run/completed_at"
+      ],
+      "raised_when": "schema 1",
+      "reason": "The archive records no run start or end time.",
+      "impact": "The record cannot be placed in time except by upload time.",
+      "next_step": "Record started_at and completed_at in producer provenance."
+    },
+    {
+      "id": "per.lim.producer.version_not_captured",
+      "status": "NOT_CAPTURED",
+      "paths": [
+        "/provenance/producer/version"
+      ],
+      "raised_when": "no `metadata.harness_version`",
+      "reason": "The producer software version was not recorded.",
+      "impact": "The record cannot identify the producer version that created the evaluation bundle.",
+      "next_step": "Record the producer software version in provenance."
+    },
+    {
+      "id": "per.lim.evaluator_model.per_stage",
+      "status": "NOT_CAPTURED",
+      "paths": [
+        "/provenance/evaluator_models/per_stage"
+      ],
+      "raised_when": "no `metadata.stage_models`",
+      "reason": "The evaluation bundle does not identify the evaluator model used at each stage.",
+      "impact": "Semantic claims name the primary model, which may not be the model that decided them.",
+      "next_step": "Record evaluator model identity per stage."
+    },
+    {
+      "id": "per.lim.evaluator_model.fallback_unattributed",
+      "status": "NOT_CAPTURED",
+      "paths": [
+        "/provenance/evaluator_models/fallback"
+      ],
+      "raised_when": "`fallback_call_count > 0`",
+      "reason": "{calls} of {total} evaluator-model calls used a fallback model without per-call attribution.",
+      "impact": "Some semantic claims may have been decided by an unidentified fallback model.",
+      "next_step": "Record evaluator model identity per call or stage."
+    },
+    {
+      "id": "per.lim.context.artifacts_not_embedded",
+      "status": "NOT_SUPPLIED",
+      "paths": [
+        "/provenance/inputs/context_artifacts"
+      ],
+      "raised_when": "`context_engineering` present but no artifact bytes/digests",
+      "reason": "Context artifacts were assessed but not embedded.",
+      "impact": "Context refs cannot be anchored; the Q axis value is carried from the harness assessor and checklist.",
+      "next_step": "Embed context artifacts or their digests in the evaluation bundle."
+    },
+    {
+      "id": "per.lim.agent.not_captured",
+      "status": "NOT_CAPTURED",
+      "paths": [
+        "/subject/agent/agent_id",
+        "/subject/agent/version"
+      ],
+      "raised_when": "not in metadata",
+      "reason": "The agent id or version passed on the command line is not persisted in the archive.",
+      "impact": "The record cannot be joined to an agent registration except by name.",
+      "next_step": "Persist the subject agent id and version in producer provenance."
+    },
+    {
+      "id": "per.lim.ai_bom.no_digests",
+      "status": "NOT_SUPPLIED",
+      "paths": [
+        "/subject/ai_bom/content_hash"
+      ],
+      "raised_when": "no component digest",
+      "reason": "No AI-BOM component carries a content digest.",
+      "impact": "The AI-BOM names components but cannot identify their versions.",
+      "next_step": "Embed context digests (archive schema 2)."
+    },
+    {
+      "id": "per.lim.domain.default",
+      "status": "NOT_SUPPLIED",
+      "paths": [
+        "/scope/domains"
+      ],
+      "raised_when": "no domain matched",
+      "reason": "No domain was identified from the profile or the inferred domains.",
+      "impact": "Only generic-agent obligations apply; domain-specific risk is untested.",
+      "next_step": "Declare the assessed domain in the evaluation bundle."
+    },
+    {
+      "id": "per.lim.facts.not_declared",
+      "status": "NOT_SUPPLIED",
+      "paths": [
+        "/scope/facts"
+      ],
+      "raised_when": "any fact `null`",
+      "reason": "{n} facts used by required_when are not declared.",
+      "impact": "Obligations depending on them have required: null.",
+      "next_step": "Declare the facts needed to evaluate required_when."
+    },
+    {
+      "id": "per.lim.retrieval_text.not_captured",
+      "status": "NOT_CAPTURED",
+      "paths": [
+        "/evidence/completeness/retrieval_text"
+      ],
+      "raised_when": "retrievals carry `source` only",
+      "reason": "Retrieved text is not recorded; only the source name is.",
+      "impact": "RETRIEVAL refs cannot be cited; the channel an injection came through is not evidenced.",
+      "next_step": "Record retrieval text or digests."
+    },
+    {
+      "id": "per.lim.input_locations.not_captured",
+      "status": "NOT_CAPTURED",
+      "paths": [
+        "/evidence/completeness/input_locations"
+      ],
+      "raised_when": "schema 1",
+      "reason": "Planted input positions are not recorded.",
+      "impact": "Injected instructions are cited as the whole user turn.",
+      "next_step": "Record planted input offsets."
+    },
+    {
+      "id": "per.lim.deterministic_check_offsets.not_captured",
+      "status": "NOT_CAPTURED",
+      "paths": [
+        "/evidence/completeness/deterministic_check_offsets"
+      ],
+      "raised_when": "schema 1",
+      "reason": "Deterministic checks record annotations rather than source offsets.",
+      "impact": "Code-decided evidence is reconstructed by recipe.",
+      "next_step": "Emit source offsets from deterministic checks."
+    },
+    {
+      "id": "per.lim.reliability_pass_transcripts.not_captured",
+      "status": "NOT_CAPTURED",
+      "paths": [
+        "/evidence/completeness/reliability_pass_transcripts"
+      ],
+      "raised_when": "reliability present, no pass text",
+      "reason": "Re-test answers are not stored; only counts survive.",
+      "impact": "Recurrence rows carry no evidence refs.",
+      "next_step": "Capture per-pass responses or content digests."
+    },
+    {
+      "id": "per.lim.anchor.no_quote",
+      "status": "NOT_CAPTURED",
+      "paths": [
+        "/evidence/refs/{ref}"
+      ],
+      "raised_when": "turn-scope `AGENT_SPAN` cited only by claims without a quote",
+      "reason": "The claims citing this answer recorded no span.",
+      "impact": "The ref shows the judged answer, not the sentence the decision rests on.",
+      "next_step": "Require a located quotation on each semantic decision."
+    },
+    {
+      "id": "per.lim.anchor.input_location",
+      "status": "NOT_CAPTURED",
+      "paths": [
+        "/evidence/refs/{ref}"
+      ],
+      "raised_when": "turn-scope `USER_INPUT`",
+      "reason": "The planted instruction location in the input is not recorded.",
+      "impact": "The whole user turn is cited as the instruction source.",
+      "next_step": "Record planted input offsets."
+    },
+    {
+      "id": "per.lim.cache.ballot_hits",
+      "status": "NOT_CAPTURED",
+      "paths": [
+        "/provenance/capsule"
+      ],
+      "raised_when": "`ballot_cache.hits > 0`",
+      "reason": "{hits} evaluator ballots were replayed from a cache whose identity was not captured.",
+      "impact": "Those semantic decisions were not re-adjudicated in this run.",
+      "next_step": "Record cache identity (capsule)."
+    },
+    {
+      "id": "per.lim.transcript.replayed",
+      "status": "NOT_APPLICABLE",
+      "paths": [
+        "/provenance/run/transcript_source"
+      ],
+      "raised_when": "`transcript_source == replayed`",
+      "reason": "The transcript was replayed from an earlier run; this run re-scored it.",
+      "impact": "Agent behaviour was observed at the earlier run; this record is not independent evidence of recurrence.",
+      "next_step": "Treat as a re-adjudication, not a new trial."
+    },
+    {
+      "id": "per.lim.ontology.producer_differs",
+      "status": "NOT_APPLICABLE",
+      "paths": [
+        "/header/eio/ontology_digest"
+      ],
+      "raised_when": "`capsule.ontology.ontology_digest` ≠ converter's",
+      "reason": "The run was produced under EIO {producer_release} ({producer_digest}).",
+      "impact": "Claims are re-projected with the converter's crosswalk.",
+      "next_step": "Review the producer and conversion ontology release mismatch."
+    },
+    {
+      "id": "per.lim.context_gap.no_claim",
+      "status": "NOT_APPLICABLE",
+      "paths": [
+        "/findings/{finding_id}"
+      ],
+      "raised_when": "each CONTEXT_GAP finding",
+      "reason": "Context gaps are evidenced by typed absence, not by a claim.",
+      "impact": "Context-criterion assessments are not claims in EIO 0.4.0; the finding rests on typed absence evidence only.",
+      "next_step": "Add context-criterion claims to EIO."
+    },
+    {
+      "id": "per.lim.subject_key.not_declared",
+      "status": "NOT_CAPTURED",
+      "paths": [
+        "/claims"
+      ],
+      "raised_when": "the tool schema declares no `subject_argument` and no `action_class` (every archive schema 1)",
+      "reason": "No tool declares its subject argument or action class.",
+      "impact": "No claim is bound to a subject; a subject-free state fact or typed absence never satisfies a subject-constrained predicate.",
+      "next_step": "Declare subject_argument and action_class for every tool (archive schema 2)."
+    }
+  ]
+}

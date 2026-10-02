@@ -1,0 +1,59 @@
+eio:
+  id: eio.core.taxonomies
+  namespace: https://www.proofagent.ai/eio-agents/module/core/taxonomies#
+  version: 0.2.0
+  kind: core
+  title: EIO Common Data, Action, Role, and Channel Taxonomies
+  description: >
+    Reusable classes for domain modules and local agent qualification. Concepts shared by more than
+    one domain module live here, so a domain module needs only its core import (EIO-209).
+  license: Apache-2.0
+
+imports:
+  - module: eio.core.entities
+    version: 0.2.0
+
+concepts:
+  - {id: eio.data.public, kind: data-class, parent: eio.entity.data-class, description: "Information approved for unrestricted public disclosure."}
+  - {id: eio.data.internal, kind: data-class, parent: eio.entity.data-class, description: "Non-public organizational information requiring an authorized business purpose."}
+  - {id: eio.data.personal, kind: data-class, parent: eio.entity.data-class, description: "Information relating to an identified or identifiable person."}
+  - {id: eio.data.special-category, kind: data-class, parent: eio.data.personal, description: "Sensitive personal information requiring enhanced handling and a defined policy basis."}
+  - {id: eio.data.authentication-secret, kind: data-class, parent: eio.data.internal, description: "Password, token, key, session, recovery, or equivalent authentication material."}
+  - {id: eio.data.payment, kind: data-class, parent: eio.data.personal, description: "Card, bank, wallet, payment credential, or transaction authentication data."}
+  - {id: eio.data.health, kind: data-class, parent: eio.data.special-category, description: "Clinical, diagnosis, treatment, medication, biometric, insurance, or health-service data."}
+  - {id: eio.data.clinical-record, kind: data-class, parent: eio.data.health, description: "Diagnosis, treatment, medication, test, note, imaging, and encounter records."}
+  - {id: eio.data.financial, kind: data-class, parent: eio.data.personal, description: "Account, balance, credit, income, transaction, investment, tax, or financial-decision data."}
+  - {id: eio.data.employment, kind: data-class, parent: eio.data.personal, description: "Applicant, employee, compensation, performance, leave, discipline, or workplace data."}
+  - {id: eio.data.legal-privileged, kind: data-class, parent: eio.data.internal, description: "Confidential legal, sealed, protected, or privileged communication and records."}
+  - {id: eio.data.child, kind: data-class, parent: eio.data.personal, description: "Personal data concerning a child or age-restricted user."}
+  - {id: eio.data.source-code, kind: data-class, parent: eio.data.internal, description: "Proprietary or security-relevant source code, configuration, and build material."}
+  - {id: eio.data.model-confidential, kind: data-class, parent: eio.data.internal, description: "System prompts, hidden policies, model configuration, weights, or protected reasoning artifacts."}
+  - {id: eio.role.end-user, kind: role, parent: eio.entity.subject, description: "A person directly interacting with the agent."}
+  - {id: eio.role.verified-subject, kind: role, parent: eio.role.end-user, description: "An end user whose identity has been verified to a declared assurance level."}
+  - {id: eio.role.operator, kind: role, parent: eio.entity.subject, description: "An authorized person operating or supervising the agent service."}
+  - {id: eio.role.reviewer, kind: role, parent: eio.entity.subject, description: "A person authorized to review or approve a protected decision or action."}
+  - {id: eio.role.administrator, kind: role, parent: eio.entity.subject, description: "A privileged operator with explicitly scoped administrative authority."}
+  - {id: eio.role.qualified-professional, kind: role, parent: eio.entity.subject, description: "A licensed or otherwise qualified person responsible for high-impact professional judgement."}
+  - {id: eio.role.regulator, kind: role, parent: eio.entity.subject, description: "An authority that supervises or certifies the deployment domain."}
+  - {id: eio.role.clinician, kind: role, parent: eio.role.qualified-professional, description: "A licensed clinician responsible for clinical judgement and care decisions."}
+  - {id: eio.role.peer-agent, kind: role, parent: eio.entity.agent, description: "Another agent participating through a declared inter-agent protocol and delegation."}
+  - {id: eio.action.read, kind: action, parent: eio.entity.action, description: "Retrieve or inspect a resource or data item."}
+  - {id: eio.action.disclose, kind: action, parent: eio.entity.protected-action, description: "Make data available to a recipient, channel, or audience."}
+  - {id: eio.action.update, kind: action, parent: eio.entity.protected-action, description: "Modify an existing record, resource, configuration, or state."}
+  - {id: eio.action.delete, kind: action, parent: eio.entity.protected-action, description: "Remove or make unavailable a record, resource, account, or state."}
+  - {id: eio.action.transfer, kind: action, parent: eio.entity.protected-action, description: "Move data, money, ownership, permissions, or another asset between parties or systems."}
+  - {id: eio.action.execute-code, kind: action, parent: eio.entity.protected-action, description: "Execute code, shell commands, configuration, or deployment operations."}
+  - {id: eio.action.send-message, kind: action, parent: eio.entity.protected-action, description: "Send content through email, messaging, webhook, notification, or another external channel."}
+  - {id: eio.action.create-account, kind: action, parent: eio.entity.protected-action, description: "Create an account, identity, credential, or entitlement-bearing record."}
+  - {id: eio.action.make-decision, kind: action, parent: eio.entity.protected-action, description: "Rank, approve, deny, price, allocate, recommend, or determine a subject outcome."}
+  - {id: eio.action.eligibility-decision, kind: action, parent: eio.action.make-decision, description: "Approve, deny, prioritize, calculate, or alter eligibility for a service or benefit."}
+  - {id: eio.action.clinical-decision, kind: action, parent: eio.action.make-decision, description: "Diagnose, triage, recommend treatment, or determine a clinical outcome."}
+  - {id: eio.action.payment-transfer, kind: action, parent: eio.action.transfer, description: "Initiate, redirect, approve, reverse, or modify a movement of money."}
+  - {id: eio.action.account-change, kind: action, parent: eio.action.update, description: "Change contact, authentication, ownership, preference, subscription, or other account state."}
+  - {id: eio.action.escalate, kind: action, parent: eio.entity.action, description: "Route a case to a documented human, specialist, security, legal, or operational review path."}
+  - {id: eio.channel.session, kind: channel, parent: eio.entity.channel, description: "The authorized user-visible interaction channel for the current session."}
+  - {id: eio.channel.approved-tool, kind: channel, parent: eio.entity.channel, description: "A tool destination explicitly allowed for the action and data involved."}
+  - {id: eio.channel.email, kind: channel, parent: eio.entity.channel, description: "An email destination requiring recipient and content authorization."}
+  - {id: eio.channel.webhook, kind: channel, parent: eio.entity.channel, description: "A network callback or webhook destination requiring an allowlisted endpoint."}
+  - {id: eio.channel.public-output, kind: channel, parent: eio.entity.channel, description: "A public, shared, published, indexed, or broadly visible destination."}
+  - {id: eio.channel.inter-agent, kind: channel, parent: eio.entity.channel, description: "An authenticated and scoped agent-to-agent communication channel."}

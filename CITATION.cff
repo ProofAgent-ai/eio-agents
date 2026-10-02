@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use EIO-Agents, please cite it as below."
+type: software
+title: "EIO-Agents: Evaluation Intelligence Ontology for AI Agents (reference library)"
+version: 0.6.0rc1
+license: Apache-2.0
+repository-code: "https://github.com/ProofAgent-ai/eio-agents"
+authors:
+  - name: "ProofAI LLC"
+contact:
+  - name: "ProofAgent"
+    email: "support@proofagent.ai"
+keywords:
+  - ai-agents
+  - agent-evaluation
+  - evaluation-record
+  - evidence
+  - verification
+abstract: >-
+  Reference library for EIO (Evaluation Intelligence Ontology) and PER 2.0 evaluation records for AI agents.
+  A model-graded verdict can support but never prove a claim, and a computed per-predicate witness rule
+  decides which typed evidence can prove agent behaviour. Records are canonical and content-addressed, so
+  a recipient with the exact evaluation bundle and matching library release can re-derive a record and check its digest.

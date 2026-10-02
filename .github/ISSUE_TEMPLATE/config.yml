@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/ProofAgent-ai/eio-agents/security/policy
+    about: Do not open a public issue for a vulnerability. Follow the security policy to report it privately.
+  - name: Documentation
+    url: https://github.com/ProofAgent-ai/eio-agents/tree/main/docs
+    about: Concepts, quick start, Python API, command line, verification, standards coverage and versioning.

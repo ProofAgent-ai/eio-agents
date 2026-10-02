@@ -1,0 +1,105 @@
+name: Bug report
+description: Something in EIO-Agents does not work as documented.
+labels: ["bug", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug. Please do not report security vulnerabilities here; follow SECURITY.md instead.
+
+        Do not attach archives or records that contain personal data, secrets or confidential content. A minimal,
+        synthetic example is best.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Describe the problem. Paste the full error message or traceback, if any.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: The command or the Python call you ran, and the smallest input that shows the problem.
+      placeholder: |
+        eio-agents convert archive.raw.json -o record.per.json
+    validations:
+      required: true
+
+  - type: textarea
+    id: version
+    attributes:
+      label: Output of `eio-agents version`
+      description: It names the library version and the bundled EIO release and PER version.
+      render: json
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - convert
+        - validate
+        - verify
+        - explain
+        - command line
+        - EIO data or schemas
+        - documentation
+        - packaging or installation
+        - other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: archive-schema
+    attributes:
+      label: Input archive schema
+      description: For conversion problems, the `schema` of the input report.
+      options:
+        - "1"
+        - "2"
+        - other
+        - not applicable
+    validations:
+      required: false
+
+  - type: dropdown
+    id: record-bytes
+    attributes:
+      label: Does the problem concern record bytes or digests?
+      description: For example a golden record that no longer reproduces, or a `per_sha256` that differs between machines.
+      options:
+        - "no"
+        - "yes"
+        - not sure
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Python version and operating system
+      placeholder: Python 3.13.1, Ubuntu 24.04
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I removed personal data, secrets and confidential content from everything I attached.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
