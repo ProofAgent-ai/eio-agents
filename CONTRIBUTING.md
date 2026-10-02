@@ -53,21 +53,12 @@ that read the example records and the sample archives.
 Lint uses ruff with the rules in `pyproject.toml`. Do not run `ruff format` or another formatter over the tree: it would
 rewrite most files, and the byte-exact paths listed under [Byte rules](#byte-rules) must never be reformatted.
 
-## Continuous integration
+## Testing and releases
 
-`.github/workflows/ci.yml` runs on every pull request and on `main`:
+GitHub runs no tests. Run the test suite and the gates above locally before you open a pull request or tag a release.
 
-- ruff, the pre-commit hooks and a `CITATION.cff` check;
-- the test suite on Python 3.10 to 3.14 on Ubuntu and on Python 3.13 on macOS;
-- the test suite with the lowest supported dependency versions (`pyyaml==6.0`, `jsonschema==4.20.0`);
-- a build of the sdist and the wheel, `twine check`, and a byte comparison of the packaged files with the source tree;
-- the test suite and the verifier self-test against the built wheel, installed alone into a clean virtual environment in
-  which ProofAgent Harness is absent;
-- the goldens and conformance job: `tools/eio_digests.py`, `tools/eio_gates.py` and its negative vectors, the golden
-  and stress records, and the verifier self-test.
-
-Releases are published by a maintainer with the manual workflow `.github/workflows/release.yml`, through PyPI trusted
-publishing.
+Releases are published by a maintainer: pushing a tag `v<version>` runs `.github/workflows/release.yml`, which builds
+the sdist and the wheel and publishes them to PyPI through trusted publishing.
 
 ## Change classes
 
