@@ -1,10 +1,10 @@
 # EIO-Agents
 
-[![Evaluation stack: agent infrastructure, evaluation framework, EIO-Agents semantic layer, and Portable Evaluation Record](docs/eio-agents-stack.svg)](https://www.proofagent.ai/eio-agents/schema/)
+[![Evaluation stack: agent infrastructure, evaluation framework, EIO-Agents semantic layer, and Portable Evaluation Record](https://raw.githubusercontent.com/ProofAgent-ai/eio-agents/main/docs/eio-agents-stack.svg)](https://www.proofagent.ai/eio-agents/schema/)
 
 **The framework-agnostic semantic layer for AI-agent evaluation.** EIO-Agents uses the Evaluation Intelligence Ontology (EIO) to turn an evaluator's observations into evidence-linked claims and a versioned Portable Evaluation Record (PER). It also validates, verifies, and explains that record.
 
-[Explore EIO and its schemas](https://www.proofagent.ai/eio-agents/schema/) · [See a PER example](https://www.proofagent.ai/eio-agents/per) · [Read the quick start](docs/quickstart.md)
+[Explore EIO and its schemas](https://www.proofagent.ai/eio-agents/schema/) · [See a PER example](https://www.proofagent.ai/eio-agents/per) · [Read the quick start](https://github.com/ProofAgent-ai/eio-agents/blob/main/docs/quickstart.md)
 
 ## From evaluation to evidence
 
@@ -14,23 +14,30 @@
 
 ProofAgent Harness is one possible evaluation producer; EIO-Agents does not require it. The raw bundle remains local. Review a PER before sharing it, because permitted redacted excerpts and metadata can still be sensitive.
 
-## Try the synthetic example
+## Install
 
-From this repository root, with Python 3.10 or newer:
+With Python 3.10 or newer:
 
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install -e .
-.venv/bin/eio-agents project tests/data/native/v0_6/source-complete.bundle.json \
-  -o native.per.json --jcs native.per.jcs
-.venv/bin/eio-agents validate native.per.json
-.venv/bin/eio-agents verify native.per.json \
-  --bundle tests/data/native/v0_6/source-complete.bundle.json
-.venv/bin/eio-agents explain native.per.json --list
-.venv/bin/eio-agents explain native.per.json readiness
+pip install --pre eio-agents
 ```
 
-The last command prints this explanation from the included **synthetic** bundle:
+`--pre` is needed while the current release is a release candidate. The package depends only on `pyyaml` and `jsonschema` and installs the `eio-agents` command.
+
+## Try the synthetic example
+
+Download the **synthetic** sample bundle, then project, validate, verify, and explain it:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/ProofAgent-ai/eio-agents/v0.6.0rc1/tests/data/native/v0_6/source-complete.bundle.json
+eio-agents project source-complete.bundle.json -o native.per.json --jcs native.per.jcs
+eio-agents validate native.per.json
+eio-agents verify native.per.json --bundle source-complete.bundle.json
+eio-agents explain native.per.json --list
+eio-agents explain native.per.json readiness
+```
+
+The last command prints:
 
 ```text
 Readiness: 42.0448/100 (recorded). Raw weighted score: 42.0448/100.
@@ -44,14 +51,16 @@ Use a target from `explain --list` to inspect one finding or score, then `eio-ag
 - **Open format:** PER 2.0.0 uses [JSON Schema Draft 2020-12](https://www.proofagent.ai/eio-agents/schema/per/2.0.0/per.schema.json) and EIO publishes a JSON-LD context. It is a versioned ProofAgent specification, **not** a W3C- or ISO-ratified standard or a compliance certification.
 - **Framework mappings:** provisional evidence-relevance links, not legal or regulatory compliance determinations. Historical ProofAgent report conversion requires the matching adapter and pinned EIO release.
 
-For local-text privacy boundaries, CLI targets, and your own bundle, see [the quick start](docs/quickstart.md). For the complete record structure and dashboard-style example, see [the PER guide](https://www.proofagent.ai/eio-agents/per).
+For local-text privacy boundaries, CLI targets, and your own bundle, see [the quick start](https://github.com/ProofAgent-ai/eio-agents/blob/main/docs/quickstart.md). For the complete record structure and dashboard-style example, see [the PER guide](https://www.proofagent.ai/eio-agents/per).
 
 ## Develop and contribute
 
 ```bash
+git clone https://github.com/ProofAgent-ai/eio-agents.git && cd eio-agents
+python3 -m venv .venv
 .venv/bin/pip install -e '.[test]'
 .venv/bin/python -m pytest -q tests
 .venv/bin/python tools/eio_gates.py
 ```
 
-Maintained by **ProofAI LLC** under the ProofAgent brand. Code, ontology data, and schemas are [Apache-2.0 licensed](LICENSE); see [NOTICE](NOTICE), [contribution guidelines](CONTRIBUTING.md), and [security policy](SECURITY.md). Support and private security reports: [support@proofagent.ai](mailto:support@proofagent.ai).
+Maintained by **ProofAI LLC** under the ProofAgent brand. Code, ontology data, and schemas are [Apache-2.0 licensed](https://github.com/ProofAgent-ai/eio-agents/blob/main/LICENSE); see [NOTICE](https://github.com/ProofAgent-ai/eio-agents/blob/main/NOTICE), [contribution guidelines](https://github.com/ProofAgent-ai/eio-agents/blob/main/CONTRIBUTING.md), and [security policy](https://github.com/ProofAgent-ai/eio-agents/blob/main/SECURITY.md). Support and private security reports: [support@proofagent.ai](mailto:support@proofagent.ai).
