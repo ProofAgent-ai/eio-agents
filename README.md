@@ -1,5 +1,9 @@
 # EIO-Agents
 
+[![PyPI](https://img.shields.io/pypi/v/eio-agents)](https://pypi.org/project/eio-agents/)
+[![Python](https://img.shields.io/pypi/pyversions/eio-agents)](https://pypi.org/project/eio-agents/)
+[![License](https://img.shields.io/pypi/l/eio-agents)](https://github.com/ProofAgent-ai/eio-agents/blob/main/LICENSE)
+
 [![Evaluation stack: agent infrastructure, evaluation framework, EIO-Agents semantic layer, and Portable Evaluation Record](https://raw.githubusercontent.com/ProofAgent-ai/eio-agents/main/docs/eio-agents-stack.svg)](https://www.proofagent.ai/eio-agents/schema/)
 
 **The framework-agnostic semantic layer for AI-agent evaluation.** EIO-Agents uses the Evaluation Intelligence Ontology (EIO) to turn an evaluator's observations into evidence-linked claims and a versioned Portable Evaluation Record (PER). It also validates, verifies, and explains that record.
