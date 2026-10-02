@@ -6,6 +6,8 @@ version: 0.6.0rc1
 license: Apache-2.0
 repository-code: "https://github.com/ProofAgent-ai/eio-agents"
 authors:
+  - given-names: "Fouad"
+    family-names: "Bousetouane"
   - name: "ProofAI LLC"
 contact:
   - name: "ProofAgent"

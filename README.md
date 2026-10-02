@@ -63,4 +63,4 @@ python3 -m venv .venv
 .venv/bin/python tools/eio_gates.py
 ```
 
-Maintained by **ProofAI LLC** under the ProofAgent brand. Code, ontology data, and schemas are [Apache-2.0 licensed](https://github.com/ProofAgent-ai/eio-agents/blob/main/LICENSE); see [NOTICE](https://github.com/ProofAgent-ai/eio-agents/blob/main/NOTICE), [contribution guidelines](https://github.com/ProofAgent-ai/eio-agents/blob/main/CONTRIBUTING.md), and [security policy](https://github.com/ProofAgent-ai/eio-agents/blob/main/SECURITY.md). Support and private security reports: [support@proofagent.ai](mailto:support@proofagent.ai).
+Created by **Dr. Fouad Bousetouane**. Maintained by **ProofAI LLC** under the ProofAgent brand. Code, ontology data, and schemas are [Apache-2.0 licensed](https://github.com/ProofAgent-ai/eio-agents/blob/main/LICENSE); see [NOTICE](https://github.com/ProofAgent-ai/eio-agents/blob/main/NOTICE), [contribution guidelines](https://github.com/ProofAgent-ai/eio-agents/blob/main/CONTRIBUTING.md), and [security policy](https://github.com/ProofAgent-ai/eio-agents/blob/main/SECURITY.md). Support and private security reports: [support@proofagent.ai](mailto:support@proofagent.ai).

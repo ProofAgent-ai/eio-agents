@@ -10,7 +10,10 @@ readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.10"
-authors = [{ name = "ProofAI LLC", email = "support@proofagent.ai" }]
+authors = [
+  { name = "Dr. Fouad Bousetouane" },
+  { name = "ProofAI LLC", email = "support@proofagent.ai" },
+]
 maintainers = [{ name = "ProofAgent", email = "support@proofagent.ai" }]
 keywords = [
   "ai-agents",
