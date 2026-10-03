@@ -82,7 +82,7 @@ def load_full_score_resources(profile_version=PROFILE_VERSION):
 def default_floor_guards(record):
     """The release-semantics 2.2 no-policy guards a PER 2.1.0 record must carry (owner decision #46), recomputed
     from the received record only: with policy source `none`, a review of the default readiness floor when
-    `scores.readiness.value` is below 85 or withheld, and a review of unmet HARD_BLOCK obligations when any
+    `scores.readiness.value` is below 85 or withheld (`scores` null included), and a review of unmet HARD_BLOCK obligations when any
     coverage obligation with `release_impact` HARD_BLOCK is unmet (the count `coverage.summary.hard_block_unmet`).
     Each guard is REVIEW; neither can BLOCK. The verifier's own copy, independent of the producer."""
     rr = record["release_recommendation"]

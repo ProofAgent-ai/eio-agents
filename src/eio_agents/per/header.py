@@ -1,7 +1,8 @@
 """The PER header (03 §7.1): the rc1 header constants and the header builder.
 
-This is the private historical adapter projection header. Native rc2 records
-replace its converter identity and schema URI in `native_preview`; neither
+This is the private historical adapter projection header (legacy, read-only).
+The neutral projection replaces its converter identity and schema URI in
+`native_preview`, and every new record is finalized to PER 2.1.0; neither
 legacy constant is advertised by the standalone public `standards()` API.
 The release-semantics version is the core constant
 `eio_agents.semantics.release.RELEASE_SEMANTICS`.

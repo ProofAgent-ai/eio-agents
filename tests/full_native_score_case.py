@@ -20,6 +20,9 @@ def reissued_cited_bundle():
     """Current-release synthetic citation vector without optional score inputs."""
     bundle, _, _ = with_citation()
     ontology = load()
+    # the current bundle format (3.0.0) replaces the legacy bundle_draft of the 0.6 source
+    bundle = {key: value for key, value in bundle.items() if key != "bundle_draft"}
+    bundle = {"archive_schema": bundle.pop("archive_schema"), "bundle_version": "3.0.0", **bundle}
     # Reissue the synthetic 0.5 source as a current-release test vector. Its
     # archived original remains unchanged and must still fail a 0.6 pin check.
     bundle["header"]["eio_agents"].update(

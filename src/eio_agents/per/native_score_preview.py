@@ -1,5 +1,6 @@
-"""Unpublished draft native scored-PER projection.
+"""Legacy, read-only: the rc3 partial native scored-PER projection (profile 0.2.0-draft.1, EIO 0.5.0-draft.1).
 
+Nothing new selects it: under the bundled EIO 0.6.0 a `native_scoring` section without proof citations is refused.
 The block is bound to a source-checked null-score PER and the pinned draft
 profile/ontology. The independent public D4 verifier checks its values again
 from the original bundle; this producer is never its own score authority.

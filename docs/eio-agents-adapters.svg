@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">EIO-Agents is evaluation-platform agnostic</title>
+  <desc id="desc">Six producers feed the same EIO bundle: ProofAgent Harness as a native producer, and Inspect AI, promptfoo, DeepEval, OpenTelemetry GenAI and your own report through export converters. EIO-Agents converts, validates and verifies the bundle into one Portable Evaluation Record, PER 2.1.0.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#123a49"/>
+      <stop offset="1" stop-color="#081d2a"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-30%" width="120%" height="170%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#001b24" flood-opacity=".22"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7fd8cc"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="760" rx="28" fill="url(#background)"/>
+  <text x="76" y="65" fill="#9ff0e6" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" letter-spacing="3">EVALUATION-PLATFORM AGNOSTIC</text>
+  <text x="76" y="108" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="700">Many producers, one portable record</text>
+  <text x="76" y="140" fill="#b9dcd8" font-family="Arial, Helvetica, sans-serif" font-size="18">Native producers record EIO evidence during the run; export converters map a finished report.</text>
+  <path d="M376,206 C426,206 410,426 456,426" fill="none" stroke="#9ff0e6" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M376,294 C426,294 410,426 456,426" fill="none" stroke="#5fb3a9" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M376,382 C426,382 410,426 456,426" fill="none" stroke="#5fb3a9" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M376,470 C426,470 410,426 456,426" fill="none" stroke="#5fb3a9" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M376,558 C426,558 410,426 456,426" fill="none" stroke="#5fb3a9" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M376,646 C426,646 410,426 456,426" fill="none" stroke="#5fb3a9" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M660,426 L712,426" stroke="#7fd8cc" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path d="M930,426 L982,426" stroke="#7fd8cc" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <g filter="url(#shadow)">
+    <rect x="76" y="170" width="300" height="72" rx="16" fill="#9ff0e6" stroke="#b2fff1" stroke-width="3"/>
+    <text x="98" y="201" fill="#103b43" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">ProofAgent Harness</text>
+    <text x="98" y="225" fill="#3d6a70" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="700" letter-spacing="1.4">NATIVE PRODUCER · IN PROGRESS</text>
+    <rect x="76" y="258" width="300" height="72" rx="16" fill="#f7fbfa"/>
+    <text x="98" y="289" fill="#103b43" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">Inspect AI</text>
+    <text x="98" y="313" fill="#3d6a70" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="700" letter-spacing="1.4">EXPORT CONVERTER</text>
+    <rect x="76" y="346" width="300" height="72" rx="16" fill="#f7fbfa"/>
+    <text x="98" y="377" fill="#103b43" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">promptfoo</text>
+    <text x="98" y="401" fill="#3d6a70" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="700" letter-spacing="1.4">EXPORT CONVERTER</text>
+    <rect x="76" y="434" width="300" height="72" rx="16" fill="#f7fbfa"/>
+    <text x="98" y="465" fill="#103b43" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">DeepEval</text>
+    <text x="98" y="489" fill="#3d6a70" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="700" letter-spacing="1.4">EXPORT CONVERTER</text>
+    <rect x="76" y="522" width="300" height="72" rx="16" fill="#f7fbfa"/>
+    <text x="98" y="553" fill="#103b43" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">OpenTelemetry GenAI</text>
+    <text x="98" y="577" fill="#3d6a70" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="700" letter-spacing="1.4">EXPORT CONVERTER</text>
+    <rect x="76" y="610" width="300" height="72" rx="16" fill="#f7fbfa"/>
+    <text x="98" y="641" fill="#103b43" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">Your own report</text>
+    <text x="98" y="665" fill="#3d6a70" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="700" letter-spacing="1.4">EXPORT CONVERTER</text>
+    <rect x="460" y="378" width="200" height="96" rx="18" fill="#dbe7ea"/>
+    <text x="478" y="405" fill="#366c72" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="1.6">LOCAL SOURCE</text>
+    <text x="478" y="436" fill="#103b43" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">EIO bundle</text>
+    <text x="478" y="459" fill="#3d5d63" font-family="Arial, Helvetica, sans-serif" font-size="14.5">build_bundle() · 3.0.0</text>
+    <rect x="716" y="378" width="214" height="96" rx="18" fill="#9ff0e6" stroke="#b2fff1" stroke-width="3"/>
+    <text x="734" y="405" fill="#366c72" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="1.6">SEMANTIC LAYER</text>
+    <text x="734" y="436" fill="#103b43" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">EIO-Agents</text>
+    <text x="734" y="459" fill="#3d5d63" font-family="Arial, Helvetica, sans-serif" font-size="14.5">convert · validate · verify</text>
+    <rect x="986" y="378" width="138" height="96" rx="18" fill="#ffffff"/>
+    <text x="1004" y="405" fill="#366c72" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="1.6">OUTPUT</text>
+    <text x="1004" y="436" fill="#103b43" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">PER 2.1.0</text>
+    <text x="1004" y="459" fill="#3d5d63" font-family="Arial, Helvetica, sans-serif" font-size="14.5">portable record</text>
+  </g>
+  <text x="76" y="722" fill="#9fbfbb" font-family="Arial, Helvetica, sans-serif" font-size="15">The converters are illustrative examples with synthetic data in examples/. None of these tools is required, and none emits a PER on its own.</text>
+</svg>

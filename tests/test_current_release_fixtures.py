@@ -18,12 +18,15 @@ PER_2_1 = Path(__file__).parent / "data/native/per_2_1"
 
 def test_unscored_0_8_fixture_is_current_and_exact():
     bundle_bytes = (DATA / "native.bundle.json").read_bytes()
-    assert hashlib.sha256(bundle_bytes).hexdigest() == "64a20b27985a241622cfdce791c5445a40d1237416e895ae6152353b0cd7e8fa"
+    assert hashlib.sha256(bundle_bytes).hexdigest() == "bf425c5a4eb63fdd458aed5240e4bd0fdc38138a7df55632d9ecb0e13b791f9c"
+    assert json.loads(bundle_bytes)["bundle_version"] == "3.0.0"
     assert validate_bundle(bundle_bytes) == []
     record = convert(bundle_bytes)
     assert record["header"]["eio"]["release"] == "0.6.0"
-    assert record["header"]["per_version"] == "2.0.0-rc3-draft"
-    assert record["scores"] is None
+    assert record["header"]["per_version"] == "2.1.0"
+    assert record["header"]["release_semantics"] == "2.2"
+    assert record["scores"] is None                                   # no native scoring inputs: no score is guessed
+    assert record["release_recommendation"]["state"] == "REVIEW"      # no policy: readiness withheld (decision #46)
     assert canonical_bytes(record) == (DATA / "native.per.jcs").read_bytes()
     assert validate(record) == []
     assert verify(record, bundle_bytes)["valid"]
@@ -31,7 +34,7 @@ def test_unscored_0_8_fixture_is_current_and_exact():
 
 def test_scored_0_8_fixture_is_source_complete_and_exact():
     bundle_bytes = (DATA / "source-complete.bundle.json").read_bytes()
-    assert hashlib.sha256(bundle_bytes).hexdigest() == "3867d8f2eded2d4d7b3b70fb0d469325c55626de0d4c5dc5b89ff34d7a115389"
+    assert hashlib.sha256(bundle_bytes).hexdigest() == "9df95b00e5dcf536aede3c4c8f37c6d2a196f574237e36d4f7f1c8a5e15cded7"
     bundle = json.loads(bundle_bytes)
     assert bundle == source_complete_bundle()
     assert validate_bundle(bundle_bytes) == []

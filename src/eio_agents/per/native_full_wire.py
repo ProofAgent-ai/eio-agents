@@ -1,9 +1,11 @@
 """Versioned PER 2.1.0 native full-score producer (reference scoring profile 0.3.1, release semantics 2.2).
 
-The input is a null-score rc3 native PER that has passed independent D1/D2/D5
-source checks. The source extractor rederives reportable and decisive IDs from
-bundle citations. This unit never treats a producer's score or freshness flag
-as authority. Historical rc3 conversion remains on its existing route.
+The input is the neutral null-score projection of a native bundle that has
+passed independent D1/D2/D5 source checks. The source extractor rederives
+reportable and decisive IDs from bundle citations. This unit never treats a
+producer's score or freshness flag as authority. `project_unscored_per` gives
+the PER 2.1.0 record of a bundle without native scoring inputs (scores null).
+Legacy rc3 records are re-derived only to verify records already issued.
 """
 from __future__ import annotations
 
@@ -52,8 +54,9 @@ def _checked_schema(path):
 
 
 def _versioned_unscored(record):
+    # the input is the internal neutral null-score projection (it carries the legacy rc3 identity only until here)
     require(record["header"]["per_version"] == "2.0.0-rc3-draft" and record.get("scores") is None,
-            "NATIVE_FULL_WIRE", "a verified rc3 null-score native PER is required")
+            "NATIVE_FULL_WIRE", "a verified null-score neutral PER projection is required")
     result = copy.deepcopy(record)
     result["header"]["per_version"] = PER_VERSION
     result["header"]["schema_uri"] = SCHEMA_URI
@@ -184,6 +187,31 @@ def _reconcile_scored_policy(record, value, *, ontology):
         explanation["params"] = {"n_contributing": len(release["contributing"]),
                                  "semantics": release["semantics"]}
     explanation["summary"] = sem_why.render(ontology, explanation["template_id"], explanation["params"])
+
+
+def high_review_queue_unscored(record):
+    """The HIGH-review queue of a record without a score block: with no proof sets, no finding is proven reportable, so
+    every HIGH or CRITICAL finding is queued for review (sorted, unique)."""
+    return sorted({f["finding_id"] for f in record["findings"] if f.get("severity") in ("HIGH", "CRITICAL")})
+
+
+def project_unscored_per(record, *, ontology):
+    """PER 2.1.0 for a bundle without native scoring inputs (a native bundle without `native_scoring`, or an adapter
+    bundle), from its neutral null-score projection. No score is guessed: `scores` is the explicit null the 2.1.0 schema
+    allows, with the limitation `per.lim.scoring_profile.none` at `/scores` (status NOT_SUPPLIED). Release semantics 2.2
+    apply unchanged: the HIGH-review guard (every HIGH or CRITICAL finding, none being proven reportable) and, with no
+    declared policy, the default readiness floor (readiness withheld) and unmet HARD_BLOCK obligations are REVIEW; only
+    a proven failure BLOCKs."""
+    require(isinstance(record, dict) and record.get("scores") is None, "NATIVE_FULL_WIRE",
+            "an unscored PER 2.1.0 needs a null-score projection")
+    require(any(row["limitation_id"] == NO_SCORING_PROFILE_ID and row["field_path"] == "/scores"
+                for row in record["limitations"]), "NATIVE_FULL_WIRE", "a null score block must state its limitation")
+    base = _versioned_unscored(record)
+    _apply_high_review_guard(base, high_review_queue_unscored(base), ontology=ontology)
+    _apply_default_floor_guards(base, None, ontology=ontology)
+    errors = [error.message for error in Draft202012Validator(_checked_schema(PER_SCHEMA)).iter_errors(base)]
+    require(not errors, "NATIVE_FULL_WIRE_SCHEMA", f"PER 2.1.0 invalid: {errors[:2]}")
+    return base
 
 
 def full_score_block_problems(block, versioned_unscored, *, ontology):

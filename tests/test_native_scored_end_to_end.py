@@ -18,7 +18,7 @@ from test_proof_group_exploration import prohibited_tool_bundle
 
 
 SOURCE = Path(__file__).parent / "data/native/v0_8/synthetic-cited-native.bundle.json"
-EXPECTED_PER_SHA256 = "sha256:f2b5f0d2126fec7283a582fe1d3f3eea014ac7df33d278ce9a0c735769853cf9"
+EXPECTED_PER_SHA256 = "sha256:775abc7319af22f84e7ae44d10795f5437696149d11f7e6271dd7276f32be2c6"
 
 
 def _bundle():

@@ -27,7 +27,7 @@ def source():
 def test_packaged_native_convert_validate_verify(source):
     bundle, ontology = source
     record = convert(bundle, ontology=ontology)
-    assert record["header"]["schema_uri"] == "https://w3id.org/eio-agents/per/2.0.0-rc3-draft/per.schema.json"
+    assert record["header"]["schema_uri"] == "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json"
     assert len(record["claims"]) == 4
     assert len(record["evidence"]["refs"]) == 6
     assert record["scores"] is None

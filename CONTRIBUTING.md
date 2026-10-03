@@ -47,31 +47,37 @@ Run all of these before you open a pull request:
 The native tests require the checked-in bundles and byte/digest goldens; missing or changed fixtures fail. The EIO gate
 runner also validates the native JCS record and checks that its negative mutations are caught.
 
-The two `tools/eio_gates.py` lines are the forms CI runs; without `--examples` and `--goldens` some gates skip the checks
+The two `tools/eio_gates.py` lines are the forms `tools/test_local.sh` runs; without `--examples` and `--goldens` some gates skip the checks
 that read the example records and the sample archives.
 
 Lint uses ruff with the rules in `pyproject.toml`. Do not run `ruff format` or another formatter over the tree: it would
 rewrite most files, and the byte-exact paths listed under [Byte rules](#byte-rules) must never be reformatted.
 
-## Continuous integration and releases
+## Local testing and releases
 
-`.github/workflows/ci.yml` runs on every pull request and on `main`:
+EIO-Agents is tested locally, not on GitHub. Before you push to `main`, and always before a release tag, run:
 
-- ruff, the pre-commit hooks and a `CITATION.cff` check;
-- the test suite on Python 3.10 to 3.14 on Ubuntu and on Python 3.13 on macOS;
-- the test suite with the lowest supported dependency versions (`pyyaml==6.0`, `jsonschema==4.20.0`);
+```bash
+tools/test_local.sh            # lint, offline test suite, goldens and conformance, build, the built wheel alone
+tools/test_local.sh --quick    # lint and the offline test suite only
+```
+
+One-time setup, with Python 3.10 or newer: `python3 -m venv .venv && .venv/bin/pip install -e ".[dev]" "pytest-xdist>=3.6" "hatchling>=1.27"`.
+The script runs the same checks as `.github/workflows/ci.yml`:
+
+- ruff and the pre-commit hooks;
+- the test suite in parallel with pytest-xdist, with network access denied on macOS;
+- the goldens and conformance checks: `tools/eio_digests.py`, `tools/eio_gates.py` and its negative vectors, and the
+  verifier self-test;
 - a build of the sdist and the wheel, `twine check`, and a byte comparison of the packaged files with the source tree;
-- the test suite and the verifier self-test against the built wheel, installed alone into a clean virtual environment in
-  which ProofAgent Harness is absent;
-- the goldens and conformance job: `tools/eio_digests.py`, `tools/eio_gates.py` and its negative vectors, the golden
-  and stress records, and the verifier self-test.
+- the test suite and the verifier self-test against the built wheel, imported alone ahead of the source tree.
 
-The test jobs run the suite in parallel with pytest-xdist (`-n auto`); locally, `pip install pytest-xdist` and
-`python -m pytest -n auto` does the same.
+`.github/workflows/ci.yml` does not run on push or pull request. A maintainer can still start it from the Actions tab
+(`workflow_dispatch`) to cover the full Python 3.10 to 3.14 and macOS matrix and the lowest supported dependency versions.
 
 Releases are published by a maintainer: pushing a tag `v<version>` runs `.github/workflows/release.yml`, which builds
 the sdist and the wheel and publishes them to PyPI through trusted publishing. The release workflow runs no tests, so
-tag only a commit whose CI run passed.
+tag only a commit on which `tools/test_local.sh` passed.
 
 ## Change classes
 

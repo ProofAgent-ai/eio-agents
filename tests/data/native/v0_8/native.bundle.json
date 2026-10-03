@@ -1,6 +1,6 @@
 {
  "archive_schema": 3,
- "bundle_draft": 2,
+ "bundle_version": "3.0.0",
  "header": {
   "run_id": "3f6b2c1e-8a4d-4f0b-9c2e-5d7a1b3c4e6f",
   "run_id_source": "producer",

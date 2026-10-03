@@ -10,10 +10,11 @@ The format is based on [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.
 Every entry states the bundled EIO release, the PER version, and whether record bytes change. The `.devN` versions
 below are development builds; `0.6.0rc1` was a release candidate. No version is a claim of certification.
 
-## [0.8.0] - Pending publication
+## [0.8.0] - 2026-10-03
 
-EIO-Agents 0.8.0 bundles EIO `0.6.0` (`ontology_digest` `a27cf1f3ab755446`) and produces PER `2.1.0` by default,
-under release semantics `2.2`, with reference scoring profile `0.3.1`. This is a real 0.8.0 release line; publication remains pending exact local gates and the owner's commit/upload.
+EIO-Agents 0.8.0 bundles EIO `0.6.0` (`ontology_digest` `a27cf1f3ab755446`) and produces PER `2.1.0` for every new
+record, under release semantics `2.2`, with reference scoring profile `0.3.1`; `build_bundle()` writes bundle format
+`3.0.0`.
 
 ### Added
 
@@ -22,19 +23,24 @@ under release semantics `2.2`, with reference scoring profile `0.3.1`. This is a
 - Versioned PER 2.1.0 source-bound HIGH-review guard: unresolved HIGH/CRITICAL findings force REVIEW and the independent
   verifier rejects a forged state, omitted guard, or mismatched review queue. Published PER 2.0.0 bytes stay immutable.
 - Predicate search hints and token-aware suggestions for unknown predicate names.
-- Release semantics `2.2` (owner decision #46): a PER 2.1.0 record that declares no policy
+- Release semantics `2.2`: a PER 2.1.0 record that declares no policy
   (`release_recommendation.policy.source` `none`) is REVIEW whenever readiness is below the default floor of 85 (or
   withheld) or any HARD_BLOCK obligation is unmet (`coverage.summary.hard_block_unmet > 0`). Two `review_guard`
   decisive entries, `eio.release.default-readiness-floor` (`field_refs` `/scores/readiness/value`) and
   `eio.release.hard-block-unmet` (`obligation_ids`, `field_refs` `/coverage/summary/hard_block_unmet`), state the
   reason in the registered release explanation `eio.why.release.review@1`; no EIO template is added, so the EIO
-  release and its digests do not change. BLOCK still requires a proven failure (owner decision #2); the guards are
+  release and its digests do not change. BLOCK still requires a proven failure; the guards are
   never BLOCK. The independent verifier recomputes the guards from the record (R2) and from the bundle (D4) and
   rejects a record that omits them or claims PASS.
 
 ### Changed
 
-- PER `2.1.0` is the default (owner decision #46). `eio-agents version` and `eio_agents.standards()` report
+- Testing is local: `tools/test_local.sh` runs lint, the offline test suite, the goldens and
+  conformance checks, the distribution build and checks, and the suite against the built wheel. `.github/workflows/ci.yml`
+  no longer runs on push or pull request (manual `workflow_dispatch` only); the release workflow still publishes a
+  pushed tag `v<version>` without tests, so run `tools/test_local.sh` before tagging.
+
+- PER `2.1.0` is the default. `eio-agents version` and `eio_agents.standards()` report
   `per_version` `2.1.0`, its schema id, `release_semantics` `2.2` and reference profile `0.3.1`;
   `eio_agents.schemas.per_schema()` defaults to the 2.1.0 schema. No public version string or schema id of a new record
   contains "draft": a PER 2.1.0 record binds the released reference scoring profile `0.3.1` (the rules of
@@ -50,6 +56,28 @@ under release semantics `2.2`, with reference scoring profile `0.3.1`. This is a
   `reference-draft` and stay verifiable; historical release-candidate records keep their pinned identities and are no
   longer defaults. Release semantics `2.1`, used only by unpublished 0.8.0 candidate records, is superseded: such a
   record fails validation instead of being reinterpreted.
+- Nothing new says "draft". Every `convert` route emits PER `2.1.0`: a native
+  bundle without `native_scoring`, and an adapter bundle, which projected to `2.0.0-rc3-draft`, now give PER 2.1.0
+  with `scores: null` and the limitation `per.lim.scoring_profile.none` at `/scores` (no score is guessed) under
+  release semantics `2.2` unchanged: with no declared policy the HIGH-review guard (every HIGH or CRITICAL finding, none
+  being proven reportable without proof sets), the default readiness floor (readiness withheld) and unmet HARD_BLOCK
+  obligations make it REVIEW, never BLOCK without a proven failure. The independent verifier recomputes and checks
+  these records like the scored route: it rejects a dropped guard, a claimed PASS, a dropped limitation or a forged
+  version, and reads the floor guard's pinned pointer `/scores/readiness/value` as withheld through the null score
+  block. The adapter route, which no longer produced a valid record under EIO 0.6.0, goes through the same neutral
+  projection. The PER 2.1.0 schema is unchanged (SHA-256 `b014591877aeef1821d3f1da5bc7a3a75516abc60033f2d91a16cbc08aca8219`).
+- Bundle format `3.0.0` is released: `build_bundle()` writes `"bundle_version": "3.0.0"` in place of
+  `"bundle_draft": 2`, validated by `schemas/bundle/bundle-3.0.0.schema.json` (`$id`
+  `urn:eio-agents:schema:bundle:3.0.0`, SHA-256 `cbb149a9043898cfa35e8cb91ca2cd3e3b6efd603778064f2b5c80a4da59f0ec`;
+  the draft 2 content under a released identity). Bundles already issued with `bundle_draft` 1 or 2 (the ProofAgent
+  Harness adapter writes 2) are read byte for byte with their pinned schemas (`schemas.bundle_schema(bundle)`).
+  `standards()` and `eio-agents version` add `bundle_version` and `bundle_schema_id`.
+- Legacy identities are read-only and labelled ([docs/versioning.md](docs/versioning.md#legacy-identities)): the
+  rc1 to rc5 PER schemas, the `*-draft*` scoring profiles and score-block schemas and the bundle draft 1 and 2 schemas
+  keep their bytes and are selected only by the identity an existing artifact declares. `verify` re-derives a legacy
+  `2.0.0-rc3-draft` record of a legacy `bundle_draft` bundle under its own identity; a bundle 3.0.0 only ever
+  re-derives PER 2.1.0. `tests/test_no_draft_release.py` gates every route, `build_bundle`, `version`, `standards()`
+  and the CLI help against "draft" (the JSON Schema dialect URL aside).
 - `eio-agents explain --list` and `eio-agents evidence` show `unrated` for a finding with no severity (no in-scope
   obligation targets its predicate), where they printed `None`; `explain --list` now shows every finding's severity.
   Display only: the record keeps `severity: null`. The ontology defines severity through domain obligations only, not
@@ -57,11 +85,13 @@ under release semantics `2.2`, with reference scoring profile `0.3.1`. This is a
 - Record bytes change: **yes**. The converter and bundle version change from `0.7.0` to `0.8.0`; the 2.1 wire contract,
   model-identifier privacy rule and confidential-by-default system prompt also change projection where applicable.
   Existing 0.7.0 records require their pinned release for exact re-derivation. New 0.8 fixtures are under
-  `tests/data/native/v0_8/`; historical 2.0 and 0.7 vectors are not rewritten. Decision #46 reissued the two scored
-  PER 2.1.0 vectors with `tools/reissue_0_8_fixtures.py` and `tools/reissue_per_2_1_fixtures.py`:
-  `v0_8/source-complete.per.jcs` SHA-256 `8ea058de14e379fcca8478cbba89c6a9682826eb039f62b6080d1cabd37c1177` and
-  `per_2_1/source-complete.per.jcs` SHA-256 `ff323f0d72d455c87fd83aa914108cd65f69a2c5db3575f178b2432889b8997b`; the
-  bundles are byte-identical.
+  `tests/data/native/v0_8/` (bundle format 3.0.0, all PER 2.1.0), reissued with `tools/reissue_0_8_fixtures.py`:
+  `v0_8/native.per.jcs` SHA-256 `8a5cd693441c47d28a596f714ba7b45f0c4be8f25de98471ff37396a0a49308a` and
+  `v0_8/source-complete.per.jcs` SHA-256 `e64798e9896c946252e4b263c20f19deef83ac29cad33bcc7ea787304c4a597c`;
+  `per_2_1/source-complete.per.jcs` (from the 0.6 bundle) stays SHA-256
+  `ff323f0d72d455c87fd83aa914108cd65f69a2c5db3575f178b2432889b8997b`. The earlier 0.8.0 development vectors
+  (`bundle_draft` 2, an rc3 record) are kept byte for byte in `tests/data/native/legacy_draft2/`; historical 2.0 and
+  0.7 vectors are not rewritten.
 - Model identifiers are clear only in designated model fields and only when they contain no sensitive-token shape.
   System prompts in `build_bundle()` are model-confidential by default; public excerpts require explicit opt-in.
   Illustrative export crosswalks now skip unsupported checks rather than claiming semantically different predicates.

@@ -7,7 +7,9 @@ from eio_agents.per.capsule import CAPSULE_FIELDS
 from eio_agents.per.evidence import KIND_ORDER, cited_ref_ids, order_refs
 from eio_agents.per.io import canonical_bytes, per_sha256, pretty, write, write_record
 
-PER_VERSION = "2.0.0-rc3-draft"   # provisional S1b proof-rule release; historical rc1/rc2 remain pinned
+# Legacy, read-only: the identity of the internal neutral null-score projection and of legacy rc3 records already issued.
+# Every new record is PER 2.1.0 (`eio_agents.per.native_full_wire.PER_VERSION`); `eio_agents.convert` never returns this.
+PER_VERSION = "2.0.0-rc3-draft"
 
 from eio_agents.per.projection import project  # noqa: E402  (imports PER_VERSION-free modules only)
 

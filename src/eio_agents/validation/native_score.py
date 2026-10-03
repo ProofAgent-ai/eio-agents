@@ -650,7 +650,7 @@ def native_score_gate(record, bundle, *, eio=None, source_checked=False):
     score = record.get("scores")
     if score is None:
         if eio is not None and eio.release in ("0.5.0-draft.1", "0.6.0") and bundle.get("native_scoring") is not None:
-            return ["native score: source declares native_scoring but PER suppresses the required draft score block"], ""
+            return ["native score: source declares native_scoring but PER suppresses the required score block"], ""
         return [], "native score absent; no numeric claim to rederive"
     claimed = score.get("scoring_profile") if isinstance(score, dict) else None
     if (isinstance(claimed, dict)

@@ -1,9 +1,10 @@
-"""Isolated S1b native PER projection preview, routed by the packaged API.
+"""The internal neutral null-score projection, routed by the packaged API.
 
 The historical projector first enforces bundle/stage/privacy rules. This
-adapter-free finalization then expresses its native result in the neutral rc3
-preview schema. It cannot become a release until all S1b names, catalogues,
-digests, goldens and gates are reissued together.
+finalization then expresses its result in the neutral rc3 shape, validated
+against the legacy rc3 schema. It is an intermediate: `eio_agents.convert`
+turns it into PER 2.1.0 (`native_full_wire`), and the rc3 identity is returned
+as is only to re-derive legacy records already issued.
 """
 from __future__ import annotations
 
@@ -124,9 +125,21 @@ def _neutralize(old: dict, bundle: dict, ontology) -> dict:
 
 
 def project_native_preview(bundle, *, ontology):
-    """Project one native bundle through the neutral draft without package installs."""
+    """The internal neutral null-score projection of one native bundle (legacy rc3 identity). New records never carry
+    it: `eio_agents.convert` finalizes it to PER 2.1.0; it is returned as is only to re-derive legacy rc3 records."""
     b = B.read(bundle)
     require(b["provenance"]["producer"]["kind"] == "native", "NATIVE_PREVIEW", "producer must be native")
+    return _project_neutral(b, ontology=ontology)
+
+
+def project_neutral(bundle, *, ontology):
+    """The internal neutral null-score projection of a native or adapter bundle, the input of the PER 2.1.0
+    finalization (`native_full_wire.project_unscored_per`)."""
+    # the projector validates the bundle sections first, then takes a native or adapter producer only
+    return _project_neutral(B.read(bundle), ontology=ontology)
+
+
+def _project_neutral(b, *, ontology):
     # The old projector can load its own release when ontology is None, but
     # native finalization also renders release explanations.  Both stages
     # must see the *same* verified release object, including through the

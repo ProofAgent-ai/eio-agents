@@ -46,8 +46,8 @@ The example yields measured readiness `42.0448` and `REVIEW` under release seman
 its readiness is below the default floor of 85 and two HARD_BLOCK obligations are unmet; these are fixture outputs, not an agent-safety or deployment verdict.
 `validate` checks the declared PER version, and `verify` checks source
 consistency and re-derives the record from the supplied bundle. An explicit
-source-complete proof set selects PER 2.1.0; a bundle without one
-retains the rc3 partial-score route. Missing required source inputs withhold
+source-complete proof set gets a reference score block in PER 2.1.0; a bundle
+without native scoring inputs gets PER 2.1.0 with `scores: null`. Missing required source inputs withhold
 the affected score or readiness. These checks do not prove that the evaluation
 or the agent's behaviour is accurate in the world.
 

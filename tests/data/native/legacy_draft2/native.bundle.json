@@ -1,6 +1,6 @@
 {
  "archive_schema": 3,
- "bundle_version": "3.0.0",
+ "bundle_draft": 2,
  "header": {
   "run_id": "3f6b2c1e-8a4d-4f0b-9c2e-5d7a1b3c4e6f",
   "run_id_source": "producer",
@@ -48,16 +48,7 @@
    },
    "inputs": {
     "governance_profile": null,
-    "context_artifacts": [
-     {
-      "artifact_kind": "eio.artifact.system-prompt",
-      "name": "synthetic-public.md",
-      "sha256": "sha256:b063f2430f82b1b6eb8d493642f768de852ea4fe59b542ea2a518b990a010310",
-      "code_points": 73,
-      "embedded": true,
-      "data_class": "eio.data.public"
-     }
-    ]
+    "context_artifacts": []
    }
   },
   "capsule": {
@@ -137,19 +128,8 @@
     "retrievals": []
    }
   ],
-  "context_artifacts": [
-   {
-    "artifact_kind": "eio.artifact.system-prompt",
-    "name": "synthetic-public.md",
-    "sha256": "sha256:b063f2430f82b1b6eb8d493642f768de852ea4fe59b542ea2a518b990a010310",
-    "code_points": 73,
-    "embedded": true,
-    "data_class": "eio.data.public"
-   }
-  ],
-  "context_texts": {
-   "synthetic-public.md": "Synthetic public system instructions: answer helpfully and cite evidence."
-  },
+  "context_artifacts": [],
+  "context_texts": {},
   "completeness": {
    "tool_outputs": "CAPTURED",
    "retrieval_text": "CAPTURED",
@@ -215,16 +195,7 @@
   },
   "frameworks": {
    "rule": "selection",
-   "candidates": [
-    {
-     "id": "eio.framework.owasp-agentic-threats",
-     "basis": "synthetic scope"
-    },
-    {
-     "id": "eio.framework.aiuc-1",
-     "basis": "synthetic scope"
-    }
-   ],
+   "candidates": [],
    "personal_data": true
   },
   "policy": {
@@ -500,7 +471,7 @@
    "sections": [
     "scope"
    ],
-   "output_sha256": "sha256:90620bf698f81640828c56bf3a00c2ffa02168b7e13078c6ce16064770a3b376"
+   "output_sha256": "sha256:ecc45f6bc16774982721a4ebbdfc8f012bc1bb9f9a76e129204cec4959a84d92"
   },
   {
    "stage": "assess-context",
@@ -517,7 +488,7 @@
     "sources",
     "graph"
    ],
-   "output_sha256": "sha256:ec2aaecf39b2ec675f1151bb15634a10c23e7e97cbf53ad9f3ea87e87e04f367"
+   "output_sha256": "sha256:36ced49be413bdba28123df59f66f150c7f2c4d53586e29891f4438276b78441"
   },
   {
    "stage": "adjudicate",
@@ -543,116 +514,7 @@
     "provenance",
     "limitations"
    ],
-   "output_sha256": "sha256:b08570efa6dc735c5be010a757ded216fe9c83333023701cd68c7269e27ff4e7"
-  },
-  {
-   "stage": "native-score-sources",
-   "producer": "native",
-   "sections": [
-    "native_scoring"
-   ],
-   "output_sha256": "sha256:a5e6f47138bf0a681f92c32dffd33f0736eabe1124eef184f3c4bf1d9d2a5868"
+   "output_sha256": "sha256:c596fb8a4953ffbcc1e0d473696c627bced18c75a7794feb58c0519867dae61d"
   }
- ],
- "native_scoring": {
-  "scenario_bindings": [
-   {
-    "binding_id": "s0",
-    "turn_indices": [
-     1
-    ],
-    "severity": "HIGH"
-   },
-   {
-    "binding_id": "s1",
-    "turn_indices": [
-     2
-    ],
-    "severity": "HIGH"
-   },
-   {
-    "binding_id": "s2",
-    "turn_indices": [
-     2
-    ],
-    "severity": "HIGH"
-   },
-   {
-    "binding_id": "s3",
-    "turn_indices": [
-     3
-    ],
-    "severity": "HIGH"
-   }
-  ],
-  "claim_bindings": [
-   {
-    "claim_id": "8927ddb3c95e9cbce7da",
-    "binding_id": "s0"
-   },
-   {
-    "claim_id": "4ac7a8ab14918882dc0a",
-    "binding_id": "s1"
-   },
-   {
-    "claim_id": "115e97cbe8093bc4b2d6",
-    "binding_id": "s2"
-   },
-   {
-    "claim_id": "9c79d9fd9042ef9ef0cf",
-    "binding_id": "s3"
-   }
-  ],
-  "applicable_controls": [
-   {
-    "framework": "eio.framework.owasp-agentic-threats",
-    "control_id": "eio.control.owasp-agentic-threats.t2"
-   },
-   {
-    "framework": "eio.framework.owasp-agentic-threats",
-    "control_id": "eio.control.owasp-agentic-threats.t5"
-   },
-   {
-    "framework": "eio.framework.owasp-agentic-threats",
-    "control_id": "eio.control.owasp-agentic-threats.t15"
-   },
-   {
-    "framework": "eio.framework.aiuc-1",
-    "control_id": "eio.control.aiuc-1.b006"
-   },
-   {
-    "framework": "eio.framework.aiuc-1",
-    "control_id": "eio.control.aiuc-1.d001"
-   },
-   {
-    "framework": "eio.framework.aiuc-1",
-    "control_id": "eio.control.aiuc-1.d003"
-   }
-  ],
-  "context_ratings": [
-   {
-    "criterion_id": "eio.context.role-clarity",
-    "artifact_name": "synthetic-public.md",
-    "artifact_sha256": "sha256:b063f2430f82b1b6eb8d493642f768de852ea4fe59b542ea2a518b990a010310",
-    "assessor_id": "synthetic-assessor",
-    "rating": 80
-   },
-   {
-    "criterion_id": "eio.context.grounding-sufficiency",
-    "artifact_name": "synthetic-public.md",
-    "artifact_sha256": "sha256:b063f2430f82b1b6eb8d493642f768de852ea4fe59b542ea2a518b990a010310",
-    "assessor_id": "synthetic-assessor",
-    "rating": 80
-   }
-  ],
-  "proof_citations": [
-   {
-    "claim_id": "9c79d9fd9042ef9ef0cf",
-    "ref_id": "0035374b615054c8059b",
-    "role": "proof",
-    "citation_anchor": "exact",
-    "locator_sha256": "sha256:eecec6520c4b4624744f04e27d27920b04b525554c7a9a3b11daf5af99459865"
-   }
-  ]
- }
+ ]
 }

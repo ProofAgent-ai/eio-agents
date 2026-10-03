@@ -1,7 +1,7 @@
 """EIO-Agents — reference library for the Evaluation Intelligence Ontology (EIO) and Portable Evaluation Records
-(PER). This release bundles the 0.6 EIO ontology and emits PER 2.1.0 (the default) for source-complete native scoring;
-a bundle without native scoring inputs keeps the explicitly labeled partial route, and historical records require
-their pinned historical release and producer adapter.
+(PER). This release bundles the 0.6 EIO ontology and emits PER 2.1.0 for every new record (bundle format 3.0.0 in);
+a bundle without native scoring inputs gets `scores: null`, and legacy records stay verifiable under their pinned
+identities (historical stored reports require their producer adapter).
 
 One deterministic projection of an evaluation bundle (archive schema 3) to a PER record, plus
 validation, verification and "why" explanations, for the producer of a record and for any verifier or

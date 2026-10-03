@@ -1,8 +1,8 @@
 # Core concepts
 
 This page explains EIO and PER 2.1 as implemented in EIO-Agents `0.8.0`, which bundles
-EIO `0.6.0`. It produces PER `2.1.0` by default (release semantics `2.2`); a bundle without native scoring inputs
-keeps the pinned historical partial route. Counts describe the bundled ontology; they do not imply an accredited standard.
+EIO `0.6.0`. It produces PER `2.1.0` for every new record (release semantics `2.2`); a bundle without native scoring
+inputs gets `scores: null`. Counts describe the bundled ontology; they do not imply an accredited standard.
 
 - [The idea in one paragraph](#the-idea-in-one-paragraph)
 - [Claims](#claims)
@@ -181,9 +181,9 @@ published; the record gives named lists instead (always, sometimes and never fai
 
 A record may carry a readiness score, four axis values and metric values. The axes are Q (context), E (behaviour), C
 (compliance) and G (governance); EIO 0.6.0 defines nine metric concepts. A bundle with no native scoring inputs
-projects `scores: null`. Validated native scoring inputs can produce a partial score (historical kind `reference-draft`): the cited synthetic
-example measures two metrics and the behaviour axis, but G and readiness are null/`WITHHELD` because requisite evidence
-is not established. D4 independently checks its score fields, and D5 checks citation-based proof status. This is not a
+projects `scores: null` (with the limitation `per.lim.scoring_profile.none`). Validated native scoring inputs produce the
+reference score block (kind `reference`), where a value whose sources are absent is withheld: the cited synthetic
+example measures metrics and axes, but readiness is null/`WITHHELD` because requisite evidence is not established. D4 independently checks its score fields, and D5 checks citation-based proof status. This is not a
 complete numeric readiness score or an accuracy claim. An approved producer adapter may separately supply an attested
 profile; those results are adapter-scoped, not native reference scoring.
 
@@ -212,7 +212,7 @@ Read them with care:
 
 ## The PER record
 
-A PER record (2.1.0, and the historical rc1 and rc3 formats) has exactly 14 required top-level blocks, and no others:
+A PER record (2.1.0, and the legacy rc1 and rc3 formats) has exactly 14 required top-level blocks, and no others:
 
 `header`, `provenance`, `subject`, `scope`, `evidence`, `claims`, `coverage`, `findings`, `controls`, `scores`,
 `reliability`, `release_recommendation`, `limitations`, `telemetry`.
@@ -271,7 +271,7 @@ version and sha256. The loader rejects a missing module, a wrong version or wron
 | Recurrence bands | 4 |
 | Axes | 4 (Q, E, C, G) |
 | Context criteria | 7 |
-| Metric concepts | 9 (reference profile 0.3.1; partial native output possible) |
+| Metric concepts | 9 (reference profile 0.3.1; a value without its sources is withheld) |
 | Domain modules | 11, with 126 coverage obligations |
 | Flow stages | 13 |
 | "Why" templates | 34 |

@@ -189,12 +189,14 @@ import copy
 import json
 import eio_agents
 from eio_agents.per import canonical_bytes
-from eio_agents.per.native_preview import project_native_preview
+from eio_agents.per.native_preview import project_neutral
+from eio_agents.per.native_full_wire import project_unscored_per
 from eio_agents.ontology import load
 from eio_agents import validation
 b = Path({str(BUNDLE)!r}).read_bytes()
 ontology = load()
-rec = project_native_preview(b, ontology=ontology)
+project = lambda: project_unscored_per(project_neutral(b, ontology=ontology), ontology=ontology)
+rec = project()
 golden = Path({str(NATIVE / 'v0_8/native.per.jcs')!r}).read_bytes()
 historical_version = json.loads(golden)["header"]["converter"]["version"]
 assert rec["header"]["converter"]["version"] == eio_agents.__version__
@@ -204,7 +206,7 @@ h = historical["header"]
 h["per_semantics_version"] = f"2@{{historical_version}}+eio{{h['eio']['release']}}.{{h['eio']['ontology_digest']}}"
 assert canonical_bytes(historical) == golden
 assert validation.validate_bundle(b) == []
-r = validation.verify(rec, b, rederived=project_native_preview(b, ontology=ontology))
+r = validation.verify(rec, b, rederived=project())
 assert r["digest_match"] and r["failures"] == []
 print(sorted(m for m in sys.modules if m.startswith(("eio_agents._", "eio_agents.api", "proofagent_harness"))))
 """

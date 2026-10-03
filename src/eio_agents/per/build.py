@@ -31,6 +31,7 @@ from eio_agents.base.version import VERSION
 from eio_agents.evidence.refs import no_call_ref, receipt_ref, span_ref
 from eio_agents.ontology import load
 from eio_agents.per.bundle import stage_digest
+from eio_agents.schemas import BUNDLE_VERSION
 from eio_agents.semantics.claims import make_claim
 
 DEFAULTS = Path(__file__).resolve().parent / "data" / "build-defaults.json"
@@ -260,7 +261,7 @@ def build_bundle(*, run_id: str, producer: dict[str, str], agent: dict[str, str]
                  telemetry: dict[str, Any] | None = None, scope_facts: dict[str, Any] | None = None,
                  assessor_id: str | None = None, plan_hash: str | None = None, seed: int | None = None,
                  jury_model: str | None = None, ontology=None) -> dict[str, Any]:
-    """An evaluation bundle (archive schema 3, draft 2) of a native producer, ready for `eio_agents.convert`.
+    """An evaluation bundle (bundle format 3.0.0, archive schema 3) of a native producer, ready for `eio_agents.convert`.
 
     - `run_id`: the run's id, a lower-case UUID version 4; `producer`: `{name, version}` of the evaluator; `agent`:
       `{id, version, model}` of the agent under test; `started_at`, `completed_at`: RFC 3339 UTC (`...Z`).
@@ -457,7 +458,7 @@ def build_bundle(*, run_id: str, producer: dict[str, str], agent: dict[str, str]
     _need(isinstance(telemetry, dict), "BUILD_INPUT", "'telemetry' must be an object")
 
     b = {
-        "archive_schema": 3, "bundle_draft": 2,
+        "archive_schema": 3, "bundle_version": BUNDLE_VERSION,
         "header": {"run_id": run_id, "run_id_source": "producer",
                    "eio_agents": {"version": VERSION, "ontology_sha256": eio.ontology_sha256},
                    "eio": {"release": eio.release, "ontology_digest": eio.ontology_digest,

@@ -215,7 +215,7 @@ def bundle_of(bundle):
 
 
 def _bundle_schema_problems(b):
-    errs = sorted(Draft202012Validator(bundle_schema()).iter_errors(b), key=lambda e: (list(e.absolute_path), e.message))
+    errs = sorted(Draft202012Validator(bundle_schema(b)).iter_errors(b), key=lambda e: (list(e.absolute_path), e.message))
     p = [f"/{'/'.join(map(str, e.absolute_path))}: {e.message[:200]}" for e in errs]
     return p or _name_problems(b)
 
@@ -656,6 +656,8 @@ def _carried_in_clear(path):
     """Whether a bundle string at `path` reaches a record in clear (the twin's reading): not a context text, a turn's
     question, answer or state, a tool call's arguments or result, or a retrieval's member other than its source (a ref's
     excerpt is the record's excerpt: `bundle_content_problems`)."""
+    if path == ("bundle_version",):           # the bundle format version (a schema constant) never reaches a record
+        return False
     if path[:1] == ("native_scoring",):
         return False
     if len(path) >= 3 and path[:2] == ("sources", "context_texts"):
@@ -976,7 +978,7 @@ def validate_bundle(bundle, *, eio=None):
         rows.append((name, "BUNDLE", "FAIL" if problems else "PASS",
                      f"{len(problems)} problem(s); first: {problems[0]}" if problems else ""))
         return not problems
-    if run("B1 bundle schema (archive schema 3, draft 1) and its name rules", lambda: _bundle_schema_problems(bundle)):
+    if run("B1 bundle schema (archive schema 3, bundle format 3.0.0 or a legacy one) and its name rules", lambda: _bundle_schema_problems(bundle)):
         run("B2 stage records and the producer-declared section (§4.4)", lambda: _stage_problems(bundle))
         e = eio if eio is not None else EIO(EIO_DIR)
         run("B3 closed vocabularies of the release", lambda: _vocabulary_problems(bundle, e))

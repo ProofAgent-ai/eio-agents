@@ -62,8 +62,12 @@ def test_the_bundle_schema_is_a_valid_2020_12_schema_and_the_native_bundle_valid
     schema = schemas.bundle_schema()
     Draft202012Validator.check_schema(schema)
     assert schema["properties"]["archive_schema"] == {"const": 3}
-    v = Draft202012Validator(schema)
-    assert not list(v.iter_errors(json.loads(NATIVE.read_text(encoding="utf-8"))))
+    assert schema["properties"]["bundle_version"] == {"const": "3.0.0"} and schema["$id"] == schemas.BUNDLE_SCHEMA_ID
+    current = json.loads((ROOT / "tests/data/native/v0_8/native.bundle.json").read_text(encoding="utf-8"))
+    assert not list(Draft202012Validator(schema).iter_errors(current))
+    legacy = json.loads(NATIVE.read_text(encoding="utf-8"))            # a legacy bundle_draft 2 bundle: its pinned schema
+    assert legacy["bundle_draft"] == 2 and list(Draft202012Validator(schema).iter_errors(legacy))
+    assert not list(Draft202012Validator(schemas.bundle_schema(legacy)).iter_errors(legacy))
 
 
 def test_the_library_version_is_recorded_once(eio):
@@ -1263,10 +1267,13 @@ def test_errors_carry_a_typed_code():
 def test_the_release_semantics_version_is_a_core_constant(eio):
     from eio_agents.semantics.release import RELEASE_SEMANTICS
 
+    from eio_agents.per import native_full_wire
+
     rec = eio_agents.convert(NATIVE.read_bytes(), ontology=eio)
-    assert RELEASE_SEMANTICS == "2.x"
-    assert rec["header"]["release_semantics"] == rec["release_recommendation"]["semantics"] == RELEASE_SEMANTICS
-    assert rec["release_recommendation"]["explanation"]["params"]["semantics"] == RELEASE_SEMANTICS
+    assert RELEASE_SEMANTICS == "2.x"                     # the legacy rc records' semantics; every new record is 2.2
+    assert rec["header"]["release_semantics"] == rec["release_recommendation"]["semantics"] == "2.2"
+    assert native_full_wire.RELEASE_SEMANTICS == "2.2"
+    assert rec["release_recommendation"]["explanation"]["params"]["semantics"] == "2.2"
     from eio_agents.per import header
 
     assert '"2.x"' not in Path(header.__file__).read_text(encoding="utf-8")

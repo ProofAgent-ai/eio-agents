@@ -88,7 +88,7 @@ def author(ontology=None, *, version=VERSION):
     keys = sorted({k for oid in in_scope for k in (eio.obligation[oid].get("required_when") or {})} | set(GATE_FACTS))
     assert set(keys) == set(FACTS), sorted(set(keys) ^ set(FACTS))
     b = {
-        "archive_schema": 3, "bundle_draft": 2,
+        "archive_schema": 3, "bundle_version": "3.0.0",
         "header": {"run_id": RUN_ID, "run_id_source": "producer",
                    "eio_agents": {"version": version, "ontology_sha256": eio.ontology_sha256},
                    "eio": {"release": eio.release, "ontology_digest": eio.ontology_digest, "ontology_sha256": eio.ontology_sha256},

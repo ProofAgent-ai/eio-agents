@@ -1,7 +1,7 @@
 name: Release
 
 # Pushing a tag `v<version>` builds the sdist and the wheel and publishes them to PyPI through trusted publishing
-# (OpenID Connect; no API token is stored). No tests run here; test before tagging.
+# (OpenID Connect; no API token is stored). No tests run here: run tools/test_local.sh before tagging.
 # pypa/gh-action-pypi-publish also uploads PEP 740 attestations for both files.
 #
 #   git tag v0.6.0rc2 && git push origin v0.6.0rc2

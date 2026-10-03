@@ -616,6 +616,12 @@ class Checker:
         for d in rr["decisive"] + rr["contributing"]:
             for fr in d.get("field_refs") or []:
                 n += 1
+                # PER 2.1.0 pins the default-floor guard to /scores/readiness/value; in a record whose score block is the
+                # explicit null the value is withheld through that null block (release semantics 2.2: readiness withheld)
+                if (fr == "/scores/readiness/value" and self.rec["scores"] is None and d.get("kind") == "review_guard"
+                        and d.get("id") == "eio.release.default-readiness-floor"
+                        and self.rec["header"]["per_version"] == "2.1.0"):
+                    continue
                 ok, why = resolve_pointer(self.rec, fr)
                 if not ok:
                     p.append(f"field_ref {fr}: {why}")
@@ -1117,6 +1123,10 @@ class Checker:
             if got != floor:
                 p.append("2.2 no-policy default floor guard does not recompute (readiness floor 85, unmet HARD_BLOCK "
                          "obligations)")
+            # a PER 2.1.0 record without a score block states why: no score is guessed (scores null + its limitation)
+            if rec["scores"] is None and not any(l["limitation_id"] == "per.lim.scoring_profile.none"
+                                                 and l["field_path"] == "/scores" for l in rec["limitations"]):
+                p.append("2.1.0: scores is null without the limitation per.lim.scoring_profile.none at /scores")
         order = {"cap": 0, "metric_floor": 1, "profile_rule": 2, "review_guard": 3}
         if [order[d["kind"]] for d in rr["decisive"]] != sorted(order[d["kind"]] for d in rr["decisive"]):
             p.append("decisive entries not ordered cap, metric_floor, profile_rule")

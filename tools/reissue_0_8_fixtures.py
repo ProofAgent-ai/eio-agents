@@ -1,4 +1,7 @@
-"""Issue 0.8-native synthetic vectors without modifying historical v0_6 fixtures."""
+"""Issue 0.8-native synthetic vectors (bundle format 3.0.0, PER 2.1.0) without modifying historical fixtures.
+
+The v0_6 vectors and the legacy `bundle_draft` 2 vectors of `tests/data/native/legacy_draft2` (the 0.8.0 development
+vectors before bundle format 3.0.0, kept byte for byte) are never rewritten."""
 
 from __future__ import annotations
 
@@ -44,7 +47,10 @@ def main() -> None:
         assert validate(record) == [], name
         result = verify(record, bundle)
         assert result["valid"] and result["digest_match"], (name, result)
-    assert json.loads(outputs["source-complete.per.jcs"])["header"]["per_version"] == "2.1.0"
+    for name in ("native.per.jcs", "source-complete.per.jcs"):
+        assert json.loads(outputs[name])["header"]["per_version"] == "2.1.0", name
+    for name, payload in outputs.items():
+        assert b"draft" not in payload.replace(b"https://json-schema.org/draft/2020-12/schema", b""), name
     CURRENT.mkdir(parents=True, exist_ok=True)
     for name, payload in outputs.items():
         target = CURRENT / name

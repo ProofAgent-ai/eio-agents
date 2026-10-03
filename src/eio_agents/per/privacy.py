@@ -696,7 +696,7 @@ def schema_vocabulary():
         props, consts = set(), set()
         for d in (per_schema("2.0.0-rc1"), per_schema("2.0.0-rc3-draft"), per_schema("2.0.0-rc4-draft"),
                   per_schema("2.0.0-rc5-policy-draft"), per_schema("2.0.0"),
-                  per_schema("2.1.0"), bundle_schema()):
+                  per_schema("2.1.0"), bundle_schema(), bundle_schema({"bundle_draft": 2})):
             _schema_strings(d, props, consts)
         # The scored-route precheck uses this one diagnostic header URI. Do
         # not import the preview schema's other words into public vocabulary.

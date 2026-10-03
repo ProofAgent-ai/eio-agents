@@ -14,7 +14,8 @@ establish, what they do not, and how the library's own conformance is tested.
 ## validate and verify
 
 - `validate(record)` checks the record on its own, in process: the PER JSON Schema of its declared `per_version`
-  (rc3 partial, historical PER 2.0.0, or current PER 2.1.0; JSON Schema draft 2020-12, with formats) and every EIO rule that can be
+  (PER 2.1.0 for every new record; legacy rc3 and published PER 2.0.0 records keep their schemas; JSON Schema 2020-12,
+  with formats) and every EIO rule that can be
   recomputed from the record and the bundled EIO release.
 - `verify(record, bundle)` runs the same checks, then VER-5 against the record's evaluation bundle (every ref and digest
   the bundle's sources determine, recomputed per locator kind), re-projects the bundle and compares `per_sha256` of the
@@ -57,7 +58,8 @@ establish, what they do not, and how the library's own conformance is tested.
 
 These checks return rows of the form `{check, ver, status, detail}`. The `ver` column names the verification requirement
 of the PER 2.0 specification that the check implements (for example `VER-4`). A native bundle without scoring inputs
-projects `scores: null`. With validated `native_scoring` inputs, projection may include partial metrics/axes;
+projects `scores: null` in PER 2.1.0 (the verifier requires the limitation `per.lim.scoring_profile.none` and recomputes
+the release-semantics 2.2 guards). With validated `native_scoring` inputs, projection includes the reference metrics/axes;
 verification checks those source-derived fields, not producer-supplied score numbers. G/readiness remain withheld where
 required source evidence is absent.
 
@@ -65,7 +67,7 @@ required source evidence is absent.
 
 | Check | What it recomputes |
 |---|---|
-| S1 | JSON Schema of the declared `header.schema_uri` (draft 2020-12, formats) |
+| S1 | JSON Schema of the declared `header.schema_uri` (JSON Schema 2020-12, formats) |
 | S2 | Every claim against the EIO evaluation-claim schema |
 | S3 | Header: PER 2.x and `per_semantics_version` |
 | S4 | `header.eio` digests, recomputed from the bundled release |
@@ -161,8 +163,11 @@ The result depends on the source snapshot; run the command and record its actual
 
 Other tests:
 
-- **Native producer.** `tests/data/native/v0_8/` holds the current synthetic PER 2.1.0 bundle and byte-pinned PER.
-  `v0_6/` and older fixtures directly under `tests/data/native/` keep their historical pins.
+- **Native producer.** `tests/data/native/v0_8/` holds the current synthetic bundles (bundle format 3.0.0) and their
+  byte-pinned PER 2.1.0 records. `legacy_draft2/` keeps the 0.8.0 development vectors of a legacy `bundle_draft` 2
+  bundle (a legacy rc3 record that still verifies), and `v0_6/` and older fixtures directly under
+  `tests/data/native/` keep their historical pins. `tests/test_no_draft_release.py` is the release gate that no new
+  output says "draft" (beyond the JSON Schema dialect URL).
 - **Adapter compatibility.** Historical producer archives, golden records and stress inputs are retained outside the
   standalone package for the producer adapter's compatibility gate; they are not public package fixtures.
 - **Neutral code.** An AST test scans active package code for historical adapter parameters and report keys, and requires

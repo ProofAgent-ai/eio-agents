@@ -40,7 +40,7 @@ build_bundle(*, run_id: str, producer: dict, agent: dict, turns: list[dict], che
              jury_model: str | None = None, ontology: Ontology | None = None) -> dict[str, Any]
 ```
 
-Builds an evaluation bundle (archive schema 3, draft 2) of a native producer from a simple evaluation report: the
+Builds an evaluation bundle (bundle format 3.0.0, archive schema 3) of a native producer from a simple evaluation report: the
 conversation and one decision per check. Pass the result to [convert](#convert). From the report it
 computes everything `convert` recomputes: the evidence refs, the claim ids, the transcript digest, the episodes, the
 score inputs and the stage-record digests. What a report does not record (the scope facts, the capsule, the stage
@@ -139,11 +139,13 @@ A bad input raises `ConversionError` with a message that names the input field:
 convert(archive: bytes | dict, *, ontology: Ontology | None = None) -> dict[str, Any]
 ```
 
-Projects an evaluation bundle (archive schema 3, draft 2; schema `eio_agents.schemas.bundle_schema()`) into a PER
-record and returns it as a dict. Source-complete native scoring with an explicit proof set emits PER 2.1.0;
-an absent proof set retains the rc3 partial-score route. It is `eio_agents.per.project` applied to the bundle. Supply a
-bundle authored for EIO `0.6.0`; the current synthetic example is under `tests/data/native/v0_6/`, while
-older fixtures directly under `tests/data/native/` retain their historical pins. See the
+Projects an evaluation bundle (bundle format 3.0.0, archive schema 3; schema `eio_agents.schemas.bundle_schema()`;
+a legacy `bundle_draft` 1 or 2 bundle is read with its pinned schema) into a PER 2.1.0 record and returns it as a dict.
+Every route emits PER 2.1.0: source-complete native scoring with an explicit proof set gets its reference score block;
+a native bundle without `native_scoring`, and an adapter bundle, get `scores: null` with the limitation
+`per.lim.scoring_profile.none` (no score is guessed). Supply a bundle authored for EIO `0.6.0`; the current synthetic
+examples are under `tests/data/native/v0_8/`, while older fixtures under `tests/data/native/` retain their
+historical pins. See the
 [CLI command sequence](cli.md#project).
 
 - **Input.** A bundle as JSON bytes or a dict (a path goes to [convert_file](#convert_file)). A stored ProofAgent Harness
@@ -178,9 +180,10 @@ older fixtures directly under `tests/data/native/` retain their historical pins.
   The producer-declared section is accepted only from an adapter producer (`provenance.producer.kind` adapter, adapter
   stage records, a declared adapter and crosswalk digest). A native producer's bundle is its own archive: no declared
   source archive, native stage records only, pointers that resolve into its own `/sources`, `transcript_sha256` the
-  digest of its turns, and no juror citation. A native bundle without `native_scoring` inputs projects `scores` as null;
-  a validated section can produce claims-derived `reference-draft` scores, with missing values withheld. An explicit
-  source-complete proof set selects the versioned PER 2.1.0 route.
+  digest of its turns, and no juror citation. A native bundle without `native_scoring` inputs projects `scores` as null
+  in PER 2.1.0; a validated section with an explicit source-complete proof set gets the reference score block, with
+  missing values withheld. Under EIO 0.6.0 a `native_scoring` section without `proof_citations` is refused
+  (`NATIVE_SCORE_PREVIEW`).
 - **What a producer writes into the record** (from L3 fix round 1). Every producer-chosen text that reaches the record
   is the bundle's or the release's: `sources.turn_source_ref`, `calls_field` and `state_field` are identifiers, and the
   archive and argument pointers hold identifier and index tokens; a ref that no recipe rebuilds names a source the bundle
@@ -196,9 +199,8 @@ older fixtures directly under `tests/data/native/` retain their historical pins.
   and a context search reads 'İ' as 'i'. A STATE_FACT proves only a claim on a predicate whose evidence contract names
   STATE_FACT.
 - **Output check (contract §6.2 step 7).** The record is validated before it is returned against its PER schema and the
-  release's ids. Native records use `2.1.0` (the default) when source-complete; a bundle without native scoring
-  inputs keeps the pinned historical partial route; rc1 conversion is adapter scope.
-- **Proof.** Under this draft release, a native claim is `PROVEN` only with a verified targeted role=`proof` citation
+  release's ids. Every record is PER `2.1.0`; rc1 conversion is adapter scope.
+- **Proof.** Under this release, a native claim is `PROVEN` only with a verified targeted role=`proof` citation
   to a proof-eligible witnessing ref and exact fidelity or `CONFIRMED` recurrence. D5 independently checks the proof
   status against the source bundle. Historical 0.4.0 native proof had a different rule and remains tied to its old pin;
   an adapter must derive its own fidelity and proof inputs from its crosswalk.
@@ -250,8 +252,8 @@ validate(rec: dict[str, Any]) -> list[dict[str, Any]]
 ```
 
 Checks a record on its own, in process, with the independent verifier (`eio_agents.validation`, which shares no code with
-the projector): the PER JSON Schema of the record's `per_version` (source-complete native 2.1.0,
-neutral partial 2.0.0-rc3-draft, or rc1 only with the historical producer adapter and its pinned ontology) and the EIO rules that need no
+the projector): the PER JSON Schema of the record's `per_version` (2.1.0 for every new record; a legacy
+2.0.0-rc3-draft record, published 2.0.0, or rc1 only with the historical producer adapter and its pinned ontology) and the EIO rules that need no
 bundle (witness flags, claim ids, evidence contracts, coverage, findings, controls, scores, explanations, gates, release,
 reliability, limitations, numbers, wording, pointers). Returns the failing checks, or `[]` when the record is valid. Each
 row is:
@@ -359,7 +361,7 @@ score. `finding_evidence` returns only refs cited by the finding's PER explanati
 with the excerpt, tool fields and pointers *as supplied in the PER*. It never opens or reconstructs local source text.
 It is a view, not a sanitizer: validate and trust an externally supplied PER before displaying or sharing this output.
 
-The isolated rc3 draft schema also recognizes optional `header.declared_limitation_catalogues` and
+The PER schemas also recognize optional `header.declared_limitation_catalogues` and
 `header.declared_template_catalogues`. Their embedded documents are content-addressed and the verifier rejects unknown,
 colliding, or digest-mismatched declarations. This is not approval of arbitrary adapter text: the W1 closed-field privacy
 check still rejects unreviewed declaration text. Third-party template use requires a public-text approval policy and a
@@ -438,13 +440,16 @@ Returns the versions of the specifications bundled in this build:
     "current_native_per_schema_id": "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json",
     "native_full_scoring_profile_id": "eio-agents.reference-scoring",
     "native_full_scoring_profile_version": "0.3.1",
+    "bundle_version": "3.0.0",
+    "bundle_schema_id": "urn:eio-agents:schema:bundle:3.0.0",
     "per_schema": "...",        # the pre-L2c name of per_schema_id, kept for one version
     "converter": "...",         # the pre-L2c name of projector, kept for one version
 }
 ```
 
-`per_version` is the default record format, PER 2.1.0 (owner decision #46); historical formats are verifiable under
-their own pinned identities and are not reported as defaults. `standards()` reports only standalone EIO-Agents metadata. A producer adapter
+`per_version` is the record format of every new record, PER 2.1.0 (owner decision #46); `bundle_version` is the
+bundle format `build_bundle` writes, 3.0.0. Legacy formats are verifiable under their own pinned identities and are
+not reported here ([legacy identities](versioning.md#legacy-identities)). `standards()` reports only standalone EIO-Agents metadata. A producer adapter
 reports its own projector version; historical adapter constants remain private
 compatibility implementation details. The current PER 2.1.0 schema identity is
 `https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json`.
@@ -453,8 +458,10 @@ The EIO 0.6.0 ontology and context use their versioned
 deployment and live resolution are separate release checks.
 
 For schema bytes installed with the package, use `eio_agents.schemas.current_native_per_schema()` or
-`eio_agents.schemas.per_schema("2.1.0")`. The no-argument `per_schema()` selector remains the historical rc3
-partial schema for compatibility; it is not the current scored native schema.
+`eio_agents.schemas.per_schema("2.1.0")`; the no-argument `per_schema()` is the same PER 2.1.0 schema. A legacy
+schema is selected only by naming its version. `eio_agents.schemas.bundle_schema()` is the bundle 3.0.0 schema;
+`bundle_schema(bundle)` returns the schema of the format a bundle declares (a legacy `bundle_draft` 1 or 2 bundle
+gets its pinned legacy schema).
 
 `projector` is the standalone converter identity written into every record's `header.converter`.
 
@@ -549,16 +556,17 @@ point: a caller holds an adapter object and calls it. The ProofAgent adapter is 
 - `eio_agents.scoring.profiles`: `profiles(ontology)` lists the rederivable profiles EIO-Agents ships (the EIO-Agents
   reference scoring, `REFERENCE_ID`: the released `0.3.1` and its historical versions), `load_profile(id, version, ontology)` returns a registry document,
   `profile_sha256(document)` is the SHA-256 of the RFC 8785 bytes of a document without its own `sha256`,
-  `document_problems(document)` validates it against `schemas/scoring/scoring-profile-0.2.0-draft.1.schema.json`, and
+  `document_problems(document)` validates it against the legacy adapter profile-document schema
+  `schemas/scoring/scoring-profile-0.2.0-draft.1.schema.json`, and
   `resolve_profile(declared, *, producer_kind, ontology)` resolves the profile a bundle's score-input section declares:
   an **attested** document travels in the section, is accepted from adapter producers only, and its digest is
   recomputed (`SCORING_PROFILE_DIGEST` on a mismatch); a **rederivable** one is loaded from the registry.
 - `eio_agents.scoring.reference.score_native(...)` implements the claims-derived reference scorer used by native projection.
   The older generic `score(...)` signature remains unimplemented; applications should use public `convert`/`verify`,
   not call the internal scorer with unvalidated inputs.
-- A partial scored record states `scores.scoring_profile = {id, version, sha256, ontology_sha256}` (PER rc3 draft).
-  D4 independently recomputes its published fields from the bundle; G/readiness are withheld when source evidence
-  does not establish them. The G component ids are the profile document's `g_component_ids`.
+- A legacy partial scored record (PER rc3, profile `0.2.0-draft.1`) states `scores.scoring_profile = {id, version,
+  sha256, ontology_sha256}`; D4 still recomputes its published fields from its bundle. The G component ids are the
+  profile document's `g_component_ids`.
 - A source-complete native record with an explicit proof set uses PER 2.1.0 and reference profile
   `eio-agents.reference-scoring@0.3.1` (score basis `eio-agents.score-basis/0.3.0`, score kind `reference`; a published
   PER 2.0.0 record keeps the historical `0.3.1-draft.1` identities). D4 independently rederives all four axes, the four-component
@@ -582,7 +590,7 @@ point: a caller holds an adapter object and calls it. The ProofAgent adapter is 
 The L2/L3 split made the input EIO-native and the API in process; this historical step list does not describe every
 command or score route added later:
 
-- `convert(bundle, *, ontology=None)` over an EIO bundle (archive schema 3, draft 2), which any evaluator can produce,
+- `convert(bundle, *, ontology=None)` over an EIO bundle (archive schema 3), which any evaluator can produce,
   with typed error codes and the output check of contract §6.2 step 7;
 - `validate`, `validate_bundle` and `verify(record, bundle)`, all in process, by the independent verifier;
 - `explain` limited to the record's registered templates;

@@ -31,7 +31,7 @@ import string
 from decimal import Decimal, ROUND_HALF_UP
 
 from eio_agents.per.limitations import CATALOGUE as LIMITATION_CATALOGUE
-from eio_agents.schemas import (BUNDLE_SCHEMA, PER_SCHEMA, PER_SCHEMA_NATIVE_PREVIEW, PER_SCHEMA_RC1,
+from eio_agents.schemas import (BUNDLE_SCHEMA, LEGACY_BUNDLE_SCHEMAS, PER_SCHEMA, PER_SCHEMA_NATIVE_PREVIEW, PER_SCHEMA_RC1,
                                 PER_SCHEMA_RC4, PER_SCHEMA_RC5_POLICY, PER_SCHEMA_2_0_0, PER_SCHEMA_2_1_0)
 from eio_agents.validation.canon import jb, q4, sha
 from eio_agents.validation.redaction import redact_span
@@ -741,6 +741,8 @@ class Words:
         # the diagnostic schema's other terms must not broaden public PER text.
         c1.add(json.loads(PER_SCHEMA_NATIVE_PREVIEW.read_text(encoding="utf-8"))["$id"])
         p2, c2 = _schema(BUNDLE_SCHEMA)
+        p3, c3 = _schema(LEGACY_BUNDLE_SCHEMAS[2])                    # legacy bundle_draft 2 bundles (read-only)
+        p2, c2 = p2 | p3, c2 | c3
         self.layout = frozenset(p1 | p2 | set(RC1_LAYOUT))
         self.vocab = frozenset(self.release | c1 | c2 | self.layout | CAVEAT_IDS | CAVEAT_TEXTS)
         self.labels = frozenset()
@@ -1038,7 +1040,7 @@ def _decisive(rec, row, field):
     if kind == "review_guard" and rid == "eio.release.default-readiness-floor":
         if field == "expected":
             return "readiness >= 85.0"
-        value = rec["scores"]["readiness"]["value"]
+        value = ((rec.get("scores") or {}).get("readiness") or {}).get("value")      # a null score block: withheld
         return "withheld" if value is None else _score(_f(value))
     if kind == "review_guard" and rid == "eio.release.hard-block-unmet":
         return ("0" if field == "expected" else
@@ -1532,6 +1534,8 @@ def identity_source_problems(rec, B, e):
 def _in_clear(path):
     """Whether a bundle string reaches a record in clear: not a context text, turn text or state, tool-call value, or
     retrieval body (the verifier's reading of the projector's rule)."""
+    if path == ("bundle_version",):           # the bundle format version (a schema constant) never reaches a record
+        return False
     if path[:2] == ("sources", "context_texts") and len(path) >= 3:
         return False
     if path[:2] == ("sources", "turns") and len(path) >= 4:

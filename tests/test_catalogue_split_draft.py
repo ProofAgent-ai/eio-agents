@@ -20,7 +20,7 @@ from eio_agents.per.catalogue_split import (
     verify_limitation_row,
     validate_record_catalogues,
 )
-from eio_agents.per.native_preview import verify_native_preview
+from eio_agents.per.native_preview import project_native_preview, verify_native_preview
 
 ROOT = Path(__file__).resolve().parents[1]
 CANDIDATE_EIO_DATA = ROOT / "src/eio_agents/ontology/data"
@@ -148,7 +148,9 @@ def test_native_preview_core_rows_pass_and_tamper_fails_closed():
     assert all(row["limitation_id"] in validate_record_catalogues(record) for row in record["limitations"])
     assert validate(record, eio=EIO(ontology.root)) == []
     assert verify(record, bundle, ontology=ontology)["valid"] is True
-    assert verify_native_preview(record, bundle, ontology=ontology)["valid"]
+    assert record["header"]["per_version"] == "2.1.0"
+    neutral = project_native_preview(bundle, ontology=ontology)          # the internal neutral projection it finalizes
+    assert verify_native_preview(neutral, bundle, ontology=ontology)["valid"]
     bad = copy.deepcopy(record)
     bad["limitations"][0]["next_step"] = "Not the pinned core catalogue text"
     assert validate(bad, eio=EIO(ontology.root))

@@ -28,6 +28,23 @@ ProofAgent Harness is one possible evaluation producer; EIO-Agents does not requ
 
 Framework-control links show evidence relevance; they do **not** establish legal compliance or certification. See the [predicate reference](https://github.com/ProofAgent-ai/eio-agents/blob/main/docs/predicates.md), [production routes](https://github.com/ProofAgent-ai/eio-agents/blob/main/docs/producing-per.md), and [PER guide](https://www.proofagent.ai/eio-agents/per).
 
+## Evaluation-platform agnostic
+
+[![Many producers, one portable record: ProofAgent Harness as a native producer, and Inspect AI, promptfoo, DeepEval, OpenTelemetry GenAI and your own report through export converters, all build the same EIO bundle, which EIO-Agents turns into one PER 2.1.0](https://raw.githubusercontent.com/ProofAgent-ai/eio-agents/main/docs/eio-agents-adapters.svg)](https://www.proofagent.ai/eio-agents/per#adapters)
+
+A PER does not depend on who ran the evaluation. A **native producer** records EIO evidence during the run; an
+**export converter** maps a finished report through an explicit crosswalk. Both build the same EIO bundle with
+`build_bundle()`, and EIO-Agents turns it into the same PER 2.1.0. The repository has a converter for
+[Inspect AI](https://github.com/ProofAgent-ai/eio-agents/tree/main/examples/adapters/inspect_ai),
+[promptfoo](https://github.com/ProofAgent-ai/eio-agents/tree/main/examples/adapters/promptfoo),
+[DeepEval](https://github.com/ProofAgent-ai/eio-agents/tree/main/examples/adapters/deepeval),
+[OpenTelemetry GenAI](https://github.com/ProofAgent-ai/eio-agents/tree/main/examples/adapters/otel_genai) and
+[your own report](https://github.com/ProofAgent-ai/eio-agents/tree/main/examples/custom_report), plus a
+[native producer sketch](https://github.com/ProofAgent-ai/eio-agents/tree/main/examples/native/proofagent) in the style of
+ProofAgent Harness. They are illustrative examples with synthetic data: none of these tools is required, and none emits
+a PER on its own. See [native versus export](https://github.com/ProofAgent-ai/eio-agents/blob/main/docs/producing-per.md)
+for what each route can and cannot prove.
+
 ## Install
 
 With Python 3.10 or newer:
@@ -136,11 +153,41 @@ Each check names an EIO predicate (`eio-agents predicates --search deadline` fin
 
 ## Versions and limits
 
-- **Package:** `0.8.0` · **ontology:** EIO `0.6.0` · **record:** PER `2.1.0` (the default; release semantics `2.2`) · **reference scoring profile:** `0.3.1`. Missing inputs leave affected values **WITHHELD**, never guessed. Older records keep their historical versions and stay verifiable under them.
-- **Open format:** PER 2.1.0 uses [JSON Schema 2020-12](https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json) and EIO publishes a JSON-LD context. The schema is bundled for offline validation; public website deployment is a separate step. It is a versioned ProofAgent specification, **not** a W3C- or ISO-ratified standard or a compliance certification.
+- **Package:** `0.8.0` · **ontology:** EIO `0.6.0` · **record:** PER `2.1.0` (every new record; release semantics `2.2`) · **bundle:** format `3.0.0` · **reference scoring profile:** `0.3.1`. Missing inputs leave affected values **WITHHELD**, never guessed. Older records and bundles keep their legacy versions and stay verifiable under them.
+- **Open format:** PER 2.1.0 uses [JSON Schema 2020-12](https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json) and EIO publishes a JSON-LD context (see [Schemas and reference files](#schemas-and-reference-files)). Every schema is also bundled in the package for offline validation. It is a versioned ProofAgent specification, **not** a W3C- or ISO-ratified standard or a compliance certification.
 - **Framework mappings:** provisional evidence-relevance links, not legal or regulatory compliance determinations. Historical ProofAgent report conversion requires the matching adapter and pinned EIO release.
 
 For local-text privacy boundaries, CLI targets, and your own bundle, see [the quick start](https://github.com/ProofAgent-ai/eio-agents/blob/main/docs/quickstart.md). For the complete record structure and dashboard-style example, see [the PER guide](https://www.proofagent.ai/eio-agents/per).
+
+## Schemas and reference files
+
+The website is the reference for every machine-readable contract. Each schema's `$id` is its URL, and the same bytes are
+bundled in the package (`eio_agents.schemas`), so validation works offline. The field-by-field documentation is the
+[schema reference](https://www.proofagent.ai/eio-agents/eio/schema).
+
+| File | URL | Where a record uses it |
+|---|---|---|
+| PER 2.1.0 JSON Schema | <https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json> | `header.schema_uri` of every new record |
+| PER 2.0.0 JSON Schema | <https://www.proofagent.ai/eio-agents/schema/per/2.0.0/per.schema.json> | `header.schema_uri` of earlier records |
+| EIO 0.6.0 JSON-LD context | <https://www.proofagent.ai/eio-agents/schema/eio/0.6.0/eio-context-0.6.0.jsonld> | maps record fields to EIO terms |
+| EIO 0.6.0 manifest | <https://www.proofagent.ai/eio-agents/schema/eio/0.6.0/ontology/data/manifest.yaml> | `header.eio.release` |
+| EIO 0.6.0 release digests | <https://www.proofagent.ai/eio-agents/schema/eio/0.6.0/ontology/data/RELEASE-DIGESTS.json> | `header.eio.ontology_sha256` and `header.eio.modules` |
+| Evaluation claim schema | <https://www.proofagent.ai/eio-agents/schema/eio/0.6.0/evaluation-claim.schema.json> | one entry of `claims[]` |
+| Evidence graph schema | <https://www.proofagent.ai/eio-agents/schema/eio/0.6.0/evidence-graph.schema.json> | the local evidence graph that claims cite |
+| Ontology module schema | <https://www.proofagent.ai/eio-agents/schema/eio/0.6.0/module.schema.json> | each ontology module file |
+
+One definition or field is addressed with a JSON Pointer after the schema URL, for example
+`https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json#/$defs/claim/properties/predicate`. Each hash
+in `header.eio.modules` is the sha256 of the module file published under
+`https://www.proofagent.ai/eio-agents/schema/eio/0.6.0/ontology/data/`, so a record can be checked against the website
+without trusting its producer:
+
+```bash
+check-jsonschema --schemafile https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json record.per.json
+```
+
+The evaluation-bundle format 3.0.0 (`urn:eio-agents:schema:bundle:3.0.0`) is packaged as
+`eio_agents/schemas/bundle/bundle-3.0.0.schema.json`; a bundle stays local and is read only by EIO-Agents.
 
 ## Develop and contribute
 

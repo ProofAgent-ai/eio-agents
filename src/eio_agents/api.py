@@ -1,6 +1,6 @@
 """Public API of EIO-Agents (split plan §4.2), in process: no temporary file, no subprocess, no captured output.
 
-    rec = convert(bundle)                          # evaluation bundle (archive schema 3) -> versioned PER dict
+    rec = convert(bundle)                          # evaluation bundle (archive schema 3) -> PER 2.1.0 dict
     body = canonical_bytes(rec)                    # RFC 8785 JCS bytes
     digest = per_sha256(rec)                       # "sha256:<hex>" over the JCS bytes
     problems = validate(rec)                       # the independent verifier's record checks; [] when valid
@@ -8,7 +8,7 @@
     text = explain(rec, "eio.metric.instruction-following")   # the record's registered eio.why.* renderings
     rows = resolve(rec, bundle)                    # every withheld value (a fingerprint) with its text in the local bundle
 
-`convert` is `eio_agents.per.project` for a bundle, and takes nothing else. A stored producer report (archive
+`convert` projects a bundle (bundle format 3.0.0, or a legacy `bundle_draft` 1 or 2) to PER 2.1.0, and takes nothing else. A stored producer report (archive
 schema 1 or 2, or no `archive_schema`) is not a bundle: its producer's adapter reads it into one, and `convert` refuses it with `BUNDLE_INPUT`
 (the stored-report branch of ACCEPTED_DEVIATIONS D-4 was deleted at L3). This module never imports the staging area.
 `validate`, `verify` and `explain` are the independent verifier's (`eio_agents.validation`); `verify` re-projects the
@@ -28,11 +28,12 @@ from eio_agents.ontology import Ontology, load as load_ontology, release_digests
 from eio_agents.per import bundle as per_bundle
 from eio_agents.per import canonical_bytes, per_sha256, write  # noqa: F401  (public names)
 from eio_agents.per.projection import project
-from eio_agents.per.native_preview import project_native_preview
+from eio_agents.per.native_preview import project_native_preview, project_neutral
 from eio_agents.per.native_full_wire import project_native_full_per
 from eio_agents.per import native_full_wire
 from eio_agents.per.native_score_preview import candidate_scored_per, project_native_score_preview
 from eio_agents.validation import explain, finding_evidence, findings_at_turn, metric_card, targets, validate  # noqa: F401
+from eio_agents.schemas import BUNDLE_SCHEMA_ID, BUNDLE_VERSION
 from eio_agents.validation.reader import EIO
 
 __all__ = ["ConversionError", "canonical_bytes", "convert", "convert_file", "explain", "finding_evidence",
@@ -41,11 +42,12 @@ __all__ = ["ConversionError", "canonical_bytes", "convert", "convert_file", "exp
 
 
 def standards() -> dict[str, str]:
-    """Standards bundled in this build. `per_version`/`per_schema_id` are the default record format, PER 2.1.0 (owner
-    decision #46): what `convert`/`project` produce for a source-complete native bundle, such as one `build_bundle`
-    makes. Historical and partial formats (published PER 2.0.0, the pinned rc identities) stay verifiable under their
-    own pinned identities and are not reported here as defaults. `release_semantics` is the release-semantics version
-    of a new record; `scoring_profile_id`/`scoring_profile_version` name the reference scoring profile it binds."""
+    """Standards bundled in this build, all released identities. `per_version`/`per_schema_id` are the record format of
+    every new record, PER 2.1.0 (owner decision #46): what `convert` produces on every route. `bundle_version`/
+    `bundle_schema_id` are the evaluation-bundle format `build_bundle` writes, 3.0.0. `release_semantics` is the
+    release-semantics version of a new record; `native_full_scoring_profile_id`/`native_full_scoring_profile_version`
+    name the reference scoring profile a scored record binds. Legacy identities (published PER 2.0.0, the pinned release-candidate records, `bundle_draft` 1
+    and 2 bundles) stay readable and verifiable and are not reported here."""
     digests = release_digests()
     projector = f"eio_agents.convert {VERSION}"
     return {
@@ -65,6 +67,8 @@ def standards() -> dict[str, str]:
         "current_native_per_schema_id": native_full_wire.SCHEMA_URI,
         "native_full_scoring_profile_id": native_full_wire.REFERENCE_FULL_ID,
         "native_full_scoring_profile_version": native_full_wire.REFERENCE_FULL_VERSION,
+        "bundle_version": BUNDLE_VERSION,
+        "bundle_schema_id": BUNDLE_SCHEMA_ID,
     }
 
 
@@ -198,8 +202,10 @@ def _native_scored_convert(source: bytes | dict, ontology: Ontology) -> dict[str
 
 
 def convert(archive: bytes | dict, *, ontology: Ontology | None = None) -> dict[str, Any]:
-    """Project an evaluation bundle (archive schema 3; JSON bytes or a dict) into a versioned PER record: PER 2.1.0 (the
-    default) for a source-complete native bundle; a bundle without native scoring inputs keeps its pinned partial route.
+    """Project an evaluation bundle (archive schema 3; JSON bytes or a dict) into a PER 2.1.0 record, whatever the
+    route: a source-complete native bundle gets its reference score block; a native bundle without `native_scoring`, and
+    an adapter bundle, get `scores` null with the limitation `per.lim.scoring_profile.none` (no score is guessed).
+    Bundle format 3.0.0 and legacy `bundle_draft` 1 and 2 bundles are read alike.
 
     Deterministic and fail-closed: no record is returned when conversion fails, and every failure is a `ConversionError`
     with a typed `code` (a neutral token). Anything that is not a bundle, a stored producer report (archive
@@ -208,6 +214,18 @@ def convert(archive: bytes | dict, *, ontology: Ontology | None = None) -> dict[
     EIO release to convert under (default: the bundled release, loaded and verified for this call; a caller that converts
     many records loads one with `eio_agents.ontology.load()` and passes it).
     """
+    source, native, scored = _route(archive)
+    if native and scored:
+        active = ontology if ontology is not None else load_ontology()
+        if active.release in ("0.5.0-draft.1", "0.6.0"):
+            return cast("dict[str, Any]", _native_scored_convert(source, active))
+    active = ontology if ontology is not None else load_ontology()
+    return cast("dict[str, Any]", native_full_wire.project_unscored_per(
+        project_neutral(source, ontology=active), ontology=active))
+
+
+def _route(archive: bytes | dict) -> tuple[bytes | dict, bool, bool]:
+    """(source, native, native-scored) of a bundle; anything else fails with `BUNDLE_INPUT`."""
     obj = _read(archive, "archive")
     if not _is_bundle(obj):
         raise ConversionError(f"BUNDLE_INPUT: {_STORED_REPORT}", code="BUNDLE_INPUT")
@@ -215,13 +233,32 @@ def convert(archive: bytes | dict, *, ontology: Ontology | None = None) -> dict[
     source = bytes(archive) if isinstance(archive, (bytes, bytearray)) else obj
     provenance = obj.get("provenance")
     producer = provenance.get("producer") if isinstance(provenance, dict) else None
-    if isinstance(producer, dict) and producer.get("kind") == "native":
-        if obj.get("native_scoring") is not None:
+    native = isinstance(producer, dict) and producer.get("kind") == "native"
+    return source, native, native and obj.get("native_scoring") is not None
+
+
+LEGACY_PER_VERSIONS = ("2.0.0-rc3-draft",)   # legacy record identities `verify` re-derives (records already issued)
+
+
+def _legacy_convert(archive: bytes | dict, *, ontology: Ontology | None = None) -> dict[str, Any]:
+    """Legacy, read-only: the pre-0.8.0 routing, which projected a bundle without native scoring inputs to the rc3
+    identity. Used only by `verify` to re-derive a legacy rc3 record from a legacy (`bundle_draft`) bundle; nothing new
+    selects it."""
+    source, native, scored = _route(archive)
+    if native:
+        if scored:
             active = ontology if ontology is not None else load_ontology()
             if active.release in ("0.5.0-draft.1", "0.6.0"):
                 return cast("dict[str, Any]", _native_scored_convert(source, active))
         return cast("dict[str, Any]", project_native_preview(source, ontology=ontology))
     return cast("dict[str, Any]", project(source, ontology=ontology))
+
+
+def _is_legacy(rec: Any, bundle: dict) -> bool:
+    """A legacy record of a legacy bundle: the record declares a legacy rc3 identity and the bundle a `bundle_draft`."""
+    header = rec.get("header") if isinstance(rec, dict) else None
+    return (isinstance(header, dict) and header.get("per_version") in LEGACY_PER_VERSIONS
+            and "bundle_version" not in bundle and bundle.get("bundle_draft") in (1, 2))
 
 
 def convert_file(archive_path: str | Path, out: str | Path, jcs_out: str | Path | None = None, *,
@@ -259,7 +296,8 @@ def verify(rec: dict[str, Any], bundle: bytes | dict, *, ontology: Ontology | No
     if isinstance(bundle, (bytes, bytearray)):
         b = per_bundle.loads(bundle)                  # bundle bytes are read as I-JSON (review R-2)
     try:
-        rederived: Any = convert(b, ontology=ontology)
+        # a legacy rc3 record of a legacy bundle is re-derived under its own pinned identity (read-only legacy)
+        rederived: Any = (_legacy_convert if _is_legacy(rec, b) else convert)(b, ontology=ontology)
     except ConversionError as e:
         rederived = e
     verifier_eio = EIO(ontology.root) if ontology is not None else None

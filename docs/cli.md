@@ -28,11 +28,12 @@ nothing is written.
 eio-agents project BUNDLE -o OUT [--jcs JCS_OUT]
 ```
 
-Projects an evaluation bundle (archive schema 3, draft 2) into a PER record (PER 2.1.0, the default, when its explicit proof
-set and all required sources are present; the explicitly labeled historical partial route when the proof set is absent), writes it as readable JSON to `OUT`
+Projects an evaluation bundle (bundle format 3.0.0, archive schema 3; legacy `bundle_draft` 1 and 2 bundles are read
+too) into a PER 2.1.0 record (with its reference score block when the explicit proof set and all required sources are
+present; `scores: null` without native scoring inputs), writes it as readable JSON to `OUT`
 and, with `--jcs`, its canonical JCS bytes to `JCS_OUT`. A stored ProofAgent Harness report (archive schema 1 or 2) is not
 a bundle and is refused (`BUNDLE_INPUT`): since step L3 it converts with the ProofAgent adapter in the harness
-(`proofagent_harness.eio_adapter`). It prints the actual PER version in its summary and warns on standard error if it produced the partial route:
+(`proofagent_harness.eio_adapter`). It prints the PER version in its summary:
 
 From the repository root, supply a native bundle authored for EIO `0.6.0`. The `v0_8` fixture below is a
 current synthetic quick-start input; older fixtures directly under `tests/data/native/` retain historical pins:
@@ -48,8 +49,8 @@ bundle. A rule-derived recommendation is not a quality grade.
   job of the program that runs the evaluation, not of EIO-Agents.
 - On a `ConversionError` it prints `PROJECTION FAILED (no record written): <CODE>: <reason>` to standard error and exits
   with 1. The codes are listed in [api.md](api.md#convert).
-- A bundle without native scoring inputs prints `readiness None` and has `scores: null`; a partially scored bundle may
-  also print `readiness None` when required evidence for G/readiness is absent.
+- A bundle without native scoring inputs prints `readiness None` and has `scores: null`; a scored bundle may also print
+  `readiness None` when required evidence for G/readiness is absent (readiness withheld).
 
 ## validate
 

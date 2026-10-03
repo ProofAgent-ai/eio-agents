@@ -60,9 +60,11 @@ from eio_agents.evidence import redaction
 from eio_agents.evidence.refs import CALL_TERM, no_call_ref, no_matching_call_ref, receipt_ref, span_ref, state_fact_ref
 from eio_agents.per.context import embedded
 from eio_agents.per.limitations import CATALOGUE as LIMITATION_CATALOGUE
-from eio_agents.schemas import bundle_schema
+from eio_agents.schemas import BUNDLE_VERSION, bundle_schema  # noqa: F401  (BUNDLE_VERSION: the current format)
 from eio_agents.semantics import ids
 
+# Legacy, read-only: the `bundle_draft` of bundles already issued (the ProofAgent Harness adapter still writes it).
+# New bundles carry `bundle_version` BUNDLE_VERSION ("3.0.0"); both are read.
 BUNDLE_DRAFT = 2
 SECTIONS = ("provenance", "sources", "scope", "context_assessment", "graph", "claims", "ballots", "trials", "limitations")
 DECLARED_ITEMS = ("scenarios", "capabilities", "context_links", "score_inputs")
@@ -123,9 +125,10 @@ def nested_deeper_than(doc, limit):
     return False
 
 
-def _validator():
-    """A validator of the bundle schema, built per call (no process-global cache; the schema is checked by the tests)."""
-    return Draft202012Validator(bundle_schema())
+def _validator(bundle=None):
+    """A validator of the bundle schema of `bundle`'s declared format (3.0.0, or a legacy `bundle_draft` 1 or 2 read with
+    its pinned schema), built per call (no process-global cache; the schemas are checked by the tests)."""
+    return Draft202012Validator(bundle_schema(bundle))
 
 
 def _members(pairs):
@@ -256,7 +259,7 @@ def stage_digest(bundle, sections):
 
 def validate_sections(bundle):
     """Step 1: every section validates against the bundle schema, and each is filled by exactly one stage record."""
-    errs = sorted(_validator().iter_errors(bundle), key=lambda e: (list(e.absolute_path), e.message))
+    errs = sorted(_validator(bundle).iter_errors(bundle), key=lambda e: (list(e.absolute_path), e.message))
     if errs:
         e = errs[0]
         raise ConversionError(f"BUNDLE_SCHEMA: /{'/'.join(map(str, e.absolute_path))}: {e.message[:300]}", code="BUNDLE_SCHEMA")
@@ -888,6 +891,8 @@ def _in_clear(path):
     but the context texts, a turn's question, answer and state snapshot, a tool call's arguments and result, and a
     retrieval's members other than its source (a record carries these as digests or through a ref's PROD-42 excerpt, which
     is read as the record's excerpt: `bundle_content_problems`)."""
+    if path == ("bundle_version",):           # the bundle format version (a schema constant) never reaches a record
+        return False
     if path[:1] == ("native_scoring",):
         # Native scorer declarations remain in the local source bundle. No
         # identifier, assessor label or context value is projected into PER.

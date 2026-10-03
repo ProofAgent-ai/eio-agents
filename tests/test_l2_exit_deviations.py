@@ -247,7 +247,8 @@ def test_r1_issue8_the_twin_rejects_a_stale_decisive_claim_id(eio):
     _b, rec, rc = _state_fact_record(eio, "eio.predicate.special-category-data-disclosure")
     assert eio_agents.validate(rec) == []
     decisive = rec["release_recommendation"]["explanation"]["params"]["decisive_list"]
-    assert len(decisive) == 1 and rc["id"] in decisive[0]
+    # the cap, then the release-semantics 2.2 no-policy guards of an unscored PER 2.1.0 record
+    assert len(decisive) == 3 and rc["id"] in decisive[0]
     decisive[0] = decisive[0].replace(rc["id"], "0" * len(rc["id"]))
     failures = eio_agents.validate(rec)
     assert any(row["check"].startswith("W1") and "decisive_list" in row["detail"] for row in failures)

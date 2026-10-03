@@ -486,8 +486,8 @@ def project(bundle, *, ontology=None, bridge_native_rc2=False):
     leaks = B.bundle_content_problems(b, guard)
     shapes = B.shape_problems(b, eio)              # L3 fix round 4: the identifying-shape backstop, raised likewise
     producer = privacy.producer_texts(b, eio)        # decision #31: read before any step changes the bundle objects
-    require(not bridge_native_rc2 or b["provenance"]["producer"]["kind"] == "native", "BUNDLE_INPUT",
-            "the rc2 bridge is restricted to native producers")
+    require(not bridge_native_rc2 or b["provenance"]["producer"]["kind"] in ("native", "adapter"), "BUNDLE_INPUT",
+            "the neutral bridge takes a native or adapter producer")
     # Historical 0.4 records retain their pinned rule. The reviewed new S1b
     # release flips this profile flag in its coordinated ontology reissue. The
     # rule is independent of the PER schema version (rc2, rc3, or later).

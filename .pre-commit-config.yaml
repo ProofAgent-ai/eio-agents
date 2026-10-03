@@ -1,5 +1,5 @@
 # pre-commit hooks for EIO-Agents. Install once with `pre-commit install`; run on every file with
-# `pre-commit run --all-files`. CI runs the same hooks.
+# `pre-commit run --all-files`. tools/test_local.sh runs the same hooks.
 #
 # Byte-exact paths are excluded from every hook. Record digests, module digests and the sha256 pins are computed over
 # their raw bytes, so a whitespace or end-of-file fix there would break the golden records and the digest pins:

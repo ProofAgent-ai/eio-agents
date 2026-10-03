@@ -1,5 +1,8 @@
 name: CI
 
+# Manual only (owner decision #45, 2026-10-03): EIO-Agents is tested locally before every commit and tag with
+# tools/test_local.sh, which runs the same checks as the jobs below. Pushes and pull requests do not start this workflow;
+# a maintainer can still run it from the Actions tab (workflow_dispatch).
 # Lint, the test suite on every supported Python, the minimum dependency versions, the built distributions (installed
 # alone into a clean virtual environment, with ProofAgent Harness absent), and the goldens and conformance tools.
 # Actions are pinned by commit; Dependabot proposes updates (.github/dependabot.yml).
@@ -7,9 +10,6 @@ name: CI
 # run serially, the Ubuntu jobs took 25 to 50 minutes and hit the job timeout.
 
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -17,7 +17,7 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 env:
   PIP_DISABLE_PIP_VERSION_CHECK: "1"

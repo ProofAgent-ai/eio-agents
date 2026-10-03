@@ -31,8 +31,8 @@ def test_cli_project_writes_native_canonical_bytes(tmp_path, capsys):
     assert jcs.read_bytes() == eio_agents.canonical_bytes(eio_agents.convert(bundle.read_bytes()))
     assert json.loads(out.read_text(encoding="utf-8"))["provenance"]["producer"]["kind"] == "native"
     output = capsys.readouterr()
-    assert "PER 2.0.0-rc3-draft" in output.out and "state " in output.out
-    assert "PARTIAL/HISTORICAL PER 2.0.0-rc3-draft" in output.err
+    assert "PER 2.1.0" in output.out and "state " in output.out
+    assert output.err == ""
     assert cli.main(["version"]) == 0
     v = json.loads(capsys.readouterr().out)
     assert "eio_agents" in v and {"per_schema_id", "projector", "ontology_sha256"} <= set(v)
