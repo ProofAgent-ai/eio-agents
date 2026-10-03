@@ -1,8 +1,8 @@
 # Core concepts
 
-This page explains EIO and PER 2.0 as implemented in EIO-Agents `0.6.0rc1`, which bundles
-EIO `0.6.0`. It retains the partial-score PER `2.0.0-rc3-draft` route and uses the source-complete
-PER `2.0.0` scored route. Counts describe the bundled ontology; they do not imply an accredited standard.
+This page explains EIO and PER 2.1 as implemented in EIO-Agents `0.8.0`, which bundles
+EIO `0.6.0`. It produces PER `2.1.0` by default (release semantics `2.2`); a bundle without native scoring inputs
+keeps the pinned historical partial route. Counts describe the bundled ontology; they do not imply an accredited standard.
 
 - [The idea in one paragraph](#the-idea-in-one-paragraph)
 - [Claims](#claims)
@@ -27,7 +27,7 @@ An evaluator produces an archive-schema-3 bundle: transcript, tool calls and res
 EIO-Agents turns that bundle into claims. Each claim applies one versioned predicate to specific turns and cites its
 evidence. Findings, control statuses and the release recommendation are views over claims. Scores may be absent: a
 bundle without native scoring inputs remains unscored, and missing required inputs withhold affected score values.
-The claims-derived reference scoring is still a draft. Whether a claim is
+The claims-derived reference scoring is profile `0.3.1`. Whether a claim is
 `PROVEN` depends on its decider and evidence, under rules recomputable from the bundle.
 
 ## Claims
@@ -83,7 +83,9 @@ and `none` do not witness.
 
 **Privacy.** Refs are content-addressed. Tool arguments are represented by a sha256 and JSON pointer, not copied as
 clear text. Excerpts are capped and pattern-redacted, and the record's closed field table fingerprints producer wording
-that must not travel in clear. `JUROR_INFERENCE` refs carry no text. These controls do not establish that every possible
+that must not travel in clear. From 0.8.0 a model identifier is the exception: the agent's model, its AI-BOM row and a
+jury's model are recorded in clear when the value is a model identifier (`gpt-4o-2024-08-06`,
+`anthropic/claude-opus-4-1@20250805`); any other value in those fields is still fingerprinted. `JUROR_INFERENCE` refs carry no text. These controls do not establish that every possible
 personal-data class is removed: review a PER before sharing it, and keep `resolve` and `explain --local` output local.
 
 ## The witness rule
@@ -145,7 +147,8 @@ a deterministic check can still be wrong, and an archive can still be wrong.
 
 In the synthetic native fixture, the turn-3 `authority-or-deadline-invented` finding is `UNPROVEN`: a deterministic
 decision alone does not suffice when the declared fidelity is `narrower` and recurrence is `NOT_RETESTED`. The fixture's
-overall recommendation is `PASS`; it is a small demonstration, not a safety benchmark.
+overall recommendation is `REVIEW` (it declares no policy, and its readiness is below the default floor of 85); it is
+a small demonstration, not a safety benchmark.
 
 ## Release recommendation
 
@@ -153,6 +156,9 @@ The release recommendation is PASS, REVIEW or BLOCK, derived from claims by the 
 
 - BLOCK requires a `PROVEN` claim or a declared prohibited use case.
 - A failed floor or a triggered policy rule without proof gives REVIEW, with the evidence attached for a human.
+- With no declared policy (`policy.source` `none`), a PER 2.1.0 record is REVIEW whenever readiness is below the
+  default floor of 85 (or withheld) or any HARD_BLOCK obligation is unmet (release semantics 2.2, decisive entries
+  `eio.release.default-readiness-floor` and `eio.release.hard-block-unmet`). These never BLOCK.
 - The recommendation lists its decisive conditions and the claims that drive them, so `explain` can show why.
 
 ## Reliability
@@ -175,7 +181,7 @@ published; the record gives named lists instead (always, sometimes and never fai
 
 A record may carry a readiness score, four axis values and metric values. The axes are Q (context), E (behaviour), C
 (compliance) and G (governance); EIO 0.6.0 defines nine metric concepts. A bundle with no native scoring inputs
-projects `scores: null`. Validated native scoring inputs can produce a partial `reference-draft` score: the cited synthetic
+projects `scores: null`. Validated native scoring inputs can produce a partial score (historical kind `reference-draft`): the cited synthetic
 example measures two metrics and the behaviour axis, but G and readiness are null/`WITHHELD` because requisite evidence
 is not established. D4 independently checks its score fields, and D5 checks citation-based proof status. This is not a
 complete numeric readiness score or an accuracy claim. An approved producer adapter may separately supply an attested
@@ -206,7 +212,7 @@ Read them with care:
 
 ## The PER record
 
-A PER 2.0.0-rc3-draft record (as rc1) has exactly 14 required top-level blocks, and no others:
+A PER record (2.1.0, and the historical rc1 and rc3 formats) has exactly 14 required top-level blocks, and no others:
 
 `header`, `provenance`, `subject`, `scope`, `evidence`, `claims`, `coverage`, `findings`, `controls`, `scores`,
 `reliability`, `release_recommendation`, `limitations`, `telemetry`.
@@ -265,7 +271,7 @@ version and sha256. The loader rejects a missing module, a wrong version or wron
 | Recurrence bands | 4 |
 | Axes | 4 (Q, E, C, G) |
 | Context criteria | 7 |
-| Metric concepts | 9 (draft reference profile; partial native output possible) |
+| Metric concepts | 9 (reference profile 0.3.1; partial native output possible) |
 | Domain modules | 11, with 126 coverage obligations |
 | Flow stages | 13 |
 | "Why" templates | 34 |

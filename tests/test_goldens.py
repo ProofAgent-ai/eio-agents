@@ -56,4 +56,4 @@ def test_stored_reports_are_refused_with_a_typed_error():
 
 def test_standards_versions():
     s = eio_agents.standards()
-    assert s["per_version"].startswith("2.0") and s["ontology_digest"]
+    assert s["per_version"] == "2.1.0" and s["ontology_digest"]      # the default record format (decision #46)

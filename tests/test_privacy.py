@@ -67,7 +67,7 @@ def test_fingerprint_is_exact_utf8_sha256_and_display_is_short():
 
 def test_native_record_seals_producer_names_and_validates(eio, reader, catalogue, native_pair):
     bundle, record = native_pair
-    assert record["subject"]["agent"]["model"] == PV.fingerprint(bundle["provenance"]["agent"]["model"])
+    assert record["subject"]["agent"]["model"] == bundle["provenance"]["agent"]["model"]     # a model id, in clear
     assert record["subject"]["agent"]["agent_id"] == PV.fingerprint(bundle["provenance"]["agent"]["agent_id"])
     assert PV.problems(eio, record) == []
     assert TW.record_problems(record, reader, catalogue) == []
@@ -95,11 +95,12 @@ def test_unlisted_map_member_name_fails_closed(eio, reader, catalogue, native_pa
     assert any("member name" in row and MARKER in row for row in TW.record_problems(bad, reader, catalogue))
 
 
-@pytest.mark.parametrize("field", ["agent_id", "model"])
-def test_clear_producer_identity_cannot_enter_record(eio, reader, catalogue, native_pair, field):
+@pytest.mark.parametrize("field, value", [("agent_id", None), ("model", "acme support model")])
+def test_clear_producer_identity_cannot_enter_record(eio, reader, catalogue, native_pair, field, value):
+    """An agent id, and a model value that is not a model identifier, are fingerprinted: in clear they are refused."""
     bundle, record = native_pair
     bad = copy.deepcopy(record)
-    bad["subject"]["agent"][field] = bundle["provenance"]["agent"][field]
+    bad["subject"]["agent"][field] = value or bundle["provenance"]["agent"][field]
     assert _codes(eio, bad)
     assert TW.record_problems(bad, reader, catalogue)
     assert eio_agents.validate(bad)
@@ -226,20 +227,20 @@ def test_native_bundle_to_record_decisions_match_twin(eio, reader, native_pair):
     assert TW.singleton_problems(record, bundle, reader) == []
 
 
-@pytest.mark.parametrize("source_path,record_path", [
-    (("provenance", "agent", "agent_id"), ("subject", "agent", "agent_id")),
-    (("provenance", "agent", "model"), ("subject", "agent", "model")),
-    (("provenance", "producer", "name"), ("provenance", "producer", "name")),
+@pytest.mark.parametrize("source_path,record_path,marker", [
+    (("provenance", "agent", "agent_id"), ("subject", "agent", "agent_id"), MARKER),
+    (("provenance", "agent", "model"), ("subject", "agent", "model"), MARKER + " x"),    # not a model identifier
+    (("provenance", "producer", "name"), ("provenance", "producer", "name"), MARKER),
 ])
-def test_native_identity_marker_is_sealed_but_locally_resolvable(eio, native_pair, source_path, record_path):
+def test_native_identity_marker_is_sealed_but_locally_resolvable(eio, native_pair, source_path, record_path, marker):
     original, _ = native_pair
     bundle = copy.deepcopy(original)
     source = bundle
     for part in source_path[:-1]:
         source = source[part]
-    source[source_path[-1]] = MARKER
+    source[source_path[-1]] = marker
     if source_path == ("provenance", "producer", "name"):
-        bundle["provenance"]["record"]["producer"]["name"] = MARKER
+        bundle["provenance"]["record"]["producer"]["name"] = marker
     _restamp(bundle)
     try:
         record = eio_agents.convert(bundle, ontology=eio)
@@ -249,10 +250,10 @@ def test_native_identity_marker_is_sealed_but_locally_resolvable(eio, native_pai
     target = record
     for part in record_path:
         target = target[part]
-    assert target == PV.fingerprint(MARKER)
-    assert MARKER not in json.dumps(record)
+    assert target == PV.fingerprint(marker)
+    assert marker not in json.dumps(record)
     rows = eio_agents.resolve(record, bundle)
-    assert any(row["text"] == MARKER and row["fingerprint"] == target for row in rows)
+    assert any(row["text"] == marker and row["fingerprint"] == target for row in rows)
     assert eio_agents.verify(record, bundle, ontology=eio)["digest_match"]
 
 

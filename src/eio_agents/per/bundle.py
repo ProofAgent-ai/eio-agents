@@ -970,6 +970,24 @@ SHAPE_SECRET = re.compile(r"(?:(?:sk|pk|rk)[-_](?:live|test|proj)[-_]|sk-|AKIA|g
 # a string the release publishes); inside other text, a short plain decimal and two algorithm names.
 _DIGEST_KEY = re.compile(r"(?:.*_)?sha256|plan_hash|module_hash|selected_digest")
 _HEX = "[0-9a-f]"
+# A model identifier, the one exemption of the shape backstop that names no recorded form (approved by the maintainer
+# for 0.8.0, a privacy-rule change): model names carry release dates and versions ('gpt-4o-2024-08-06',
+# 'claude-sonnet-4-5-20250929', 'anthropic/claude-opus-4-1@20250805'). An optional 'vendor/' or 'vendor:' prefix, then
+# letters, digits, '.', '_' and '-', and an optional '@' date or version; at most 100 characters, no space, no e-mail
+# address or credentials (an '@' takes only a date or version), no run of sixteen hex characters or of twenty-four
+# letters and digits. It applies only in the fields that name a model (`SHAPE_FORMS`); an agent id, a tool name or any
+# other field keeps the full rule. The independent verifier keeps the same pattern (`validation.validate._MODEL_ID`;
+# tests/test_model_identifiers.py checks that they are equal).
+MODEL_ID = (r"(?=.{1,100}\Z)(?![^/:]*[A-Za-z0-9]{24})(?!.*[0-9A-Fa-f]{16})"
+            r"(?:[A-Za-z0-9][A-Za-z0-9._-]{0,39}[/:])?[A-Za-z0-9][A-Za-z0-9._-]*"
+            r"(?:@(?:[0-9]{8}|[0-9]{4}-[0-9]{2}-[0-9]{2}|v?[0-9]{1,4}(?:\.[0-9]{1,4})*))?")
+
+
+def safe_model_identifier(text):
+    """A model-shaped value is public only if PROD-42 finds no sensitive token in it."""
+    return bool(re.fullmatch(MODEL_ID, text)) and not redaction.redact(text)[1] and not SHAPE_SECRET.search(text)
+
+
 SHAPE_FORMS = (
     ("a digest (sha256:<64 hex>) in a digest member (its schema pattern; recomputed or declared)",
      lambda p, lid: isinstance(p[-1], str) and _DIGEST_KEY.fullmatch(p[-1]) is not None, re.compile(f"sha256:{_HEX}{{64}}")),
@@ -1002,6 +1020,9 @@ SHAPE_FORMS = (
     ("a version (at most three groups of at most two digits, 'rcN', '.devN', a '+label') in a version member",
      lambda p, lid: p[-1] in ("version", "predicate_version", "module_version", "release"),
      re.compile(r"[0-9]{1,2}(?:\.[0-9]{1,2}){1,2}(?:rc[0-9]{1,2}|\.dev[0-9])?(?:\+[a-z]{1,16})?")),
+    ("a model identifier (`MODEL_ID`) in a field that names a model: the agent under test's, a model-graded claim's",
+     lambda p, lid: _at(p, "provenance", "agent", "model") or _at(p, "claims", 0, "provenance", "model"),
+     re.compile(MODEL_ID)),
 )
 # a short plain decimal (1-3 digits, a point, 1-2 digits) is not a digit run or group: a score, a rate or a model family
 # version ('0.5', '12.75', '82.0', 'gpt-4.1-nano'); ACCEPTED_DEVIATIONS D-54
@@ -1081,7 +1102,9 @@ def shape_problems(bundle, eio):
             continue
         lid = lims[path[1]].get("id") if (len(path) == 4 and path[0] == "limitations" and path[2] == "params" and type(path[1])
                                           is int and path[1] < len(lims) and isinstance(lims[path[1]], dict)) else None
-        if text in public or any(field(path, lid) and form.fullmatch(text) for _, field, form in SHAPE_FORMS):
+        if text in public or any(field(path, lid) and form.fullmatch(text) and
+                                 (form.pattern != MODEL_ID or safe_model_identifier(text))
+                                 for _, field, form in SHAPE_FORMS):
             continue
         found = identifying_shapes(text)
         if found:

@@ -25,8 +25,11 @@ def score_basis_sha256(record, *, scored):
     if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
         raise ScoreBasisError("PER limitations are not a typed array")
     ids = [row.get("limitation_id") for row in rows]
-    if len(ids) != len(set(ids)):
-        raise ScoreBasisError("PER limitations duplicate an identifier")
+    # a limitation is one (limitation id, field path) row: the same limitation may apply to several fields (one
+    # `per.lim.severity.none` row per finding without a severity), but no row may repeat
+    keys = [(row.get("limitation_id"), row.get("field_path")) for row in rows]
+    if len(keys) != len(set(keys)):
+        raise ScoreBasisError("PER limitations duplicate an identifier at the same field path")
     if scored and (record.get("scores") is None or SCORE_ONLY_LIMITATIONS.intersection(ids)):
         raise ScoreBasisError("scored PER is null or retains a null-score limitation")
     if not scored and record.get("scores") is not None:

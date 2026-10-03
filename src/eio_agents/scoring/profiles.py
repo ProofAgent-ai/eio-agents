@@ -35,7 +35,10 @@ from eio_agents.scoring.engine import check_parameters
 # this draft id names the entry until then.
 REFERENCE_ID = "eio-agents.reference-scoring"
 REFERENCE_VERSION = "0.2.0-draft.1"
-REFERENCE_FULL_VERSION = "0.3.1-draft.1"
+REFERENCE_FULL_VERSION = "0.3.1-draft.1"   # historical: pinned by published PER 2.0.0 records only
+# The released 0.3.1 profile of PER 2.1.0 (owner decision #46: no "draft" in a public version). Same parameters and
+# formulas as 0.3.1-draft.1; its document differs in version, status, description and gaps, so its digest differs.
+REFERENCE_PUBLIC_VERSION = "0.3.1"
 # L4 has one reviewed attested producer profile. A self-declared digest is integrity, not authority: admitting an
 # arbitrary profile id or G id here would allow private producer text into schema-constrained public PER fields.
 ATTESTED_HARNESS_ID = "harness-2.x"
@@ -135,8 +138,25 @@ def reference_full_document(ontology):
     return doc
 
 
+def reference_public_document(ontology):
+    """The released 0.3.1 reference profile of PER 2.1.0: the 0.3.1-draft.1 rules (byte-stable for PER 2.0.0) under a
+    clean version, status `active`, and a description and gaps that name no draft rule."""
+    doc = reference_full_document(ontology)
+    doc["version"] = REFERENCE_PUBLIC_VERSION
+    doc["status"] = "active"
+    doc["description"] = ("EIO-Agents reference scoring (D2): the claims-derived scoring profile, one profile among "
+                          "several. Rederivable: the signature is eio_agents.scoring.reference.score with rules R1-R12.")
+    doc["gaps"] = ["no legacy score-band ramp or verdict ramp (R11)",
+                   "margin, interval and confidence withheld (R10)",
+                   "R1-R12 formulas require native input and independent rederivation gates"]
+    problems = document_problems(doc)
+    require(not problems, "SCORING_PROFILE", f"public reference profile invalid: {problems[:1]}")
+    return doc
+
+
 _REGISTRY = {REFERENCE_ID: {REFERENCE_VERSION: reference_document,
-                            REFERENCE_FULL_VERSION: reference_full_document}}
+                            REFERENCE_FULL_VERSION: reference_full_document,
+                            REFERENCE_PUBLIC_VERSION: reference_public_document}}
 
 
 def profiles(ontology):

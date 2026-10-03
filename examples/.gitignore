@@ -1,0 +1,5 @@
+# Outputs of running the examples (they are rebuilt on every run)
+custom_report/my.bundle.json
+custom_report/my.per.json
+**/out/
+__pycache__/

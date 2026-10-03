@@ -1,12 +1,13 @@
-"""The neutral `eio-agents` command line: project, validate, verify, explain, evidence, resolve, version.
+"""The neutral `eio-agents` command line: project, validate, verify, explain, evidence, resolve, predicates, version.
 
-    eio-agents project BUNDLE -o OUT.per.json [--jcs OUT.per.jcs]    evaluation bundle -> PER 2.0 record
+    eio-agents project BUNDLE -o OUT.per.json [--jcs OUT.per.jcs]    evaluation bundle -> versioned PER record
     eio-agents validate FILE                                         a PER record, or a bundle (archive schema 3)
     eio-agents verify RECORD --bundle BUNDLE                         validate + VER-5 + re-projection digest match
     eio-agents explain RECORD TARGET [--local BUNDLE]                the record's eio.why.* renderings for a target
                                                                      (--local: fingerprints shown as their bundle text)
     eio-agents resolve RECORD BUNDLE                                 every withheld value with its text in the bundle
     eio-agents evidence RECORD FINDING                               cited PER proof refs only, no local source
+    eio-agents predicates [--search TEXT] [--json]                   the predicates of the bundled EIO release
     eio-agents version                                               library and bundled standard versions
 
 `project` also reads a stored ProofAgent report until L3 (ACCEPTED_DEVIATIONS D-4); the raw-report command moves to the
@@ -21,6 +22,7 @@ from pathlib import Path
 
 from eio_agents import api, validation
 from eio_agents.validation.explain import _reason
+from eio_agents.validation.explore import UNRATED
 from eio_agents.validation.validate import MAX_DEPTH
 
 
@@ -57,8 +59,15 @@ def _print_failures(fails) -> None:
         print(f"FAIL {f['check']} [{f['ver']}]: {f['detail']}")
 
 
+def _shown(text: str) -> str:
+    """A rendering as the terminal shows it: an empty parenthetical (a template's empty `ids` parameter, such as a
+    finding with no traps) is omitted. Display only: the record's stored summary, which the verifier re-renders and
+    `eio_agents.explain` returns, keeps the template text exactly."""
+    return text.replace(" ()", "")
+
+
 def _print_proof(proof: dict) -> None:
-    print(f"{proof['label']} | {proof['finding_id']} | {proof['severity']} | {proof['proof_status']}")
+    print(f"{proof['label']} | {proof['finding_id']} | {proof['severity'] or UNRATED} | {proof['proof_status']}")
     for ref in proof["refs"]:
         print(f"Turn {ref['turn']}: {ref['kind']} | ref {ref['id']}")
         if ref["excerpt"]:
@@ -82,8 +91,8 @@ def _run(a) -> int:
         rr, sc = rec["release_recommendation"], rec["scores"]
         readiness = sc["readiness"]["value"] if sc else None
         wire = rec["header"]["per_version"]
-        if wire != "2.0.0":
-            print(f"PARTIAL/HISTORICAL PER {wire}: not the public PER 2.0.0 scored contract", file=sys.stderr)
+        if wire != api.standards()["current_native_per_version"]:
+            print(f"PARTIAL/HISTORICAL PER {wire}: not the current native scored contract", file=sys.stderr)
         print(f"{a.out}: PER {wire} · {digest} · state {rr['state']} · readiness {readiness} · claims {len(rec['claims'])} · "
               f"findings {len(rec['findings'])}")
         return 0
@@ -122,20 +131,20 @@ def _run(a) -> int:
                 if target.startswith("t"):
                     for proof in api.findings_at_turn(rec, target):
                         print(f"{proof['label']} | {proof['finding_id']}")
-                        print(api.explain(rec, proof["finding_id"], local=_load(a.local) if a.local else None))
+                        print(_shown(api.explain(rec, proof["finding_id"], local=_load(a.local) if a.local else None)))
                     return 0
                 api.finding_evidence(rec, target)
             try:
                 card = api.metric_card(rec, target)
             except LookupError:
                 card = None
-            print(api.explain(rec, target, local=_load(a.local) if a.local else None))
+            print(_shown(api.explain(rec, target, local=_load(a.local) if a.local else None)))
             if card is not None and card.get("source") != "rc4":
                 print(f"{card['label']} — {card['value']} | {card['id']}")
                 print(f"Claims: applicable {card['applicable']}, passed {card['passed']}, failed {card['failed']}, "
                       f"excluded {card['excluded']}")
                 for failure in card["primary_failures"]:
-                    print(f"Primary failure: {failure['label'] or failure['claim_id']} · {failure['severity']}")
+                    print(f"Primary failure: {failure['label'] or failure['claim_id']} · {failure['severity'] or UNRATED}")
                 print(f"Try next: eio-agents evidence {a.record} <finding-id>")
         except LookupError as exc:
             print(f"{exc}", file=sys.stderr)
@@ -159,6 +168,26 @@ def _run(a) -> int:
         unresolved = sum(1 for r in rows if r["text"] is None)
         print(f"{len(rows)} withheld value(s), {len(rows) - unresolved} resolved from the local bundle")
         return 0 if not unresolved else 2
+    if a.cmd == "predicates":
+        rows = api.predicates(a.search)
+        if a.json:
+            print(json.dumps(rows, indent=1, ensure_ascii=False))
+        else:
+            for row in rows:
+                print(f"{row['id']} | {row['version']} | {row['module']} | {row['meaning']} | "
+                      f"evidence: {row['evidence']}")
+            print(f"{len(rows)} predicate(s)" + (f" matching {a.search!r}" if a.search else "")
+                  + f" of EIO {api.standards()['eio_release']}")
+        if not rows:
+            words = a.search.split()
+            hint = ("; search the words separately: " + ", ".join(f"{w!r} ({len(api.predicates(w))})" for w in words)
+                    if len(words) > 1 else "")
+            near = api.nearest_predicates(a.search)
+            hint += (("; nearest: " + ", ".join(near)) if near
+                     else "; try a related word, such as 'payment', 'action' or 'tool'")
+            print(f"no predicate matches {a.search!r}{hint}", file=sys.stderr)
+            return 2
+        return 0
     if a.cmd == "version":
         from eio_agents import __version__
         print(json.dumps({"eio_agents": __version__, **api.standards()}, indent=1))
@@ -167,9 +196,9 @@ def _run(a) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="eio-agents", description="EIO-Agents: EIO evaluation bundles and PER 2.0 records")
+    ap = argparse.ArgumentParser(prog="eio-agents", description="EIO-Agents: EIO evaluation bundles and versioned PER records")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    c = sub.add_parser("project", help="evaluation bundle (archive schema 3) -> PER 2.0 record")
+    c = sub.add_parser("project", help="evaluation bundle (archive schema 3) -> versioned PER record")
     c.add_argument("bundle")
     c.add_argument("-o", "--out", required=True)
     c.add_argument("--jcs", help="also write the canonical JCS bytes")
@@ -190,6 +219,10 @@ def main(argv: list[str] | None = None) -> int:
     r = sub.add_parser("resolve", help="every withheld value (fingerprint) of a record with its text in the local bundle")
     r.add_argument("record")
     r.add_argument("bundle")
+    q = sub.add_parser("predicates", help="the predicates of the bundled EIO release: id, version, module, meaning and "
+                                          "the evidence its contract needs")
+    q.add_argument("--search", help="only predicates whose id, meaning, risk, tags or metrics contain every word")
+    q.add_argument("--json", action="store_true", help="print the rows as JSON, with the full evidence contract")
     sub.add_parser("version", help="library and bundled standard versions")
     a = ap.parse_args(argv)
     try:

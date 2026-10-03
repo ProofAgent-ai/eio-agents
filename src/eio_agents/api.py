@@ -1,6 +1,6 @@
 """Public API of EIO-Agents (split plan §4.2), in process: no temporary file, no subprocess, no captured output.
 
-    rec = convert(bundle)                          # evaluation bundle (archive schema 3) -> PER 2.0 dict
+    rec = convert(bundle)                          # evaluation bundle (archive schema 3) -> versioned PER dict
     body = canonical_bytes(rec)                    # RFC 8785 JCS bytes
     digest = per_sha256(rec)                       # "sha256:<hex>" over the JCS bytes
     problems = validate(rec)                       # the independent verifier's record checks; [] when valid
@@ -21,7 +21,6 @@ from pathlib import Path
 from typing import Any, cast
 
 import eio_agents.per as per
-import eio_agents.schemas as schemas
 import eio_agents.validation as validation
 from eio_agents.base.errors import ConversionError, require
 from eio_agents.base.version import VERSION
@@ -37,35 +36,92 @@ from eio_agents.validation import explain, finding_evidence, findings_at_turn, m
 from eio_agents.validation.reader import EIO
 
 __all__ = ["ConversionError", "canonical_bytes", "convert", "convert_file", "explain", "finding_evidence",
-           "findings_at_turn", "metric_card", "per_sha256", "resolve", "standards", "targets", "validate", "verify", "write"]
+           "findings_at_turn", "metric_card", "per_sha256", "predicates", "resolve", "standards", "targets", "validate",
+           "verify", "write"]
 
 
 def standards() -> dict[str, str]:
-    """Standards bundled in this build, including the versioned full-score native route.
-
-    The legacy ``per_version``/``per_schema_id`` keys keep their historical
-    rc3 meaning; callers must use the explicit native-full keys when a
-    source-complete bundle takes the rc4 route. A single default would
-    misrepresent one of those records.
-    """
+    """Standards bundled in this build. `per_version`/`per_schema_id` are the default record format, PER 2.1.0 (owner
+    decision #46): what `convert`/`project` produce for a source-complete native bundle, such as one `build_bundle`
+    makes. Historical and partial formats (published PER 2.0.0, the pinned rc identities) stay verifiable under their
+    own pinned identities and are not reported here as defaults. `release_semantics` is the release-semantics version
+    of a new record; `scoring_profile_id`/`scoring_profile_version` name the reference scoring profile it binds."""
     digests = release_digests()
-    schema_id = str(schemas.per_schema().get("$id", ""))
     projector = f"eio_agents.convert {VERSION}"
     return {
         "eio_release": str(digests.get("release") or digests.get("eio_release") or ""),
         "ontology_digest": str(digests.get("ontology_digest") or ""),
         "ontology_sha256": str(digests.get("ontology_sha256") or ""),
-        "per_version": per.PER_VERSION,
-        "per_schema_id": schema_id,
+        "per_version": native_full_wire.PER_VERSION,
+        "per_schema_id": native_full_wire.SCHEMA_URI,
+        "release_semantics": native_full_wire.RELEASE_SEMANTICS,
         "projector": projector,
         "version": VERSION,
-        "per_schema": schema_id,
+        "per_schema": native_full_wire.SCHEMA_URI,
         "converter": projector,
         "native_full_per_version": native_full_wire.PER_VERSION,
         "native_full_per_schema_id": native_full_wire.SCHEMA_URI,
+        "current_native_per_version": native_full_wire.PER_VERSION,
+        "current_native_per_schema_id": native_full_wire.SCHEMA_URI,
         "native_full_scoring_profile_id": native_full_wire.REFERENCE_FULL_ID,
         "native_full_scoring_profile_version": native_full_wire.REFERENCE_FULL_VERSION,
     }
+
+
+def _evidence_text(contract: dict[str, Any]) -> str:
+    """An evidence contract in words: `require_all` kinds, then one alternative per `require_groups` entry."""
+    parts = [f"all of {', '.join(contract['require_all'])}"] if contract.get("require_all") else []
+    if contract.get("require_any"):
+        parts.append(" or ".join(contract["require_any"]))
+    parts += [" or ".join(group) for group in contract.get("require_groups") or []]
+    return "; ".join(dict.fromkeys(parts)) or "none declared"
+
+
+def predicates(search: str | None = None, *, ontology: Ontology | None = None) -> list[dict[str, Any]]:
+    """The predicates of the bundled EIO release, in id order: one row `{id, version, module, polarity, meaning,
+    evidence, evidence_contract, metrics, controls, failure_scorable, risk, tags}` each. `evidence` states the
+    evidence contract in words (`; ` between required groups, ` or ` inside one); `metrics` are the metrics a decided
+    claim on the predicate counts toward (the normative derived-view edges of `eio.mapping.metrics`); `controls` is the
+    number of framework controls that target it; `failure_scorable` says whether a failed claim on it can be projected
+    into a scored native record (its contract has an evidence group that can prove agent behaviour, which the native
+    proof rule needs; a failure of any other predicate makes `convert` refuse the bundle). With `search`, only the
+    rows whose id, meaning, risk, tags or metrics contain every word of it (case-insensitive)."""
+    eio = ontology if ontology is not None else load_ontology()
+    edges: dict[str, set[str]] = {}
+    for edge in eio.module("eio.mapping.metrics")["mappings"]:
+        if edge.get("relation") == "derived-view" and edge.get("status") == "normative":
+            edges.setdefault(edge["source"], set()).add(edge["target"])
+    controls: dict[str, int] = {}
+    for control in eio.controls.values():
+        for p in set(control.get("predicate_targets") or []):
+            controls[p] = controls.get(p, 0) + 1
+    rows = []
+    for pid in sorted(eio.pred):
+        pd = eio.pred[pid]
+        contract = pd.get("evidence_contract") or {}
+        rows.append({"id": pid, "version": pd["version"], "module": eio.mod_of_pred[pid][0], "polarity": pd["polarity"],
+                     "meaning": " ".join(str(pd.get("description") or "").split()),
+                     "evidence": _evidence_text(contract),
+                     "evidence_contract": {k: contract[k] for k in ("require_all", "require_any", "require_groups",
+                                                                     "minimum_refs", "scope") if k in contract},
+                     "metrics": sorted(edges.get(pid, ())), "controls": controls.get(pid, 0),
+                     "failure_scorable": pd["polarity"] == "observation" or any(
+                         eio.kind[k]["can_prove_agent_behaviour"]
+                         for g in contract.get("require_groups") or [] for k in g),
+                     "risk": pd.get("risk") or pd.get("safeguard"), "tags": list(pd.get("tags") or [])})
+    words = (search or "").casefold().split()
+    if words:
+        def text(row):
+            return " ".join([row["id"], row["meaning"], row["risk"] or "", *row["tags"], *row["metrics"]]).casefold()
+        rows = [row for row in rows if all(w in text(row) for w in words)]
+    return rows
+
+
+def nearest_predicates(text: str, n: int = 3, *, ontology: Ontology | None = None) -> list[str]:
+    """The ids of the predicates closest to `text` (a mistyped id or a few words), best first: the ranking
+    `build_bundle` suggests from (shared words of the id, then of the meaning, tags and metrics, then spelling)."""
+    from eio_agents.per.build import nearest_predicates as nearest
+    return nearest(ontology if ontology is not None else load_ontology(), text, n)
 
 
 def _read(obj: bytes | bytearray | dict, what: str) -> dict:
@@ -142,7 +198,8 @@ def _native_scored_convert(source: bytes | dict, ontology: Ontology) -> dict[str
 
 
 def convert(archive: bytes | dict, *, ontology: Ontology | None = None) -> dict[str, Any]:
-    """Project an evaluation bundle (archive schema 3; JSON bytes or a dict) into a PER 2.0 record: `eio_agents.per.project`.
+    """Project an evaluation bundle (archive schema 3; JSON bytes or a dict) into a versioned PER record: PER 2.1.0 (the
+    default) for a source-complete native bundle; a bundle without native scoring inputs keeps its pinned partial route.
 
     Deterministic and fail-closed: no record is returned when conversion fails, and every failure is a `ConversionError`
     with a typed `code` (a neutral token). Anything that is not a bundle, a stored producer report (archive

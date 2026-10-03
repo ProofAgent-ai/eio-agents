@@ -1,4 +1,4 @@
-"""Reissue only current v0_6 synthetic native fixtures after an ontology change.
+"""Historical 0.6 fixture reissuer; never run against a newer package.
 
 Historical vectors in tests/data/native/ are intentionally immutable. This
 script uses the checked-in native author functions and no Harness adapter.
@@ -16,7 +16,7 @@ sys.path[:0] = [str(ROOT / "tests"), str(ROOT / "tests" / "data" / "native"), st
 
 from author_native import author, pinned  # noqa: E402
 from full_native_score_case import reissued_cited_bundle, source_complete_bundle  # noqa: E402
-from eio_agents import canonical_bytes, convert, validate, verify  # noqa: E402
+from eio_agents import __version__, canonical_bytes, convert, validate, verify  # noqa: E402
 from eio_agents.validation import validate_bundle  # noqa: E402
 
 CURRENT = ROOT / "tests" / "data" / "native" / "v0_6"
@@ -29,6 +29,8 @@ def _json_bytes(value: object) -> bytes:
 
 
 def main() -> None:
+    if __version__ != "0.6.0":
+        raise SystemExit("v0_6 bytes are historical; use tools/reissue_0_8_fixtures.py for EIO-Agents 0.8.0")
     old = HISTORICAL / "native.bundle.json"
     assert hashlib.sha256(old.read_bytes()).hexdigest() == HISTORICAL_SHA
     assert CURRENT.is_dir() and CURRENT.parent == HISTORICAL

@@ -47,7 +47,7 @@ def gate_inputs(rec, eio):
     # inputs of eio.gate.evidence-sufficient. Its gate result remains the
     # source-projected unscored result until a versioned native gate rule is
     # approved; never reinterpret a WITHHELD numeric metric as that fraction.
-    legacy_metrics = [] if scores.get("kind") == "reference-draft" else scores.get("metrics") or []
+    legacy_metrics = [] if scores.get("kind") in ("reference-draft", "reference") else scores.get("metrics") or []
     return {
         "eio.gate.coverage-complete": {"obligations": [{"impact": o["release_impact"], "required": o["required"], "met": o["met"]} for o in obl]},
         "eio.gate.evidence-sufficient": {"metrics": [{"measurement_status": m["measurement_status"]} for m in legacy_metrics]},

@@ -26,12 +26,13 @@ def test_four_component_governance_uses_no_freshness_and_normalizes_to_100_scale
 
 def test_direct_gate_refuses_rogue_schema_or_profile_before_source_computation():
     profile, schema = load_full_score_resources()
-    assert profile["version"] == "0.3.1-draft.1"
+    assert profile["version"] == "0.3.1"
+    assert load_full_score_resources("0.3.1-draft.1")[0]["version"] == "0.3.1-draft.1"
     assert schema["properties"]["proof_sets"]["required"] == [
         "reportable_finding_ids", "decisive_finding_ids", "decisive_claim_ids"]
     eio = EIO(EIO_DIR)
     eio.profiles["eio.profile.proof-status"]["native_claim_proves"] = False
-    fake_record = {"scores": {"kind": "reference-draft"}}
+    fake_record = {"header": {"per_version": "2.1.0"}, "scores": {"kind": "reference"}}
     rogue_profile = copy.deepcopy(profile)
     rogue_profile["parameters"]["readiness_ceiling"] = 100
     assert "differs from verifier-owned" in full_native_score_gate(

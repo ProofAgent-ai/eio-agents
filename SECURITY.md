@@ -7,7 +7,9 @@ versions.
 
 | Version | Supported |
 |---|---|
-| `0.6.0rc1` | Security fixes during its release-candidate series |
+| `0.8.x` | Security fixes after `0.8.0` is published; this local build has no public support claim |
+| `0.7.x` | No public support commitment for the unpublished development line |
+| `0.6.x` and `0.6.0rc1` | Historical; report issues privately so fixes can be assessed for the next supported release |
 | Historical development candidates | No public support commitment |
 
 ## Reporting a vulnerability

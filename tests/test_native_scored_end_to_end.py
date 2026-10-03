@@ -17,8 +17,8 @@ from eio_agents.validation.score_basis import score_basis_sha256
 from test_proof_group_exploration import prohibited_tool_bundle
 
 
-SOURCE = Path(__file__).parent / "data/native/v0_6/synthetic-cited-native.bundle.json"
-EXPECTED_PER_SHA256 = "sha256:48cd5bb5a31185597112ecf3e9c56284e979f5f2e1402961a98969da84f3e4a6"
+SOURCE = Path(__file__).parent / "data/native/v0_8/synthetic-cited-native.bundle.json"
+EXPECTED_PER_SHA256 = "sha256:f2b5f0d2126fec7283a582fe1d3f3eea014ac7df33d278ce9a0c735769853cf9"
 
 
 def _bundle():
@@ -28,11 +28,11 @@ def _bundle():
 def test_external_native_bundle_scores_and_verifies_without_adapter():
     bundle = _bundle()
     record = convert(bundle)
-    schema = per_schema("2.0.0")
-    assert record["header"]["per_version"] == "2.0.0"
+    schema = per_schema("2.1.0")
+    assert record["header"]["per_version"] == "2.1.0"
     assert record["header"]["schema_uri"] == schema["$id"]
     assert per_sha256(record) == EXPECTED_PER_SHA256
-    assert record["scores"]["kind"] == "reference-draft"
+    assert record["scores"]["kind"] == "reference"
     assert record["scores"]["axes"][3]["value"] == 25.0
     assert record["scores"]["readiness"]["value"] is None
     assert [row["proof_status"] for row in record["findings"]] == ["UNPROVEN"]

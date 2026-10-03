@@ -55,8 +55,8 @@ def _gate(bundle, record, *, source_checked=True, approved_profile=True):
 
 def test_source_complete_native_bundle_measures_q_e_c_g_and_readiness(full_case):
     bundle, record = full_case
-    assert record["header"]["per_version"] == "2.0.0"
-    assert record["scores"]["scoring_profile"]["version"] == "0.3.1-draft.1"
+    assert record["header"]["per_version"] == "2.1.0"
+    assert record["scores"]["scoring_profile"]["version"] == "0.3.1"
     assert [axis["value"] for axis in record["scores"]["axes"]] == [40.0, 62.5, 50.0, 25.0]
     assert all(axis["status"] == "MEASURED" for axis in record["scores"]["axes"])
     assert record["scores"]["readiness"]["status"] == "MEASURED"

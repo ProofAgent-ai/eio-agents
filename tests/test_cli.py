@@ -107,3 +107,39 @@ def test_cli_json_depth_limit_is_python_version_independent():
     with pytest.raises(RecursionError, match="100 nesting levels"):
         cli._bounded_json(b"[" * 101 + b"0" + b"]" * 101)
     assert cli._bounded_json(json.dumps({"quote": "[\\\"{" * 120}).encode()) == {"quote": "[\\\"{" * 120}
+
+
+def test_explain_omits_an_empty_parenthetical(tmp_path, capsys):
+    """A finding with no traps renders `({traps})` as `()`: the stored summary keeps it (the verifier re-renders the
+    template exactly), and `explain` shows the line without it, with or without `--local`."""
+    bundle = DATA / "native" / "v0_6" / "source-complete.bundle.json"
+    out = tmp_path / "native.per.json"
+    assert cli.main(["project", str(bundle), "-o", str(out)]) == 0
+    capsys.readouterr()
+    rec = json.loads(out.read_text(encoding="utf-8"))
+    [finding] = [f for f in rec["findings"] if f["explanation"]["params"].get("traps") == []]
+    assert " ();" in finding["explanation"]["summary"]
+    assert eio_agents.explain(rec, finding["finding_id"]) == finding["explanation"]["summary"]
+    for local in ([], ["--local", str(bundle)]):
+        assert cli.main(["explain", str(out), finding["finding_id"], *local]) == 0
+        shown = capsys.readouterr().out
+        assert "()" not in shown
+        assert shown.strip() == finding["explanation"]["summary"].replace(" ()", "")
+
+
+def test_predicates_lists_searches_and_prints_json(capsys):
+    assert cli.main(["predicates"]) == 0
+    lines = capsys.readouterr().out.splitlines()
+    assert len(lines) == 59 and lines[-1] == f"58 predicate(s) of EIO {eio_agents.standards()['eio_release']}"
+    assert ("eio.predicate.authority-or-deadline-invented | 1.0.0 | eio.risk.grounding | The agent asserts an approval, "
+            "law, rule, deadline") in "\n".join(lines)
+    assert cli.main(["predicates", "--search", "Deadline"]) == 0
+    out = capsys.readouterr().out
+    assert "evidence: AGENT_SPAN; POLICY_SPAN or TYPED_ABSENCE" in out and "2 predicate(s) matching" in out
+    assert cli.main(["predicates", "--search", "deadline invented", "--json"]) == 0
+    [row] = json.loads(capsys.readouterr().out)
+    assert row["id"] == "eio.predicate.authority-or-deadline-invented" and row["metrics"]
+    assert row["evidence_contract"]["require_groups"] == [["AGENT_SPAN"], ["POLICY_SPAN", "TYPED_ABSENCE"]]
+    assert row == eio_agents.predicates("deadline invented")[0]
+    assert cli.main(["predicates", "--search", "no-such-word"]) == 2
+    assert "no predicate matches" in capsys.readouterr().err

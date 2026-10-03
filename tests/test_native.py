@@ -1,9 +1,9 @@
 """X-NATIVE, L2 form (split plan §6.1): a hand-authored synthetic bundle from a native producer.
 
-`tests/data/native/v0_6/native.bundle.json` is written by `author_native.py` with EIO-Agents builders only. It must pass
+`tests/data/native/v0_8/native.bundle.json` is written by `author_native.py` with EIO-Agents builders only. It must pass
 `validate_bundle == []`, then `convert`, then `verify` with a digest match. Under rc1, `validate(rec)` returns exactly the
-pinned list of rc1-only problems, each naming the §5.3 row that removes it (`v0_6/native.rc1_problems.json`); the expected PER
-bytes are pinned in `v0_6/native.per.jcs`. From L5a the list is empty (rc2-draft). The suite runs in the install-alone job
+pinned list of rc1-only problems, each naming the §5.3 row that removes it (`v0_8/native.rc1_problems.json`); the expected PER
+bytes are pinned in `v0_8/native.per.jcs`. From L5a the list is empty (rc2-draft). The suite runs in the install-alone job
 (`venv-eioagents`, where `proofagent_harness` is not importable), and one test projects the bundle with the staging area
 blocked.
 """
@@ -23,7 +23,7 @@ from eio_agents.per.conformance import rc1_only
 from eio_agents.validation import validate_bundle
 
 NATIVE = Path(__file__).parent / "data" / "native"
-BUNDLE = NATIVE / "v0_6/native.bundle.json"
+BUNDLE = NATIVE / "v0_8/native.bundle.json"
 HISTORICAL_BUNDLE = NATIVE / "native.bundle.json"
 
 
@@ -46,7 +46,7 @@ def rec(bundle):
 
 def _historical_record_bytes(rec):
     """Compare all bytes to the immutable vector, excluding only the installed converter release."""
-    historical_version = json.loads((NATIVE / "v0_6/native.per.jcs").read_bytes())["header"]["converter"]["version"]
+    historical_version = json.loads((NATIVE / "v0_8/native.per.jcs").read_bytes())["header"]["converter"]["version"]
     historical = copy.deepcopy(rec)
     header = historical["header"]
     header["converter"]["version"] = historical_version
@@ -62,7 +62,7 @@ def test_the_vector_is_what_the_author_script_writes(bundle):
     fresh = mod.author(version=bundle["header"]["eio_agents"]["version"])
     assert fresh == bundle
     body, _ = mod.pinned(fresh)
-    assert _historical_record_bytes(json.loads(body)) == (NATIVE / "v0_6/native.per.jcs").read_bytes()
+    assert _historical_record_bytes(json.loads(body)) == (NATIVE / "v0_8/native.per.jcs").read_bytes()
 
 
 def test_the_bundle_is_native(bundle):
@@ -97,7 +97,7 @@ def test_historical_0_5_bundle_bytes_are_preserved_and_fail_closed():
 def test_convert_gives_the_pinned_bytes(rec):
     assert rec["header"]["converter"]["version"] == eio_agents.__version__
     assert rec["header"]["per_semantics_version"].startswith(f"2@{eio_agents.__version__}+eio")
-    assert _historical_record_bytes(rec) == (NATIVE / "v0_6/native.per.jcs").read_bytes()
+    assert _historical_record_bytes(rec) == (NATIVE / "v0_8/native.per.jcs").read_bytes()
     assert rec["scores"] is None                                   # no scoring profile
     assert rec["header"]["archive_schema"] == 3 and "adjudication_source" not in rec["header"]
     assert all(t["scenario"] is None for t in rec["evidence"]["turns"])
@@ -195,7 +195,7 @@ from eio_agents import validation
 b = Path({str(BUNDLE)!r}).read_bytes()
 ontology = load()
 rec = project_native_preview(b, ontology=ontology)
-golden = Path({str(NATIVE / 'v0_6/native.per.jcs')!r}).read_bytes()
+golden = Path({str(NATIVE / 'v0_8/native.per.jcs')!r}).read_bytes()
 historical_version = json.loads(golden)["header"]["converter"]["version"]
 assert rec["header"]["converter"]["version"] == eio_agents.__version__
 historical = copy.deepcopy(rec)

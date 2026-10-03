@@ -8,7 +8,134 @@ The format is based on [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.
 [src/eio_agents/ontology/data/CHANGELOG.md](src/eio_agents/ontology/data/CHANGELOG.md).
 
 Every entry states the bundled EIO release, the PER version, and whether record bytes change. The `.devN` versions
-below are development builds; `0.6.0rc1` is a release candidate, not a claim of certification.
+below are development builds; `0.6.0rc1` was a release candidate. No version is a claim of certification.
+
+## [0.8.0] - Pending publication
+
+EIO-Agents 0.8.0 bundles EIO `0.6.0` (`ontology_digest` `a27cf1f3ab755446`) and produces PER `2.1.0` by default,
+under release semantics `2.2`, with reference scoring profile `0.3.1`. This is a real 0.8.0 release line; publication remains pending exact local gates and the owner's commit/upload.
+
+### Added
+
+- Native semantic jury votes in `build_bundle()` and reference producer examples for ProofAgent Harness, Inspect AI,
+  promptfoo, DeepEval and OpenTelemetry GenAI; a native-versus-export guide explains their evidence limits.
+- Versioned PER 2.1.0 source-bound HIGH-review guard: unresolved HIGH/CRITICAL findings force REVIEW and the independent
+  verifier rejects a forged state, omitted guard, or mismatched review queue. Published PER 2.0.0 bytes stay immutable.
+- Predicate search hints and token-aware suggestions for unknown predicate names.
+- Release semantics `2.2` (owner decision #46): a PER 2.1.0 record that declares no policy
+  (`release_recommendation.policy.source` `none`) is REVIEW whenever readiness is below the default floor of 85 (or
+  withheld) or any HARD_BLOCK obligation is unmet (`coverage.summary.hard_block_unmet > 0`). Two `review_guard`
+  decisive entries, `eio.release.default-readiness-floor` (`field_refs` `/scores/readiness/value`) and
+  `eio.release.hard-block-unmet` (`obligation_ids`, `field_refs` `/coverage/summary/hard_block_unmet`), state the
+  reason in the registered release explanation `eio.why.release.review@1`; no EIO template is added, so the EIO
+  release and its digests do not change. BLOCK still requires a proven failure (owner decision #2); the guards are
+  never BLOCK. The independent verifier recomputes the guards from the record (R2) and from the bundle (D4) and
+  rejects a record that omits them or claims PASS.
+
+### Changed
+
+- PER `2.1.0` is the default (owner decision #46). `eio-agents version` and `eio_agents.standards()` report
+  `per_version` `2.1.0`, its schema id, `release_semantics` `2.2` and reference profile `0.3.1`;
+  `eio_agents.schemas.per_schema()` defaults to the 2.1.0 schema. No public version string or schema id of a new record
+  contains "draft": a PER 2.1.0 record binds the released reference scoring profile `0.3.1` (the rules of
+  `0.3.1-draft.1` under a clean version; document digest
+  `sha256:c03848dfd14163beef221a7e080d9d515c1853aa83373d0dd36a5b314957aa7d`, was
+  `sha256:39907fe651d844cce4b7f893e1a5092deef91ff4168993da4635c9e9bfad45c6`), score basis
+  `eio-agents.score-basis/0.3.0` and score kind `reference`, validated by the new
+  `schemas/scoring/native-score-block-0.3.1.schema.json`. The packaged 2.1.0 PER schema accepts release semantics
+  `2.2` only, the three review-guard ids and the clean score identities, and drops an unreferenced draft score
+  definition (SHA-256 `b014591877aeef1821d3f1da5bc7a3a75516abc60033f2d91a16cbc08aca8219`, was
+  `bc3052b8eb1de2c691ec3a893802778168ddde36d732c4c0d86caf6143142b04`; the website copy must be re-synced before
+  deployment). Published PER 2.0.0 records keep `0.3.1-draft.1`, `eio-agents.score-basis/0.3.0-draft.1` and
+  `reference-draft` and stay verifiable; historical release-candidate records keep their pinned identities and are no
+  longer defaults. Release semantics `2.1`, used only by unpublished 0.8.0 candidate records, is superseded: such a
+  record fails validation instead of being reinterpreted.
+- `eio-agents explain --list` and `eio-agents evidence` show `unrated` for a finding with no severity (no in-scope
+  obligation targets its predicate), where they printed `None`; `explain --list` now shows every finding's severity.
+  Display only: the record keeps `severity: null`. The ontology defines severity through domain obligations only, not
+  per predicate, so no severity is defaulted from the predicate.
+- Record bytes change: **yes**. The converter and bundle version change from `0.7.0` to `0.8.0`; the 2.1 wire contract,
+  model-identifier privacy rule and confidential-by-default system prompt also change projection where applicable.
+  Existing 0.7.0 records require their pinned release for exact re-derivation. New 0.8 fixtures are under
+  `tests/data/native/v0_8/`; historical 2.0 and 0.7 vectors are not rewritten. Decision #46 reissued the two scored
+  PER 2.1.0 vectors with `tools/reissue_0_8_fixtures.py` and `tools/reissue_per_2_1_fixtures.py`:
+  `v0_8/source-complete.per.jcs` SHA-256 `8ea058de14e379fcca8478cbba89c6a9682826eb039f62b6080d1cabd37c1177` and
+  `per_2_1/source-complete.per.jcs` SHA-256 `ff323f0d72d455c87fd83aa914108cd65f69a2c5db3575f178b2432889b8997b`; the
+  bundles are byte-identical.
+- Model identifiers are clear only in designated model fields and only when they contain no sensitive-token shape.
+  System prompts in `build_bundle()` are model-confidential by default; public excerpts require explicit opt-in.
+  Illustrative export crosswalks now skip unsupported checks rather than claiming semantically different predicates.
+
+The 0.8.0 full source, wheel, sdist, privacy, reproducibility and independent verification gates must be recorded
+before publication. The former HIGH-review strict xfails are replaced by passing positive and forgery-negative tests.
+
+## [0.7.0]
+
+Developer adoption: build a bundle from your own evaluation report without the library internals. It bundles the same
+EIO `0.6.0` (`ontology_digest` `a27cf1f3ab755446`) and emits the same PER `2.0.0` with reference scoring profile
+`0.3.1-draft.1`. No EIO data, schema or scoring rule changes, and the projection of an existing bundle is unchanged
+apart from the library version it records.
+
+### Added
+
+- `eio_agents.build_bundle(...)` builds an evaluation bundle (archive schema 3) of a native producer from a simple
+  report: the turns (user message, agent answer, tool calls), one deterministic check per predicate and turn (passed or
+  failed, an optional exact quote of the agent answer or the user message), an optional system prompt with context
+  ratings, the frameworks in scope and the telemetry. It computes the evidence refs, claim ids, transcript digest,
+  episodes, scenario bindings, applicable controls, proof citations and stage-record digests. What a report does not
+  record comes from defaults packaged in the wheel (`eio_agents/per/data/build-defaults.json`); nothing is read from
+  the network. See [docs/api.md](docs/api.md#build_bundle).
+- Clear typed errors for the common mistakes, each naming the input field: `BUILD_QUOTE` (a quote that is not in the
+  turn, with the closest text), `BUILD_PREDICATE` (an unknown predicate, criterion or framework, with close ids),
+  `BUILD_TURN`, `BUILD_EVIDENCE` (a check without the evidence its predicate's contract needs that the report could
+  supply), `BUILD_PERSONAL_DATA` (a value the record's privacy rules would refuse, such as a dated model name or an
+  agent id with four digits, with the rule) and `BUILD_INPUT`.
+- `eio_agents.predicates(search=None)` and `eio-agents predicates [--search TEXT] [--json]`: the predicates of the
+  bundled release with their version, module, meaning, evidence contract, metrics and number of targeting controls.
+- [docs/predicates.md](docs/predicates.md), the predicate reference, generated from the ontology by
+  `tools/predicate_reference.py` (a test keeps it in sync); [docs/overview.md](docs/overview.md), a plain-language
+  walk from a report to readiness with the computed numbers of a synthetic travel-agent report (a test checks them);
+  and [examples/custom_report](examples/custom_report/README.md), a 29-line converter of a report file with its tests.
+  The README has a short "Convert your own report" section.
+
+### Changed
+
+- Record bytes change: yes, in the library version only (`header.converter.version`, `header.per_semantics_version`,
+  the bundles' `header.eio_agents.version` and the digests over them). The current synthetic fixtures under
+  `tests/data/native/v0_6/` are reissued with `tools/reissue_public_fixtures.py`; the source-complete PER 2.0.0 golden
+  record is now SHA-256 `ac19e80ebc1c2b31c2f5d2a8e664e4fdb88b49efa12c97071275bb975e7ca0b3`. Historical vectors stay
+  pinned. A record made by 0.6.0 re-derives only under 0.6.0.
+
+## [0.6.0] - 2026-10-02
+
+The final 0.6.0 release of the 0.6.0rc1 candidate. It bundles the same EIO `0.6.0` (`ontology_digest`
+`a27cf1f3ab755446`), emits the same PER `2.0.0` for source-complete native bundles with reference scoring profile
+`0.3.1-draft.1`, and keeps the partial-score `2.0.0-rc3-draft` route. No EIO data, schema or scoring rule changes.
+
+### Changed
+
+- Record bytes change: yes, in the library version only. Every new record names the converter `0.6.0`
+  (`header.converter.version` and `header.per_semantics_version`), and a bundle built by this version says so in
+  `header.eio_agents.version`; the archive and score digests that cover these headers follow. Claim, finding and ref
+  ids, states, scores and explanations are unchanged. The current synthetic fixtures under `tests/data/native/v0_6/`
+  are reissued with `tools/reissue_public_fixtures.py`; the source-complete PER 2.0.0 golden record is now SHA-256
+  `9ea9b9f30cad6d6f827914480e0d0ee1f15c8ecb71828829bbcd7bcbb29b9ecc`. The historical rc5 vector and the 0.5 fixtures
+  stay pinned as they were. A record made by 0.6.0rc1 re-derives only under 0.6.0rc1.
+- `eio-agents explain` omits an empty parenthetical from the line it prints: a behavioural finding with no trap label
+  shows `failed on turn 3;`, not `failed on turn 3 ();`. Display only: the stored summary and `eio_agents.explain` keep
+  the template rendering byte for byte.
+- The README is written for PyPI: badges, `pip install eio-agents` (no `--pre`), a note on Python 3.10 or newer (pip's
+  "from versions: none" means an older Python), the sample walkthrough, tracing a metric to its claim and quoted
+  evidence, and the author. `pyproject.toml` and `CITATION.cff` name Dr. Fouad Bousetouane as an author.
+- Releases are published by pushing a tag `v<version>`: `.github/workflows/release.yml` builds and publishes through
+  PyPI trusted publishing and runs no tests. The CI workflow runs the test suite in parallel with pytest-xdist.
+
+### Fixed
+
+- `docs/api.md` listed `validate_bundle` as a name of the package root; it is `eio_agents.validation.validate_bundle`
+  (`eio_agents.validate_bundle` raises `AttributeError`).
+- `docs/cli.md` states what `explain --local` resolves: only the fingerprints among the parameters of the rendered
+  explanation, so a finding whose parameters are all ids, numbers and states prints the same text with or without it.
 
 ## [0.6.0rc1]
 

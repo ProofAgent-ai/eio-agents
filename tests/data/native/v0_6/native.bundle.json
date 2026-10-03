@@ -5,7 +5,7 @@
   "run_id": "3f6b2c1e-8a4d-4f0b-9c2e-5d7a1b3c4e6f",
   "run_id_source": "producer",
   "eio_agents": {
-   "version": "0.6.0rc1",
+   "version": "0.6.0",
    "ontology_sha256": "sha256:a27cf1f3ab755446c639da6b0e6d3b2c4363c205e6ffa4b44e48876cce72ecc9"
   },
   "eio": {

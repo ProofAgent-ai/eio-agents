@@ -654,13 +654,13 @@ def native_score_gate(record, bundle, *, eio=None, source_checked=False):
         return [], "native score absent; no numeric claim to rederive"
     claimed = score.get("scoring_profile") if isinstance(score, dict) else None
     if (isinstance(claimed, dict)
-            and (claimed.get("id"), claimed.get("version")) == (PROFILE_ID, "0.3.1-draft.1")):
+            and (claimed.get("id"), claimed.get("version")) in ((PROFILE_ID, "0.3.1"), (PROFILE_ID, "0.3.1-draft.1"))):
         if eio is None or source_checked is not True:
             return ["native score: independent D1/D2/D5 source checks are not passed"], ""
         from eio_agents.validation.full_score import full_native_score_gate, load_full_score_resources
 
         try:
-            profile, schema = load_full_score_resources()
+            profile, schema = load_full_score_resources(claimed["version"])
             return full_native_score_gate(bundle, record, eio, source_checked=True,
                                           approved_profile=profile, approved_schema=schema)
         except (ScoreInputError, OSError, ValueError, TypeError) as exc:
@@ -781,7 +781,8 @@ def compliance_value(rows, selected_frameworks):
     observed = sum(s in ("observed_satisfaction", "observed_violation") for values in by_framework.values() for s in values)
     if observed < 6:
         return None
-    framework_values = [100 * (1 - statuses.count("observed_violation") / len(statuses))
+    # each framework's value is quantized before the mean, as the projector's draft R6 does (`draft_compliance_axis`)
+    framework_values = [q4(100 * (1 - statuses.count("observed_violation") / len(statuses)))
                         for statuses in by_framework.values()
                         if any(s in ("observed_satisfaction", "observed_violation") for s in statuses)]
     if not framework_values:

@@ -15,6 +15,7 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError
 
 from eio_agents.validation.score_basis import score_basis_sha256
+from eio_agents.validation.render import r_score
 from eio_agents.validation.native_score import (
     ScoreInputError,
     checked_native_inputs,
@@ -31,28 +32,79 @@ from eio_agents.validation.native_score import (
 )
 
 
-PROFILE_VERSION = "0.3.1-draft.1"
-SCORE_BASIS_VERSION = "eio-agents.score-basis/0.3.0-draft.1"
-PER_VERSION = "2.0.0"
-PER_SCHEMA_URI = "https://www.proofagent.ai/eio-agents/schema/per/2.0.0/per.schema.json"
+# PER 2.1.0 (owner decision #46: no "draft" in a public version) binds the released 0.3.1 profile, score basis 0.3.0 and
+# score kind "reference"; a published PER 2.0.0 record keeps its pinned 0.3.1-draft.1 identities.
+PROFILE_VERSION = "0.3.1"
+SCORE_BASIS_VERSION = "eio-agents.score-basis/0.3.0"
+SCORE_KIND = "reference"
+PER_VERSION = "2.1.0"
+RELEASE_SEMANTICS = "2.2"
+DEFAULT_READINESS_FLOOR = 85.0
+HISTORICAL_PROFILE_VERSION = "0.3.1-draft.1"
+HISTORICAL_SCORE_BASIS_VERSION = "eio-agents.score-basis/0.3.0-draft.1"
+HISTORICAL_SCORE_KIND = "reference-draft"
+PER_SCHEMA_URI = "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json"
 POLICY_PER_VERSION = PER_VERSION
 POLICY_PER_SCHEMA_URI = PER_SCHEMA_URI
 EIO_RELEASE = "0.6.0"
-# Updated only when the verifier-owned 0.3 resources have been frozen.
-PINNED_PROFILE_SHA256 = "sha256:39907fe651d844cce4b7f893e1a5092deef91ff4168993da4635c9e9bfad45c6"
-PINNED_SCORE_SCHEMA_SHA256 = "sha256:1739d7a9fca8a269a59f408666651243f56b79ef829ae59bf9e90fbb81401703"
+# Updated only when the verifier-owned 0.3 resources have been frozen: per profile version, the pinned profile
+# document and score-block schema files and their digests.
+PINNED_RESOURCES = {
+    PROFILE_VERSION: ("data/reference-profile-0.3.1.json", "schemas/scoring/native-score-block-0.3.1.schema.json",
+                      "sha256:c03848dfd14163beef221a7e080d9d515c1853aa83373d0dd36a5b314957aa7d",
+                      "sha256:547554e05812bed3f8dc1b7a6d2eb121a1909b64feda4c96380be00e807710f9"),
+    HISTORICAL_PROFILE_VERSION: ("data/reference-profile-0.3.1-draft.1.json",
+                                 "schemas/scoring/native-score-block-0.3.1-draft.1.schema.json",
+                                 "sha256:39907fe651d844cce4b7f893e1a5092deef91ff4168993da4635c9e9bfad45c6",
+                                 "sha256:1739d7a9fca8a269a59f408666651243f56b79ef829ae59bf9e90fbb81401703"),
+}
+PINNED_PROFILE_SHA256 = PINNED_RESOURCES[PROFILE_VERSION][2]
+PINNED_SCORE_SCHEMA_SHA256 = PINNED_RESOURCES[PROFILE_VERSION][3]
+# the score identities each pinned full-score PER version binds: (profile version, score basis version, score kind)
+PER_SCORE_IDENTITY = {PER_VERSION: (PROFILE_VERSION, SCORE_BASIS_VERSION, SCORE_KIND),
+                      "2.0.0": (HISTORICAL_PROFILE_VERSION, HISTORICAL_SCORE_BASIS_VERSION, HISTORICAL_SCORE_KIND)}
 _PACKAGE = Path(__file__).resolve().parents[1]
 
 
-def load_full_score_resources():
-    """Load independently pinned score resources, never producer registry data."""
-    profile_path = Path(__file__).resolve().parent / "data/reference-profile-0.3.1-draft.1.json"
-    schema_path = _PACKAGE / "schemas/scoring/native-score-block-0.3.1-draft.1.schema.json"
-    profile = json.loads(profile_path.read_text(encoding="utf-8"))
-    schema_raw = schema_path.read_bytes()
-    if sha(jb(profile)) != PINNED_PROFILE_SHA256 or sha(schema_raw) != PINNED_SCORE_SCHEMA_SHA256:
+def load_full_score_resources(profile_version=PROFILE_VERSION):
+    """Load independently pinned score resources, never producer registry data: the released 0.3.1 profile of PER
+    2.1.0 by default, or the historical 0.3.1-draft.1 profile of a published PER 2.0.0 record."""
+    if profile_version not in PINNED_RESOURCES:
+        raise ScoreInputError(f"no verifier-owned full-score resources for profile {profile_version}")
+    profile_rel, schema_rel, profile_pin, schema_pin = PINNED_RESOURCES[profile_version]
+    profile = json.loads((Path(__file__).resolve().parent / profile_rel).read_text(encoding="utf-8"))
+    schema_raw = (_PACKAGE / schema_rel).read_bytes()
+    if sha(jb(profile)) != profile_pin or sha(schema_raw) != schema_pin:
         raise ScoreInputError("verifier-owned full-score profile or schema digest differs from the pin")
     return profile, json.loads(schema_raw)
+
+
+def default_floor_guards(record):
+    """The release-semantics 2.2 no-policy guards a PER 2.1.0 record must carry (owner decision #46), recomputed
+    from the received record only: with policy source `none`, a review of the default readiness floor when
+    `scores.readiness.value` is below 85 or withheld, and a review of unmet HARD_BLOCK obligations when any
+    coverage obligation with `release_impact` HARD_BLOCK is unmet (the count `coverage.summary.hard_block_unmet`).
+    Each guard is REVIEW; neither can BLOCK. The verifier's own copy, independent of the producer."""
+    rr = record["release_recommendation"]
+    if rr["policy"]["source"] != "none":
+        return []
+    value = ((record.get("scores") or {}).get("readiness") or {}).get("value")
+    guards = []
+    if value is None or value < DEFAULT_READINESS_FLOOR:
+        guards.append({"kind": "review_guard", "id": "eio.release.default-readiness-floor",
+                       "expected": "readiness >= 85.0",
+                       "observed": "withheld" if value is None else r_score(value),
+                       "claim_ids": [], "finding_ids": [], "field_refs": ["/scores/readiness/value"],
+                       "effect": "REVIEW"})
+    unmet = sorted(o["id"] for o in record["coverage"]["obligations"]
+                   if o["met"] is False and o["release_impact"] == "HARD_BLOCK")
+    if unmet:
+        guards.append({"kind": "review_guard", "id": "eio.release.hard-block-unmet",
+                       "expected": "0",
+                       "observed": str(len(unmet)),
+                       "claim_ids": [], "finding_ids": [], "obligation_ids": unmet,
+                       "field_refs": ["/coverage/summary/hard_block_unmet"], "effect": "REVIEW"})
+    return guards
 
 
 _REASONS = {
@@ -123,15 +175,18 @@ def diagnose_full_score_block(bundle, record, block, eio, *, approved_profile):
     if not isinstance(approved_profile, dict):
         raise ScoreInputError("verifier-owned profile is missing")
     header = record.get("header") or {}
-    if (header.get("per_version"), header.get("schema_uri")) != (PER_VERSION, PER_SCHEMA_URI):
-        raise ScoreInputError("full score requires the pinned PER 2.0.0 schema")
+    expected_uri = {"2.0.0": "https://www.proofagent.ai/eio-agents/schema/per/2.0.0/per.schema.json",
+                    PER_VERSION: PER_SCHEMA_URI}.get(header.get("per_version"))
+    if expected_uri is None or header.get("schema_uri") != expected_uri:
+        raise ScoreInputError("full score requires an exact pinned PER 2.0.0 or 2.1.0 schema")
+    profile_version, basis_version, score_kind = PER_SCORE_IDENTITY[header["per_version"]]
     inputs = checked_native_inputs(bundle, record, eio)
     mismatches, compared = [], []
     expected_root = {"kind", "scoring_profile", "score_sha256", "score_basis_version",
                      "score_basis_sha256", "metrics", "axes", "readiness", "proof_sets"}
     _check(set(block), expected_root, "scores.keys", mismatches, compared)
-    _check(block.get("kind"), "reference-draft", "scores.kind", mismatches, compared)
-    _check(block.get("score_basis_version"), SCORE_BASIS_VERSION,
+    _check(block.get("kind"), score_kind, "scores.kind", mismatches, compared)
+    _check(block.get("score_basis_version"), basis_version,
            "scores.score_basis_version", mismatches, compared)
     _check(block.get("score_basis_sha256"), score_basis_sha256(record, scored=True),
            "scores.score_basis_sha256", mismatches, compared)
@@ -147,11 +202,11 @@ def diagnose_full_score_block(bundle, record, block, eio, *, approved_profile):
            "scores.scoring_profile.keys", mismatches, compared)
     _check(profile.get("id"), "eio-agents.reference-scoring",
            "scores.scoring_profile.id", mismatches, compared)
-    _check(profile.get("version"), PROFILE_VERSION,
+    _check(profile.get("version"), profile_version,
            "scores.scoring_profile.version", mismatches, compared)
     _check(approved_profile.get("id"), "eio-agents.reference-scoring",
            "approved_profile.id", mismatches, compared)
-    _check(approved_profile.get("version"), PROFILE_VERSION,
+    _check(approved_profile.get("version"), profile_version,
            "approved_profile.version", mismatches, compared)
     _check(approved_profile.get("ontology_sha256"), ontology_sha,
            "approved_profile.ontology_sha256", mismatches, compared)
@@ -228,6 +283,27 @@ def diagnose_full_score_block(bundle, record, block, eio, *, approved_profile):
     state = (record.get("release_recommendation") or {}).get("state")
     review = high_review_guard(state, record["findings"], proof, checked_severity=severity)
     _check(state, review["state"], "release_recommendation.state.HIGH_guard", mismatches, compared)
+    if header["per_version"] == "2.1.0":
+        guards = [d for d in record["release_recommendation"]["decisive"]
+                  if d["kind"] == "review_guard" and d["id"] == "eio.release.high-review-queue"]
+        queue = review["high_review_queue"]
+        _check(len(guards), 1 if queue else 0, "release_recommendation.HIGH_guard.count", mismatches, compared)
+        if guards:
+            _check(guards[0], {"kind": "review_guard", "id": "eio.release.high-review-queue",
+                               "expected": "no unresolved HIGH or CRITICAL findings",
+                               "observed": f"{len(queue)} unresolved HIGH or CRITICAL finding(s)",
+                               "claim_ids": [], "finding_ids": queue, "effect": "REVIEW"},
+                   "release_recommendation.HIGH_guard.source", mismatches, compared)
+        # release semantics 2.2 (owner decision #46): with no declared policy, readiness below the default floor 85
+        # (or withheld) or an unmet HARD_BLOCK obligation forces REVIEW; a claimed PASS is rejected
+        floor_guards = default_floor_guards(record)
+        recorded = [d for d in record["release_recommendation"]["decisive"]
+                    if d["kind"] == "review_guard" and d["id"] != "eio.release.high-review-queue"]
+        _check(recorded, floor_guards, "release_recommendation.default_floor_guard.source", mismatches, compared)
+        _check(header.get("release_semantics"), RELEASE_SEMANTICS, "header.release_semantics", mismatches, compared)
+        if floor_guards:
+            _check(state, "BLOCK" if state == "BLOCK" else "REVIEW",
+                   "release_recommendation.state.default_floor_guard", mismatches, compared)
     source_policy = inputs["policy"]
     rules = source_policy.get("rules") or {}
     signoff = (False if source_policy["source"] in (None, "none") and not rules
@@ -308,7 +384,10 @@ def full_native_score_gate(bundle, record, eio, *, source_checked,
     if not isinstance(block, dict):
         return ["full native score block is missing"], ""
     try:
-        pinned_profile, pinned_schema = load_full_score_resources()
+        identity = PER_SCORE_IDENTITY.get((record.get("header") or {}).get("per_version"))
+        if identity is None:
+            return ["full native score requires a pinned PER 2.0.0 or 2.1.0 record"], ""
+        pinned_profile, pinned_schema = load_full_score_resources(identity[0])
         if approved_profile != pinned_profile or approved_schema != pinned_schema:
             return ["provided full-score profile or schema differs from verifier-owned pinned resources"], ""
         Draft202012Validator.check_schema(approved_schema)
@@ -321,4 +400,5 @@ def full_native_score_gate(bundle, record, eio, *, source_checked,
         return [f"full native score cannot be independently rederived: {exc}"], ""
     if diagnostic["mismatches"]:
         return [f"independent full score mismatch at {path}" for path in diagnostic["mismatches"]], ""
-    return [], "Q/E/C/G/readiness, exact proof sets, HIGH guard, profile and digests independently rederived"
+    return [], ("Q/E/C/G/readiness, exact proof sets, HIGH guard, no-policy default floor guard, profile and digests "
+                "independently rederived")

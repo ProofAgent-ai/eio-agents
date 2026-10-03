@@ -1,6 +1,6 @@
 # Verification
 
-A PER record is meant to be checked, not trusted. This page describes what EIO-Agents `0.6.0rc1` checks, what those checks
+A PER record is meant to be checked, not trusted. This page describes what EIO-Agents `0.8.0` checks, what those checks
 establish, what they do not, and how the library's own conformance is tested.
 
 - [validate and verify](#validate-and-verify)
@@ -14,7 +14,7 @@ establish, what they do not, and how the library's own conformance is tested.
 ## validate and verify
 
 - `validate(record)` checks the record on its own, in process: the PER JSON Schema of its declared `per_version`
-  (rc3 partial or PER 2.0.0; JSON Schema draft 2020-12, with formats) and every EIO rule that can be
+  (rc3 partial, historical PER 2.0.0, or current PER 2.1.0; JSON Schema draft 2020-12, with formats) and every EIO rule that can be
   recomputed from the record and the bundled EIO release.
 - `verify(record, bundle)` runs the same checks, then VER-5 against the record's evaluation bundle (every ref and digest
   the bundle's sources determine, recomputed per locator kind), re-projects the bundle and compares `per_sha256` of the
@@ -57,7 +57,7 @@ establish, what they do not, and how the library's own conformance is tested.
 
 These checks return rows of the form `{check, ver, status, detail}`. The `ver` column names the verification requirement
 of the PER 2.0 specification that the check implements (for example `VER-4`). A native bundle without scoring inputs
-projects `scores: null`. With validated `native_scoring` inputs, projection may include partial draft metrics/axes;
+projects `scores: null`. With validated `native_scoring` inputs, projection may include partial metrics/axes;
 verification checks those source-derived fields, not producer-supplied score numbers. G/readiness remain withheld where
 required source evidence is absent.
 
@@ -86,7 +86,7 @@ required source evidence is absent.
 | X1 | Explanations re-render from the registered `eio.template.why` templates |
 | X2 | Control and release wording (for example, no control summary may say "compliant") |
 | R1 | Gates |
-| R2 | The release recommendation and its invariants |
+| R2 | The release recommendation and its invariants; for PER 2.1.0 (release semantics 2.2) the no-policy default floor recomputed from the record: with policy source `none`, readiness below 85 (or withheld) or an unmet HARD_BLOCK obligation requires the matching `review_guard` entries and rejects a claimed PASS |
 | L1 | Reliability ledgers and rate |
 | T1 | Limitations come from the core catalogue or an explicitly declared, digest-checked catalogue |
 | P1 | PER Pointers and view ids resolve |
@@ -95,7 +95,7 @@ required source evidence is absent.
 | D1 | `per_sha256` |
 | D2 | VER-5 over the bundle's sources: archive identity, run, transcript digest, archive pointer, the names the sources are resolved by, turn digests, every span (an exact or casefold one non-empty), tool receipt, typed absence (plain search terms, no name spelt another way), policy span (no excerpt of a withheld data class, nor of the same bytes under another name) and state fact the sources determine; the context artifacts' data classes and kinds; any other ref non-witnessing, locating no text and carrying no statement; and the claims' decisions; from L3s (decision #31) the comparisons run on the record's clear view (each fingerprint replaced by its bundle text), every fingerprint is that of a text at its field's source path, each vocabulary-or-fingerprint and version-or-fingerprint decision recomputes, and no record string outside an excerpt equals a producer text of the bundle (only with the bundle) |
 | D3 | Re-projection is byte-identical (only with the bundle) |
-| D4 | For a native scored PER, independently recompute its checked score/profile fields from the bundle and pinned ontology, including the PER 2.0.0 score when present; reject forged values or unsupported score claims |
+| D4 | For a native scored PER, independently recompute its checked score/profile fields from the bundle and pinned ontology, including the PER 2.1.0 HIGH-review guard and the release semantics 2.2 no-policy default floor guards; reject forged values or unsupported score claims |
 | D5 | Independently check new-release native `PROVEN` status against targeted, source-verified proof citations; old pinned 0.4 semantics remain historical |
 
 These checks live in `eio_agents.validation`, which has its own canonical form, digest code, EIO reader and renderer and
@@ -149,7 +149,7 @@ recommendation BLOCK, and the checks above enforce this for every claim.
 
 The older verifier self-tests use a pinned synthetic native PER and inject one defect at a time. They assert that
 mutations such as an invalid witness, altered claim or release field, and wrong digest are rejected for that vector.
-The current 0.6 PER 2.0.0 native bundle and golden PER are under `tests/data/native/v0_6/`; the single older self-test module
+Historical 0.6/PER 2.0.0 native bytes remain under `tests/data/native/v0_6/`; current 0.8/PER 2.1.0 native bytes are under `tests/data/native/v0_8/`. The single older self-test module
 below is not, by itself, a current release gate. Historical producer-specific vectors live in the separate
 adapter-compatibility corpus.
 
@@ -161,8 +161,8 @@ The result depends on the source snapshot; run the command and record its actual
 
 Other tests:
 
-- **Native producer.** `tests/data/native/v0_6/` holds the current synthetic PER 2.0.0 bundle and byte-pinned PER, plus
-  other 0.6 fixtures. Older fixtures directly under `tests/data/native/` keep their historical pins.
+- **Native producer.** `tests/data/native/v0_8/` holds the current synthetic PER 2.1.0 bundle and byte-pinned PER.
+  `v0_6/` and older fixtures directly under `tests/data/native/` keep their historical pins.
 - **Adapter compatibility.** Historical producer archives, golden records and stress inputs are retained outside the
   standalone package for the producer adapter's compatibility gate; they are not public package fixtures.
 - **Neutral code.** An AST test scans active package code for historical adapter parameters and report keys, and requires
@@ -198,13 +198,13 @@ From the repository root, after `pip install -e ".[test]"`, the following local 
 .venv/bin/python tools/eio_digests.py
 ```
 
-The current 0.6 synthetic bundle supports a CLI projection/validate/verify smoke test:
+The current 0.8 synthetic bundle supports a CLI projection/validate/verify smoke test:
 
 ```bash
-.venv/bin/eio-agents project tests/data/native/v0_6/source-complete.bundle.json -o native.per.json --jcs native.per.jcs
+.venv/bin/eio-agents project tests/data/native/v0_8/source-complete.bundle.json -o native.per.json --jcs native.per.jcs
 .venv/bin/eio-agents validate native.per.json
-.venv/bin/eio-agents verify native.per.json --bundle tests/data/native/v0_6/source-complete.bundle.json
-cmp native.per.jcs tests/data/native/v0_6/source-complete.per.jcs
+.venv/bin/eio-agents verify native.per.json --bundle tests/data/native/v0_8/source-complete.bundle.json
+cmp native.per.jcs tests/data/native/v0_8/source-complete.per.jcs
 ```
 
 Run it in a private scratch directory with absolute input paths if you do not want outputs in the repository root.

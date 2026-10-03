@@ -61,8 +61,8 @@ def test_uppercase_severity_and_unknown_minimum_score_are_explicit_in_preview():
 def test_numeric_readiness_replaces_preview_unknown_with_source_checked_failure():
     bundle = _policy_bundle()
     record = convert(bundle)
-    assert record["header"]["per_version"] == "2.0.0"
-    assert record["header"]["schema_uri"] == "https://www.proofagent.ai/eio-agents/schema/per/2.0.0/per.schema.json"
+    assert record["header"]["per_version"] == "2.1.0"
+    assert record["header"]["schema_uri"] == "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json"
     assert record["scores"]["readiness"]["status"] == "MEASURED"
     assert record["release_recommendation"]["policy"]["rules"][1]["observed"] == record["scores"]["readiness"]["value"]
     assert record["release_recommendation"]["policy"]["rules"][1]["result"] == "fail"

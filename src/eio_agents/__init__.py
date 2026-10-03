@@ -1,9 +1,9 @@
-"""EIO-Agents — reference library for the Evaluation Intelligence Ontology (EIO) and PER 2.0 evaluation
-records. This release candidate bundles the 0.6 EIO ontology and emits PER 2.0.0 for source-complete native scoring;
-incomplete records retain the explicitly labeled partial PER 2.0.0-rc3-draft schema;
-historical rc1/rc2 records require their pinned historical release and producer adapter.
+"""EIO-Agents — reference library for the Evaluation Intelligence Ontology (EIO) and Portable Evaluation Records
+(PER). This release bundles the 0.6 EIO ontology and emits PER 2.1.0 (the default) for source-complete native scoring;
+a bundle without native scoring inputs keeps the explicitly labeled partial route, and historical records require
+their pinned historical release and producer adapter.
 
-One deterministic projection of an evaluation bundle (archive schema 3) to a PER 2.0 record, plus
+One deterministic projection of an evaluation bundle (archive schema 3) to a PER record, plus
 validation, verification and "why" explanations, for the producer of a record and for any verifier or
 store that re-derives it. A stored producer report (archive schema 1 or 2) is not a bundle: it
 must first be converted to a bundle by its producer's adapter. No evaluator model, clock, environment or network is used by `convert`.
@@ -16,22 +16,25 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-__version__ = "0.6.0rc1"
+__version__ = "0.8.0"
 
 # public name -> the module that defines it (every lookup below is an explicit import; no dynamic import, no discovery)
-_API = ("convert", "convert_file", "resolve", "standards", "validate", "verify")      # eio_agents.api (projection and verifier, in process)
+# eio_agents.api (projection, verifier and the predicate catalogue, in process)
+_API = ("convert", "convert_file", "predicates", "resolve", "standards", "validate", "verify")
 _PER = ("canonical_bytes", "per_sha256", "write")                          # eio_agents.per
 _VALIDATION = ("explain", "finding_evidence", "findings_at_turn", "metric_card", "targets")  # eio_agents.validation
 _BASE = ("ConversionError",)                                               # eio_agents.base.errors
+_BUILD = ("build_bundle",)                                                 # eio_agents.per.build
 
-__all__ = ["ConversionError", "canonical_bytes", "convert", "convert_file", "explain", "finding_evidence",
-           "findings_at_turn", "metric_card", "per_sha256", "resolve", "standards", "targets", "validate", "verify",
-           "write", "__version__"]
+__all__ = ["ConversionError", "build_bundle", "canonical_bytes", "convert", "convert_file", "explain",
+           "finding_evidence", "findings_at_turn", "metric_card", "per_sha256", "predicates", "resolve", "standards",
+           "targets", "validate", "verify", "write", "__version__"]
 
 if TYPE_CHECKING:  # for type checkers only; never executed
-    from eio_agents.api import convert, convert_file, resolve, standards, validate, verify
+    from eio_agents.api import convert, convert_file, predicates, resolve, standards, validate, verify
     from eio_agents.base.errors import ConversionError
     from eio_agents.per import canonical_bytes, per_sha256, write
+    from eio_agents.per.build import build_bundle
     from eio_agents.validation import explain, finding_evidence, findings_at_turn, metric_card, targets
 
 
@@ -44,6 +47,8 @@ def __getattr__(name: str):
         import eio_agents.validation as module
     elif name in _BASE:
         import eio_agents.base.errors as module
+    elif name in _BUILD:
+        import eio_agents.per.build as module
     else:
         raise AttributeError(f"module 'eio_agents' has no attribute {name!r}")
     return getattr(module, name)

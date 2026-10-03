@@ -66,18 +66,18 @@ EIO-Agents has three version lines; [docs/versioning.md](docs/versioning.md) exp
   Versioning. While the major version is 0, a MINOR bump may break the API. `.devN` versions are development builds and
   are never published; public pre-releases use `aN`, `bN` and `rcN`. A release that changes record bytes bumps the MINOR
   version and says "Record bytes change: yes" in the changelog.
-- **EIO releases.** Each EIO release has its own version (`0.6.0` in this release candidate) and follows the
+- **EIO releases.** Each EIO release has its own version (`0.6.0` bundled with EIO-Agents `0.8.0`) and follows the
   EIO versioning rule: while the major version is 0, a change of meaning bumps the MINOR version of the changed module
   and of the release; additive changes bump PATCH or MINOR; text changes bump PATCH. Modules are pinned by exact version
   and sha256 in the manifest and in `RELEASE-DIGESTS.json`. EIO releases are recorded in
   `src/eio_agents/ontology/data/CHANGELOG.md`.
-- **PER versions.** Each PER version has a versioned JSON Schema `$id`. The current source-complete native route uses
-  `2.0.0` for source-complete scored native bundles; the partial-score route retains `2.0.0-rc3-draft`, and rc1 is
-  historical adapter scope. The PER 2.0.0 version label identifies this published contract; it does not claim a
-  second independent implementation or certification.
+- **PER versions.** Each PER version has a versioned JSON Schema `$id`. The `0.8.0` source-complete native route uses
+  `2.1.0` for scored native bundles; `2.0.0` and the `2.0.0-rc3-draft` partial route remain historical, and rc1 is
+  historical adapter scope. A PER version identifies a wire contract; it does not claim a second independent
+  implementation or certification.
 
-Each library release bundles one EIO release and may produce more than one PER draft version according to the bundle;
-`eio-agents version` reports the default and explicit native-full identifiers.
+Each library release bundles one EIO release and may read or produce more than one PER version according to the bundle;
+`eio-agents version` distinguishes the current native contract from historical identifiers.
 
 ### Release process
 

@@ -1,0 +1,67 @@
+{
+ "about": "The defaults eio_agents.build_bundle fills in for what a simple evaluation report does not record. The release pins, the library version and every digest are computed when a bundle is built; nothing here is a score or a decision.",
+ "frameworks": [
+  "eio.framework.owasp-agentic-threats",
+  "eio.framework.aiuc-1"
+ ],
+ "framework_basis": "declared by the evaluator",
+ "fact_source": "declared by the operator",
+ "facts": {
+  "accepts_untrusted_content": false,
+  "consequential_actions": false,
+  "emits_citations": false,
+  "handles_non_public_data": true,
+  "human_oversight": null,
+  "knowledge_tasks": false,
+  "mixed_requests": true,
+  "multi_turn": null,
+  "persistent_memory": false,
+  "safety_policy": true,
+  "side_effecting_tools": false,
+  "tools": null
+ },
+ "derived_facts": {
+  "multi_turn": "more than one turn",
+  "tools": "at least one tool call"
+ },
+ "personal_data": true,
+ "policy": {
+  "source": "none",
+  "origin": null,
+  "profile_sha256": null,
+  "name": null,
+  "declared": null,
+  "prohibited": false,
+  "rules": null
+ },
+ "capsule": {
+  "present": [
+   "seed",
+   "models",
+   "template_ids",
+   "binding_ids"
+  ],
+  "reproducible_declared": null,
+  "caveats": [],
+  "lock_digest": null
+ },
+ "completeness": {
+  "tool_outputs": "CAPTURED",
+  "retrieval_text": "CAPTURED",
+  "reliability_pass_transcripts": "NOT_APPLICABLE"
+ },
+ "transcript_source": "generated",
+ "turn_source_ref": "turns",
+ "calls_field": "tool_calls",
+ "system_prompt_name": "system-prompt.md",
+ "severity": "HIGH",
+ "stages": [
+  ["qualify", ["scope"]],
+  ["assess-context", ["context_assessment"]],
+  ["conduct", ["sources", "graph"]],
+  ["adjudicate", ["claims", "ballots"]],
+  ["assess-reliability", ["trials"]],
+  ["orchestrate", ["provenance", "limitations"]],
+  ["native-score-sources", ["native_scoring"]]
+ ]
+}

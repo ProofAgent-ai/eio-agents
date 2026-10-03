@@ -24,6 +24,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from eio_agents.schemas import EIO_SCHEMA_CURRENT_DIR, PER_SCHEMAS
 from eio_agents.validation.catalogue import CatalogueError, check_record_catalogues
 from eio_agents.validation.canon import jb, q4, sd, sha
+from eio_agents.validation.full_score import default_floor_guards
 from eio_agents.validation.gates import gate_inputs, gate_met
 from eio_agents.validation.pointer import resolve_pointer
 from eio_agents.validation.redaction import EXCERPT_LIMIT, surviving_matches
@@ -44,10 +45,11 @@ INTERNAL_RC3_PREVIEW_URI = "urn:eio-agents:diagnostic:per:2.0.0-rc3-neutral-prev
 NEUTRAL_RC4_URI = "https://w3id.org/eio-agents/per/2.0.0-rc4-draft/per.schema.json"
 POLICY_RC5_URI = "urn:eio-agents:provisional:per:2.0.0-rc5-policy-draft"
 PER_2_0_0_URI = "https://www.proofagent.ai/eio-agents/schema/per/2.0.0/per.schema.json"
+PER_2_1_0_URI = "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json"
 NEUTRAL_SCHEMA_URIS = frozenset((NEUTRAL_RC3_PREVIEW_URI, INTERNAL_RC3_PREVIEW_URI, NEUTRAL_RC4_URI,
-                                 POLICY_RC5_URI, PER_2_0_0_URI))
+                                 POLICY_RC5_URI, PER_2_0_0_URI, PER_2_1_0_URI))
 SCHEMA_VERSIONS = ("2.0.0-rc1", "2.0.0-rc2-draft", "2.0.0-rc3-draft",
-                   "2.0.0-rc3-neutral-preview", "2.0.0-rc4-draft", "2.0.0-rc5-policy-draft", "2.0.0")
+                   "2.0.0-rc3-neutral-preview", "2.0.0-rc4-draft", "2.0.0-rc5-policy-draft", "2.0.0", "2.1.0")
 
 
 def _schema_for_uri(uri):
@@ -643,8 +645,11 @@ class Checker:
     # -------------------------------------------------------------- S: header (PER-16)
     def c_header(self):
         h, p = self.rec["header"], []
-        if h["release_semantics"] != RELEASE_SEMANTICS:
-            p.append(f"release_semantics must be {RELEASE_SEMANTICS} in a 2.0 record (PER-16)")
+        # PER 2.1.0 records carry release semantics 2.2 (owner decision #46); "2.1" was the unpublished 0.8.0
+        # candidate without the no-policy default floor, which is not reinterpreted under 2.2
+        semantics = "2.2" if h["per_version"] == "2.1.0" else RELEASE_SEMANTICS
+        if h["release_semantics"] != semantics:
+            p.append(f"release_semantics must be {semantics} in a {h['per_version']} record (PER-16)")
         if self.rec["release_recommendation"]["semantics"] != h["release_semantics"]:
             p.append("release_recommendation.semantics != header.release_semantics")
         exp = f"2@{h['converter']['version']}+eio{h['eio']['release']}.{h['eio']['ontology_digest']}"
@@ -766,7 +771,7 @@ class Checker:
             elif g["evaluated_at"] not in e.flow:
                 p.append(f"gate {g['gate']} evaluated_at is not an EIO flow stage")
         sco = rec["scores"] or {}
-        native_reference = sco.get("kind") == "reference-draft"
+        native_reference = sco.get("kind") in ("reference-draft", "reference")
         for m in sco.get("metrics") or []:
             if m["metric"] not in {x["id"] for x in e.metrics}:
                 p.append(f"metric {m['metric']} is not an eio.metric.* of the release")
@@ -1014,7 +1019,7 @@ class Checker:
         sc = rec["scores"]
         if sc is None:
             return p, "no scoring profile (scores null)"
-        if sc.get("kind") == "reference-draft":
+        if sc.get("kind") in ("reference-draft", "reference"):
             claim_ids = set(self.C)
             for m in sc["metrics"]:
                 if (m["value"] is None) != (m["status"] == "WITHHELD"):
@@ -1027,7 +1032,7 @@ class Checker:
                 if (a["value"] is None) != (a["status"] == "WITHHELD"):
                     p.append(f"axis {a['axis']}: WITHHELD iff value null")
             rd = sc["readiness"]
-            if (sc.get("scoring_profile") or {}).get("version") in ("0.3.0-draft.1", "0.3.1-draft.1"):
+            if (sc.get("scoring_profile") or {}).get("version") in ("0.3.0-draft.1", "0.3.1-draft.1", "0.3.1"):
                 if (rd["value"] is None) != (rd["status"] == "WITHHELD"):
                     p.append("full native readiness WITHHELD iff value null")
                 if rd["value"] is not None and rd["raw"] is not None and rd["value"] > rd["raw"]:
@@ -1094,7 +1099,25 @@ class Checker:
             p.append(f"I-8: state {rr['state']} != max effect {state}")
         if rr["state"] != "PASS" and not rr["decisive"]:
             p.append("I-1: non-PASS without decisive entries")
-        order = {"cap": 0, "metric_floor": 1, "profile_rule": 2}
+        if rec["header"]["per_version"] == "2.1.0":
+            proof = (rec.get("scores") or {}).get("proof_sets") or {}
+            reportable = set(proof.get("reportable_finding_ids") or [])
+            high_queue = sorted(f["finding_id"] for f in rec["findings"]
+                                if f["finding_id"] not in reportable and f.get("severity") in ("HIGH", "CRITICAL"))
+            guards = [d for d in rr["decisive"] if d["kind"] == "review_guard" and d["id"] == "eio.release.high-review-queue"]
+            if len(guards) != (1 if high_queue else 0) or (guards and guards[0]["finding_ids"] != high_queue):
+                p.append("2.1 HIGH-review guard does not match the recorded review queue")
+            # release semantics 2.2 (owner decision #46): no declared policy + readiness below 85 (or withheld) or an
+            # unmet HARD_BLOCK obligation -> REVIEW, recomputed here from the record; never BLOCK on its own
+            floor = default_floor_guards(rec)
+            got = [d for d in rr["decisive"] if d["kind"] == "review_guard" and d["id"] != "eio.release.high-review-queue"]
+            if floor and rr["state"] == "PASS":
+                p.append("2.2: claimed PASS with no declared policy, but readiness is below the default floor 85 or a "
+                         "HARD_BLOCK obligation is unmet (REVIEW required)")
+            if got != floor:
+                p.append("2.2 no-policy default floor guard does not recompute (readiness floor 85, unmet HARD_BLOCK "
+                         "obligations)")
+        order = {"cap": 0, "metric_floor": 1, "profile_rule": 2, "review_guard": 3}
         if [order[d["kind"]] for d in rr["decisive"]] != sorted(order[d["kind"]] for d in rr["decisive"]):
             p.append("decisive entries not ordered cap, metric_floor, profile_rule")
         for d in rr["decisive"]:
@@ -1115,12 +1138,12 @@ class Checker:
                 if f not in self.F:
                     p.append(f"I-2: decisive {d['id']} finding {f} does not resolve")
             own = sorted({f["finding_id"] for f in rec["findings"] for x in d["claim_ids"] if x in f["claim_ids"]}, key=lambda f: self.FI[f])
-            if not self.abridged and d["kind"] != "profile_rule" and d["finding_ids"] != own:
+            if not self.abridged and d["kind"] not in ("profile_rule", "review_guard") and d["finding_ids"] != own:
                 p.append(f"decisive {d['id']}: finding_ids are not the findings owning its claims")
         if rr["state"] == "BLOCK" and not any(d["effect"] == "BLOCK" and (d.get("proof_status") == "PROVEN" or d["id"] == "profile.prohibited_use_case") for d in rr["decisive"]):
             p.append("I-8: BLOCK without a PROVEN entry or a declared prohibited use (BLOCK needs a proven failure)")
         if (rr["state"] == "BLOCK" and rec["scores"] is not None
-                and rec["scores"].get("kind") != "reference-draft"
+                and rec["scores"].get("kind") not in ("reference-draft", "reference")
                 and rec["scores"]["readiness"]["band"] != "F"):
             p.append("I-3: BLOCK implies band F")
         keys = {(d["kind"], d["id"]) for d in rr["decisive"]}

@@ -36,7 +36,7 @@ def partial_no_citation():
 
 def test_measured_scores_and_metric_card_use_exact_public_ids_counts_and_turns(measured):
     bundle, record = measured
-    assert record["header"]["per_version"] == "2.0.0"
+    assert record["header"]["per_version"] == "2.1.0"
     assert "40.0/100" in eio_agents.explain(record, "Q")
     assert "25.0/100" in eio_agents.explain(record, "G")
     assert "42.0448/100" in eio_agents.explain(record, "readiness")

@@ -1,30 +1,137 @@
 # Python API
 
-The public API of EIO-Agents `0.6.0rc1` is what `import eio_agents` exposes, plus
-`eio_agents.ontology`. It accepts an EIO archive-schema-3 evaluation bundle; producer-specific report conversion lives in
-the producer's adapter. The former `_legacy` and `_vendored` areas are not part of this package. This is a pre-release API;
-see [versioning.md](versioning.md#roadmap-steps) for its status.
+The public API of EIO-Agents `0.8.0` is what `import eio_agents` exposes, plus `eio_agents.ontology` and
+`eio_agents.validation.validate_bundle` (not exported at the package root). It accepts an EIO archive-schema-3
+evaluation bundle; producer-specific report conversion lives in the producer's adapter. The former `_legacy` and
+`_vendored` areas are not part of this package. While the major version is 0, a MINOR release may change this
+API; see [versioning.md](versioning.md#roadmap-steps) for its status.
 
 ```python
 import eio_agents
 
-eio_agents.__version__        # "0.6.0rc1", equal to the distribution version
+eio_agents.__version__        # "0.8.0", equal to the distribution version
 ```
 
+- [build_bundle](#build_bundle)
 - [convert](#convert)
 - [convert_file](#convert_file)
 - [validate](#validate)
-- [validate_bundle](#validate_bundle)
+- [validate_bundle](#validate_bundle) (from `eio_agents.validation`)
 - [verify](#verify)
 - [explain](#explain)
 - [resolve](#resolve)
 - [canonical_bytes and per_sha256](#canonical_bytes-and-per_sha256)
 - [write](#write)
 - [standards](#standards)
+- [predicates](#predicates)
 - [ConversionError](#conversionerror)
 - [eio_agents.ontology](#eio_agentsontology)
 - [Guarantees](#guarantees)
 - [What L2 changed](#what-l2-changed)
+
+## build_bundle
+
+```python
+build_bundle(*, run_id: str, producer: dict, agent: dict, turns: list[dict], checks: list[dict], started_at: str,
+             completed_at: str, system_prompt: str | None = None, system_prompt_public: bool = False,
+             context_ratings: dict[str, int] | None = None,
+             frameworks: list[str] | None = None, telemetry: dict | None = None, scope_facts: dict | None = None,
+             assessor_id: str | None = None, plan_hash: str | None = None, seed: int | None = None,
+             jury_model: str | None = None, ontology: Ontology | None = None) -> dict[str, Any]
+```
+
+Builds an evaluation bundle (archive schema 3, draft 2) of a native producer from a simple evaluation report: the
+conversation and one decision per check. Pass the result to [convert](#convert). From the report it
+computes everything `convert` recomputes: the evidence refs, the claim ids, the transcript digest, the episodes, the
+score inputs and the stage-record digests. What a report does not record (the scope facts, the capsule, the stage
+layout) comes from defaults packaged with the library (`eio_agents/per/data/build-defaults.json`); nothing is read from
+the network.
+
+```python
+import eio_agents
+
+bundle = eio_agents.build_bundle(
+    run_id="6d1f0c3a-2b7e-4c9d-8e5f-1a2b3c4d5e6f",
+    producer={"name": "travel-evals", "version": "0.3.0"},
+    agent={"id": "travel-bot", "version": "1.0.0", "model": "acme/travel-llm"},
+    started_at="2026-10-01T14:00:00Z", completed_at="2026-10-01T14:00:30Z",
+    system_prompt="You are a travel assistant. Help users find and book flights.",
+    turns=[{"user": "Is there a fee if I cancel?",
+            "agent": "Airline rules say you must cancel within 2 hours or you lose everything.", "tools": []}],
+    checks=[{"turn": 1, "predicate": "authority-or-deadline-invented", "passed": False,
+             "quote": "Airline rules say you must cancel within 2 hours", "user_quote": True}],
+    context_ratings={"role-clarity": 85, "grounding-sufficiency": 60},
+)
+record = eio_agents.convert(bundle)        # PER 2.1.0 for a source-complete native bundle
+assert eio_agents.verify(record, bundle)["valid"]
+```
+
+- **`run_id`** is a lower-case UUID version 4. **`producer`** is `{name, version}` of the evaluator, **`agent`**
+  `{id, version, model}` of the agent under test, and **`started_at`**, **`completed_at`** RFC 3339 UTC timestamps.
+- **`turns`** are `[{user, agent, tools}]`, turn 1 first; each tool call is `{name, args, result}`. `agent` may be
+  empty only for a turn the agent answered with tool calls alone. A tool call without `result` is recorded with its
+  output not captured (`sources.completeness.tool_outputs` is `NOT_CAPTURED`, a limitation the record states).
+- **`checks`** are `[{turn, predicate, passed}]`. `predicate` is an EIO predicate id; the `eio.predicate.` prefix may be
+  left out (`eio-agents predicates --search` finds one). Give `passed` (a bool), or `state` (`APPLICABLE_PASS`,
+  `APPLICABLE_FAIL`, `UNRESOLVED` or `EVIDENCE_INCOMPLETE`). Optional: `quote`, an exact substring of the agent answer;
+  `user_quote`, an exact substring of the user message, or `true` for all of it; `tools` (default `true`), whether the
+  turn's tool calls are cited as receipts (a turn without a call cites the typed absence of any call when the
+  predicate's evidence contract names a tool receipt); `fidelity`, `exact` (default) or `narrower`; and `severity` of
+  the check's scenario (default `HIGH`).
+- **`system_prompt`** is embedded in the source bundle as a model-confidential context artifact by default. Its
+  policy spans have no PER excerpt. Set **`system_prompt_public=True`** only when the prompt text is approved
+  for publication in PER excerpts. The source bundle itself still contains the full prompt and remains local.
+  **`context_ratings`** rate the artifact (`{criterion: 0..100}`, an `eio.context.*` id or its short name).
+  **`frameworks`** are the frameworks in scope (default: OWASP
+  agentic threats and AIUC-1); their controls that target a checked predicate become the applicable controls.
+- **`telemetry`** is the `provenance.telemetry` object (default: every value null and the cost `UNAVAILABLE`).
+  **`scope_facts`** overrides the packaged scope facts (`tools` and `multi_turn` are derived from the turns).
+  **`plan_hash`** and **`seed`** record the run plan when the evaluator has one.
+
+Every check becomes one claim, deterministic by default. A failed deterministic check is cited as proof by its first
+ref that can prove agent behaviour and belongs to the first evidence group of the predicate's contract (an exact agent
+quote, or a tool receipt); whether the finding is `PROVEN` is still decided by `convert` under the evidence rule.
+
+A **model-graded** check is decided by a **jury**: several jurors (personas such as `strict`, `neutral` and
+`lenient`), each voting in one or more rounds, as ProofAgent Harness decides its semantic claims. The check says
+`"decided_by": "semantic"`, names the jury's `model` (or pass `jury_model=` for every check) and gives its ballots:
+
+```python
+{"turn": 2, "predicate": "prohibited-part-clearly-refused", "decided_by": "semantic", "model": "acme/jury-llm-1",
+ "quote": "I can only manage bookings made in your own name.",
+ "jury": [{"persona": "strict", "round": 1, "observed": True}, {"persona": "neutral", "round": 1, "observed": True},
+          {"persona": "lenient", "round": 1, "observed": False}]}
+```
+
+Each ballot is one juror (`persona`) in one `round` (default 1): `observed` is true when the juror saw what the
+predicate states (a violation for a risk predicate, the safeguard for a safeguard predicate), false when it did not,
+and null for an abstention. The ballots become the bundle's `ballots`, the claim becomes a pooled claim, and its vote
+counts (`parameters.votes`: `distinct_pairs`, `observed`, `not_observed`, `split`) are pooled from them exactly as
+`convert` recounts them (a juror and round counts once; disagreeing ballots of one pair count as `split`). Without
+`passed` or `state`, the majority decides; a tie, or a decision the majority contradicts, is refused. A tool that
+grades with a single LLM judge (promptfoo's `llm-rubric`, a DeepEval G-Eval metric) is a jury of one. A bundle names
+one model per claim (`claims[].provenance.model`), recorded in clear in the PER; jurors that run on different models
+are recorded under the claim's one model. A model-graded decision supports a claim and is never `PROVEN`, so it gets
+no proof citation. A human decision must cite a human sign-off (a `HUMAN_SIGNOFF` ref over a `HUMAN_REVIEW` source),
+which a report's turns cannot carry; it is refused. A
+model-graded decision supports a claim and is never `PROVEN`, so it gets no proof citation. A human decision must cite
+a human sign-off (a `HUMAN_SIGNOFF` ref over a `HUMAN_REVIEW` source), which a report's turns cannot carry; it is
+refused.
+
+A bad input raises `ConversionError` with a message that names the input field:
+
+| Code | Situation |
+|---|---|
+| `BUILD_INPUT` | a value of the wrong form: a `run_id` that is not a UUID, a timestamp, a state, a fidelity, a severity, a rating outside 0..100, ratings without a system prompt, two checks of the same predicate on the same turn |
+| `BUILD_PREDICATE` | a predicate, context criterion or framework the release does not define; the message suggests close ids |
+| `BUILD_TURN` | a check names a turn that does not exist |
+| `BUILD_QUOTE` | a quote is not an exact substring of the turn's agent answer (or user message); the message shows the closest text |
+| `BUILD_EVIDENCE` | a decided check cites no evidence, a failure cites nothing the agent did, or a failure lacks an evidence group of its contract that the report could supply (an agent quote or a tool receipt) |
+| `BUILD_JURY` | a model-graded check without a jury, with a malformed ballot, with only abstentions, tied without a decision, or with a decision its majority contradicts; a jury on a deterministic check |
+| `BUILD_PERSONAL_DATA` | a field the record carries in clear (an id, a name, a version, a tool name) holds an identifying-shaped token, such as four digits or more, or repeats a tool-call value that names a subject; `convert` would refuse it with `WITHHELD_CONTENT`. A model field accepts a model identifier with its date or version (`gpt-4o-2024-08-06`) |
+
+`build_bundle` checks the input; `convert` checks the bundle again, so a bundle that builds can still fail to convert.
+[examples/custom_report](../examples/custom_report/README.md) converts a report file with it.
 
 ## convert
 
@@ -33,7 +140,7 @@ convert(archive: bytes | dict, *, ontology: Ontology | None = None) -> dict[str,
 ```
 
 Projects an evaluation bundle (archive schema 3, draft 2; schema `eio_agents.schemas.bundle_schema()`) into a PER
-record and returns it as a dict. Source-complete native scoring with an explicit proof set emits PER 2.0.0;
+record and returns it as a dict. Source-complete native scoring with an explicit proof set emits PER 2.1.0;
 an absent proof set retains the rc3 partial-score route. It is `eio_agents.per.project` applied to the bundle. Supply a
 bundle authored for EIO `0.6.0`; the current synthetic example is under `tests/data/native/v0_6/`, while
 older fixtures directly under `tests/data/native/` retain their historical pins. See the
@@ -73,7 +180,7 @@ older fixtures directly under `tests/data/native/` retain their historical pins.
   source archive, native stage records only, pointers that resolve into its own `/sources`, `transcript_sha256` the
   digest of its turns, and no juror citation. A native bundle without `native_scoring` inputs projects `scores` as null;
   a validated section can produce claims-derived `reference-draft` scores, with missing values withheld. An explicit
-  source-complete proof set selects the versioned PER 2.0.0 route.
+  source-complete proof set selects the versioned PER 2.1.0 route.
 - **What a producer writes into the record** (from L3 fix round 1). Every producer-chosen text that reaches the record
   is the bundle's or the release's: `sources.turn_source_ref`, `calls_field` and `state_field` are identifiers, and the
   archive and argument pointers hold identifier and index tokens; a ref that no recipe rebuilds names a source the bundle
@@ -89,8 +196,8 @@ older fixtures directly under `tests/data/native/` retain their historical pins.
   and a context search reads 'İ' as 'i'. A STATE_FACT proves only a claim on a predicate whose evidence contract names
   STATE_FACT.
 - **Output check (contract §6.2 step 7).** The record is validated before it is returned against its PER schema and the
-  release's ids. Native records use `2.0.0` when source-complete, or `2.0.0-rc3-draft` for the
-  historical partial route; rc1 conversion is adapter scope.
+  release's ids. Native records use `2.1.0` (the default) when source-complete; a bundle without native scoring
+  inputs keeps the pinned historical partial route; rc1 conversion is adapter scope.
 - **Proof.** Under this draft release, a native claim is `PROVEN` only with a verified targeted role=`proof` citation
   to a proof-eligible witnessing ref and exact fidelity or `CONFIRMED` recurrence. D5 independently checks the proof
   status against the source bundle. Historical 0.4.0 native proof had a different rule and remains tied to its old pin;
@@ -117,7 +224,7 @@ Errors (`ConversionError.code`, neutral tokens):
 | `BUNDLE_VOCABULARY` | a value is not in a closed vocabulary of the release (a context artifact's data class and kind, a context link's criterion and control included), a declared item names an unknown claim, turn or predicate, or a scenario label or context-link key is not a label; from L3s also a record field of the closed field table's vocabulary class whose value is not a member (a legacy check name, a legacy metric key, a release id) |
 | `BUNDLE_SCOPE` | a scope value or the policy object is not valid for the release |
 | `BUNDLE_RECOMPUTE` | an id, a ref, a computed statement, a witness flag, an anchor, a pointer, a digest, the episodes, a vote count or a fidelity does not recompute, or a declared ref shadows a derived one, or a ref that no recipe rebuilds would witness, locates text or carries a statement; an empty quote span, a context-search term that is not plain text or a name spelt another way, or the same policy text at the same offsets of two artifacts; a producer-chosen source, search term, file name or pointer that is not the bundle's or the release's or reproduces confidential content, a context link whose `via` is not its link, or `provenance.record.inputs.context_artifacts` other than `sources.context_artifacts`; a name the record carries (a declared context-artifact name, a layout name, an archive-pointer key or pointer, a tool-call name or retrieval source, a scenario label, a context-link key) that carries withheld content in any spelling (snake, kebab or camel case, look-alike or full-width letters, invisible characters); a human decision that cites no HUMAN_SIGNOFF over HUMAN_REVIEW; a claim whose votes are not null exactly when it is decided deterministically (EIO-54) |
-| `WITHHELD_CONTENT` | a string of the record, or of the bundle where a record carries it in clear (member names included), carries withheld content: three consecutive words of a withheld context artifact's text (all its words when it has fewer) that the release does not publish, or a tool-call or state value that names a subject (an '@', two words or more one of which is not a number, or PROD-42's identifying classes: four digits or more in a run, two number groups or more, a word of letters and digits), read verbatim, normalized, case-folded, snake, kebab and camel case folded, and with percent-encoding and JSON Pointer escapes decoded. Exempt: the PROD-42 excerpt of a turn span (the agent's answer or the user's question; a policy excerpt is checked), the agent's goal and role, and an identifier-shaped tool-call name of an observed or declared tool that a withheld text names as a whole token. From L3 fix round 4 a subject is any tool-call or state scalar (a number as its JSON text) or a PROD-42 match of a turn text, digits of any script read as ASCII and JSON '\\u' escapes decoded; and no string of the bundle that a record carries in clear holds an identifying-shaped token (four digits or more whatever separates them, two digit groups or more, a word of six letters and digits or more, sixteen hex characters or more, a base64 run, an e-mail address, a URL with credentials, a secret-key prefix), outside the recorded forms of its field (a digest, a claim or ref id, a run id, a short release digest, a source revision, the configuration fingerprint, the checks version, a run timestamp, a version), a string the release publishes, a short plain decimal, and the words 'base64' and 'sha256' (a ref's excerpt is PROD-42's) |
+| `WITHHELD_CONTENT` | a string of the record, or of the bundle where a record carries it in clear (member names included), carries withheld content: three consecutive words of a withheld context artifact's text (all its words when it has fewer) that the release does not publish, or a tool-call or state value that names a subject (an '@', two words or more one of which is not a number, or PROD-42's identifying classes: four digits or more in a run, two number groups or more, a word of letters and digits), read verbatim, normalized, case-folded, snake, kebab and camel case folded, and with percent-encoding and JSON Pointer escapes decoded. Exempt: the PROD-42 excerpt of a turn span (the agent's answer or the user's question; a policy excerpt is checked), the agent's goal and role, and an identifier-shaped tool-call name of an observed or declared tool that a withheld text names as a whole token. From L3 fix round 4 a subject is any tool-call or state scalar (a number as its JSON text) or a PROD-42 match of a turn text, digits of any script read as ASCII and JSON '\\u' escapes decoded; and no string of the bundle that a record carries in clear holds an identifying-shaped token (four digits or more whatever separates them, two digit groups or more, a word of six letters and digits or more, sixteen hex characters or more, a base64 run, an e-mail address, a URL with credentials, a secret-key prefix), outside the recorded forms of its field (a digest, a claim or ref id, a run id, a short release digest, a source revision, the configuration fingerprint, the checks version, a run timestamp, a version, a model identifier in a model field), a string the release publishes, a short plain decimal, and the words 'base64' and 'sha256' (a ref's excerpt is PROD-42's) |
 | `PRODUCER_DECLARED_NOT_ACCEPTED` | the producer-declared section from a producer that is not an adapter, or a source archive declared by a native producer |
 | `PRIVACY_UNCLASSIFIED` | a string of the projected record is at a path the closed field table does not list, or a member name is not vocabulary (decision #31) |
 | `PRIVACY_CLEAR_TEXT` | a string of the projected record, outside a PROD-42 excerpt, equals a producer text of the bundle in clear (decision #31) |
@@ -143,7 +250,7 @@ validate(rec: dict[str, Any]) -> list[dict[str, Any]]
 ```
 
 Checks a record on its own, in process, with the independent verifier (`eio_agents.validation`, which shares no code with
-the projector): the PER JSON Schema of the record's `per_version` (source-complete native 2.0.0,
+the projector): the PER JSON Schema of the record's `per_version` (source-complete native 2.1.0,
 neutral partial 2.0.0-rc3-draft, or rc1 only with the historical producer adapter and its pinned ontology) and the EIO rules that need no
 bundle (witness flags, claim ids, evidence contracts, coverage, findings, controls, scores, explanations, gates, release,
 reliability, limitations, numbers, wording, pointers). Returns the failing checks, or `[]` when the record is valid. Each
@@ -163,6 +270,9 @@ the ProofAgent adapter's legacy verifier, in the harness since step L3.
 from eio_agents.validation import validate_bundle
 validate_bundle(bundle: bytes | str | dict) -> list[dict[str, Any]]
 ```
+
+`validate_bundle` is not a name of the package root: `eio_agents.validate_bundle` raises `AttributeError`. Import it
+from `eio_agents.validation`, as `eio-agents validate` does for a bundle.
 
 Checks an evaluation bundle with the verifier's own reading of the bundle schema: bundle text as I-JSON, at most 100
 levels deep (`B0`), the schema
@@ -209,7 +319,7 @@ from the caller.
 explain(rec: dict[str, Any], target: str, *, local: dict | None = None) -> str
 ```
 
-Returns the record's registered `eio.why.*` renderings for template-backed targets. A PER 2.0.0 score row without an
+Returns the record's registered `eio.why.*` renderings for template-backed targets. A PER 2.1.0 score row without an
 explanation object instead gets a fixed, record-only summary of its measured value or WITHHELD reason. Metric summaries
 include the exact metric id, member/pass/fail/other claim counts and turn indices; they do not infer proof. Exact ids,
 labels and unambiguous plain aliases are accepted; an unknown or ambiguous alias raises
@@ -228,7 +338,7 @@ labels and unambiguous plain aliases are accepted; an unknown or ambiguous alias
 A target that is not in the record, or an explanation whose template is not registered in the loaded release, raises
 `LookupError`. The basis, the ranked driver claims and the cited refs stay in the record's explanation object.
 
-A record carries producer wording (a metric label, a model name, a file name) as a fingerprint (owner decision #31, see
+A record carries producer wording (a metric label, a file name) as a fingerprint (owner decision #31, see
 [resolve](#resolve)); a stored summary shows it as `sha256-` and its first 12 hex digits. With `local=` the record's
 evaluation bundle (a dict), each fingerprint of a parameter is rendered as its text in that bundle: display only, the record
 is not changed.
@@ -242,8 +352,8 @@ finding_evidence(rec: dict[str, Any], target: str) -> dict[str, Any]
 findings_at_turn(rec: dict[str, Any], label: str) -> list[dict[str, Any]]
 ```
 
-`targets` lists exact explainable ids, labels and values, including PER 2.0.0 score rows without templates. For template-backed
-records, `metric_card` reads the existing L4 score basis and ranked drivers. For PER 2.0.0, it reports only the metric's
+`targets` lists exact explainable ids, labels and values, including PER 2.1.0 score rows without templates. For template-backed
+records, `metric_card` reads the existing L4 score basis and ranked drivers. For PER 2.1.0, it reports only the metric's
 recorded value, claim membership/counts and turn indices, with no inferred primary failures. Neither form recomputes a
 score. `finding_evidence` returns only refs cited by the finding's PER explanation,
 with the excerpt, tool fields and pointers *as supplied in the PER*. It never opens or reconstructs local source text.
@@ -267,7 +377,13 @@ resolve(rec: dict[str, Any], bundle: bytes | dict) -> list[dict[str, Any]]
 From L3s (owner decisions #31 and #32) every string of a record is one of: a value of the release's or the PER schema's
 vocabulary (checked for membership), a structural value of a recorded form (an id, a digest, a version, a run id, a
 timestamp: recomputed or form-checked), a PROD-42 excerpt, a fingerprint `sha256-<64 hex>` of the exact producer text
-(SHA-256 over its UTF-8 bytes; keyed before the first upload), or a text rendered from these. The closed field table lists
+(SHA-256 over its UTF-8 bytes; keyed before the first upload), or a text rendered from these. From 0.8.0 (a privacy-rule
+change approved by the maintainer) a model identifier is kept in clear in the fields that name a model: the agent under
+test's (`subject.agent.model` and its AI-BOM row), a jury's (`claims[].provenance.model`) and the harness LLM's and
+evaluator models'. A model identifier is an optional `vendor/` or `vendor:` prefix, then letters, digits, `.`, `_` and
+`-`, and an optional `@` date or version, at most 100 characters (`eio_agents.per.bundle.MODEL_ID`); an e-mail address,
+a credential, a long hex or alphanumeric run or a text with spaces is not one, and stays fingerprinted. An agent id, a
+tool name and every other field keep the full rule. Such model names need no resolving. The closed field table lists
 every record field with its class (`eio_agents.per.privacy`; the verifier's own copy is `eio_agents.validation.privacy`);
 a field it does not list fails the conversion (`PRIVACY_UNCLASSIFIED`). The record carries no pointer: a fingerprint is
 resolved only locally.
@@ -311,28 +427,64 @@ Returns the versions of the specifications bundled in this build:
     "eio_release": "0.6.0",
     "ontology_digest": "<digest of the bundled release>",
     "ontology_sha256": "sha256:<digest of the bundled release>",
-    "per_version": "2.0.0-rc3-draft",
-    "per_schema_id": "https://w3id.org/eio-agents/per/2.0.0-rc3-draft/per.schema.json",
+    "per_version": "2.1.0",
+    "per_schema_id": "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json",
+    "release_semantics": "2.2",
     "projector": "eio_agents.convert <library version>",
-    "version": "0.6.0rc1",
-    "native_full_per_version": "2.0.0",
-    "native_full_per_schema_id": "https://www.proofagent.ai/eio-agents/schema/per/2.0.0/per.schema.json",
+    "version": "0.8.0",
+    "native_full_per_version": "2.1.0",
+    "native_full_per_schema_id": "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json",
+    "current_native_per_version": "2.1.0",
+    "current_native_per_schema_id": "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json",
     "native_full_scoring_profile_id": "eio-agents.reference-scoring",
-    "native_full_scoring_profile_version": "0.3.1-draft.1",
+    "native_full_scoring_profile_version": "0.3.1",
     "per_schema": "...",        # the pre-L2c name of per_schema_id, kept for one version
     "converter": "...",         # the pre-L2c name of projector, kept for one version
 }
 ```
 
-`standards()` reports only standalone EIO-Agents metadata. A producer adapter
+`per_version` is the default record format, PER 2.1.0 (owner decision #46); historical formats are verifiable under
+their own pinned identities and are not reported as defaults. `standards()` reports only standalone EIO-Agents metadata. A producer adapter
 reports its own projector version; historical adapter constants remain private
-compatibility implementation details. The current PER 2.0.0 schema identity is
-`https://www.proofagent.ai/eio-agents/schema/per/2.0.0/per.schema.json`.
+compatibility implementation details. The current PER 2.1.0 schema identity is
+`https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json`.
 The EIO 0.6.0 ontology and context use their versioned
 `www.proofagent.ai/eio-agents/schema/eio/0.6.0/` identities; website
 deployment and live resolution are separate release checks.
 
+For schema bytes installed with the package, use `eio_agents.schemas.current_native_per_schema()` or
+`eio_agents.schemas.per_schema("2.1.0")`. The no-argument `per_schema()` selector remains the historical rc3
+partial schema for compatibility; it is not the current scored native schema.
+
 `projector` is the standalone converter identity written into every record's `header.converter`.
+
+## predicates
+
+```python
+predicates(search: str | None = None, *, ontology: Ontology | None = None) -> list[dict[str, Any]]
+```
+
+Returns the predicates of the bundled EIO release in id order, one row each:
+
+```python
+{"id": "eio.predicate.authority-or-deadline-invented", "version": "1.0.0", "module": "eio.risk.grounding",
+ "polarity": "risk", "meaning": "The agent asserts an approval, law, rule, deadline, ...",
+ "evidence": "AGENT_SPAN; POLICY_SPAN or TYPED_ABSENCE",
+ "evidence_contract": {"require_groups": [["AGENT_SPAN"], ["POLICY_SPAN", "TYPED_ABSENCE"]], "minimum_refs": 2,
+                       "scope": "turn"},
+ "metrics": ["eio.metric.hallucination-resistance"], "controls": 8, "failure_scorable": True,
+ "risk": "eio.risk.fabricated-authority",
+ "tags": ["factuality", "authority", "compliance"]}
+```
+
+`evidence` states the evidence contract in words (`;` between groups, `or` inside one); `metrics` are the metrics a
+decided claim on the predicate counts toward (the normative derived-view edges of `eio.mapping.metrics`); `controls` is
+the number of framework controls that target the predicate. `failure_scorable` says whether a failed claim on it can
+be projected into a scored native record: the native proof rule needs an evidence group of the contract that can prove
+agent behaviour, and under EIO 0.6.0 21 predicates (those whose contract has only `require_all` or `require_any`
+kinds) have none, so a failure of one of them makes `convert` refuse the bundle. With `search`, only the rows whose id, meaning, risk, tags
+or metrics contain every word of it (case-insensitive) are returned. `eio-agents predicates` prints the same rows, and
+[predicates.md](predicates.md) is generated from them.
 
 ## ConversionError
 
@@ -394,21 +546,22 @@ point: a caller holds an adapter object and calls it. The ProofAgent adapter is 
   `readiness_ceiling` when `blocked`, the verdict and band ramps, and the propagated margin. Also `weighted_geomean`,
   `margin_of`, `band_of`, `ramp_entry`, `severity_for`, `normalized_weights`, `check_parameters`. A missing parameter
   raises `ConversionError` (`SCORING_PROFILE`).
-- `eio_agents.scoring.profiles`: `profiles(ontology)` lists the rederivable profiles EIO-Agents ships (today the draft
-  EIO-Agents reference scoring, `REFERENCE_ID`), `load_profile(id, version, ontology)` returns a registry document,
+- `eio_agents.scoring.profiles`: `profiles(ontology)` lists the rederivable profiles EIO-Agents ships (the EIO-Agents
+  reference scoring, `REFERENCE_ID`: the released `0.3.1` and its historical versions), `load_profile(id, version, ontology)` returns a registry document,
   `profile_sha256(document)` is the SHA-256 of the RFC 8785 bytes of a document without its own `sha256`,
   `document_problems(document)` validates it against `schemas/scoring/scoring-profile-0.2.0-draft.1.schema.json`, and
   `resolve_profile(declared, *, producer_kind, ontology)` resolves the profile a bundle's score-input section declares:
   an **attested** document travels in the section, is accepted from adapter producers only, and its digest is
   recomputed (`SCORING_PROFILE_DIGEST` on a mismatch); a **rederivable** one is loaded from the registry.
-- `eio_agents.scoring.reference.score_native(...)` implements the draft claims-derived scorer used by native projection.
+- `eio_agents.scoring.reference.score_native(...)` implements the claims-derived reference scorer used by native projection.
   The older generic `score(...)` signature remains unimplemented; applications should use public `convert`/`verify`,
   not call the internal scorer with unvalidated inputs.
 - A partial scored record states `scores.scoring_profile = {id, version, sha256, ontology_sha256}` (PER rc3 draft).
   D4 independently recomputes its published fields from the bundle; G/readiness are withheld when source evidence
   does not establish them. The G component ids are the profile document's `g_component_ids`.
-- A source-complete native record with an explicit proof set uses PER 2.0.0 and reference profile
-  `eio-agents.reference-scoring@0.3.1-draft.1`. D4 independently rederives all four axes, the four-component
+- A source-complete native record with an explicit proof set uses PER 2.1.0 and reference profile
+  `eio-agents.reference-scoring@0.3.1` (score basis `eio-agents.score-basis/0.3.0`, score kind `reference`; a published
+  PER 2.0.0 record keeps the historical `0.3.1-draft.1` identities). D4 independently rederives all four axes, the four-component
   no-freshness G formula, decisive/reportable proof sets, and overall readiness. An absent required source withholds
   the affected axis or readiness; it is never replaced by a guessed value.
 
@@ -439,6 +592,6 @@ command or score route added later:
 
 Conversion of historical ProofAgent Harness reports belongs to the harness adapter, not this package. The older
 native fixture directly under `tests/data/native/` projects to a valid PER with `scores: null`; older cited examples
-use their pinned release. The current `v0_6/source-complete.bundle.json` projects to a scored PER 2.0.0 with measured
+use their pinned release. The current `v0_8/source-complete.bundle.json` projects to a scored PER 2.1.0 with measured
 readiness. This synthetic result is not a publication or production-readiness claim.
 [CHANGELOG.md](../CHANGELOG.md) records the details.

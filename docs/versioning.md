@@ -14,12 +14,13 @@ explains each one, how they relate, what changes a record's digest, and the impl
 
 | Line | Current | Where it is reported |
 |---|---|---|
-| Library (`eio-agents`) | `0.6.0rc1` | `eio_agents.__version__`, `eio-agents version` |
+| Library (`eio-agents`) | `0.8.0` | `eio_agents.__version__`, `eio-agents version` |
 | EIO release | `0.6.0` (`ontology_digest` `a27cf1f3ab755446`) | `standards()["eio_release"]`, every record's `header.eio` |
-| PER version | rc3 partial default; `2.0.0` for source-complete scored native bundles | `standards()["per_version"]` and `standards()["native_full_per_version"]`; each record's `header.per_version` and `header.schema_uri` |
+| PER version | `2.1.0` (the default), release semantics `2.2` | `standards()["per_version"]` and `standards()["release_semantics"]`; each record's `header.per_version`, `header.schema_uri` and `header.release_semantics` |
 
-This library candidate bundles one EIO release and supports a public PER 2.0.0 scored route plus a historical partial route. `eio-agents version` and
-`eio_agents.standards()` report the default and explicit native-full identifiers.
+This library release bundles one EIO release and produces PER 2.1.0 by default. Published PER 2.0.0 and the
+historical release-candidate records stay verifiable under their own pinned identities; they are not defaults and
+`eio-agents version` does not report them.
 
 ## The library
 
@@ -68,20 +69,31 @@ every record. EIO data changes therefore follow the proposal process in [GOVERNA
 ## PER versions
 
 A PER record states its version in `header.per_version` and its schema in `header.schema_uri`, which is the `$id` of a
-versioned JSON Schema (draft 2020-12). The header also names the EIO release (with its digests) and the converter that
+versioned JSON Schema (2020-12). The header also names the EIO release (with its digests) and the converter that
 produced the record.
 
 - `2.0.0-rc1` is the historical adapter compatibility format. Its schema is titled "ProofAgent Evaluation Record"; its `$id` is
   `https://proofagent.ai/schemas/per/2.0.0-rc1/per.schema.json`.
-- The current neutral `2.0.0-rc3-draft` schema has `$id`
-  `https://w3id.org/eio-agents/per/2.0.0-rc3-draft/per.schema.json`; this is an identifier, not evidence that the URL is
-  live or that the draft is final.
-- The source-complete native route uses `2.0.0` with `$id`
-  `https://www.proofagent.ai/eio-agents/schema/per/2.0.0/per.schema.json`. The package embeds the identical schema for offline validation; the website endpoint requires a separate deployment and live check.
-- The scored route selects reference scoring profile `0.3.1-draft.1` while retaining score-basis identifier
-  `eio-agents.score-basis/0.3.0-draft.1`. The profile revision changes the policy rule; it does not rename the score
-  basis or silently reinterpret older PER records.
-- The older `2.0.0-rc5-policy-draft` schema and golden remain pinned for historical interpretation; full source verification of those records requires the pinned historical release candidate, not reinterpretation by the new scoring gate. New scored records are reissued under PER 2.0.0 with new digests. The `2.0.0` label is a wire-contract version, not a claim of independent implementation or certification.
+- The default is `2.1.0`, with `$id` `https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json`. The
+  package embeds the schema for offline validation; the website endpoint requires a separate deployment and live
+  check. Published PER `2.0.0` remains a separately validated historical schema.
+- A PER 2.1.0 record binds reference scoring profile `0.3.1` (`eio-agents.reference-scoring`), score basis
+  `eio-agents.score-basis/0.3.0` and score kind `reference`. These are the rules of the historical `0.3.1-draft.1`
+  profile under a released version (owner decision #46); the profile document's version, status, description and gaps
+  differ, so its digest differs (`sha256:c03848df...57aa7d`; the historical document is `sha256:39907fe6...ad45c6`).
+  Published PER 2.0.0 records keep `0.3.1-draft.1`, `eio-agents.score-basis/0.3.0-draft.1` and `reference-draft`.
+- Release semantics `2.2` (PER 2.1.0): `2.1` plus the no-policy default floor. When a record declares no policy
+  (`release_recommendation.policy.source` is `none`), the state is REVIEW whenever readiness is below 85 (or withheld)
+  or any HARD_BLOCK obligation is unmet (`coverage.summary.hard_block_unmet > 0`). The decisive entries
+  `eio.release.default-readiness-floor` and `eio.release.hard-block-unmet` (kind `review_guard`, effect REVIEW) state
+  the reason in the release explanation (`eio.why.release.review@1`). BLOCK still requires a proven failure. The
+  release semantics `2.1` of the unpublished 0.8.0 candidate is superseded: a record that carries it fails validation
+  rather than being reinterpreted under 2.2.
+- The historical release-candidate schemas (`2.0.0-rc1` to `2.0.0-rc5`, whose identifiers name them as drafts)
+  remain pinned for historical interpretation; full source verification of those records requires the pinned
+  historical release candidate, not reinterpretation by the new scoring gate. A bundle without native scoring inputs
+  still projects to the pinned partial rc3 identity; the CLI marks such a record as partial/historical. A wire version
+  is not a claim of independent implementation or certification.
 
 ## What changes a record's bytes
 
@@ -98,19 +110,19 @@ Re-deriving a record therefore needs the same library version that produced it. 
 ## Roadmap steps
 
 EIO-Agents was split out of the ProofAgent Harness conversion code in steps. The statuses below describe the
-standalone `0.6.0rc1` implementation boundary; they do not claim completed Harness integration. The changelog and
+standalone `0.8.0` implementation boundary; they do not claim completed Harness integration. The changelog and
 release gates govern each shipped artifact.
 
 | Step | What it does | Status |
 |---|---|---|
 | **L1-L3** | Neutral package and archive-schema-3 API; historical report conversion and its verifier checks move to the producer adapter. | Standalone package path implemented; adapter compatibility has separate gates. |
-| **L4/S1b** | Vendored harness scorer removed; readiness engine, scoring-profile registry and native claims-derived scoring added. G/readiness remain withheld where source evidence is insufficient. | PER 2.0.0 can derive full scores when sources are complete. |
+| **L4/S1b** | Vendored harness scorer removed; readiness engine, scoring-profile registry and native claims-derived scoring added. G/readiness remain withheld where source evidence is insufficient. | PER 2.1.0 can derive full scores when sources are complete. |
 | **L5a** | Neutral PER records, versioned ProofAgent-hosted EIO schema/context identities, and core-plus-declared catalogues replace historical package vocabulary. Compact PER claim/ref/finding ids remain stable; a deterministic UUIDv5 JSON-LD instance view does not rewrite PER bytes. | Versioned `www.proofagent.ai/eio-agents/schema/` identities are pinned in package data. |
 | **L5b** | Publish reviewed specification documents and schema at a stable public location. | Public URL resolution and package-byte parity are release checks, separate from local library behavior. |
 | **L6** | ProofAgent Harness produces and verifies its records through EIO-Agents plus its adapter. | Separate integration gate; not established by standalone tests. |
 
 Historical draft schemas may still contain `w3id.org` identifiers and remain pinned to their original bytes.
-The current EIO 0.6.0 and PER 2.0.0 identities use versioned
+The current EIO 0.6.0 and PER 2.1.0 identities use versioned
 `www.proofagent.ai/eio-agents/schema/` URLs. Those exact bytes must resolve at
 their declared URLs for a public release. Individual ontology term dereferencing
 is not provided by the schema download route and must not be implied.

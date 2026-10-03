@@ -32,8 +32,9 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from eio_agents.per.limitations import CATALOGUE as LIMITATION_CATALOGUE
 from eio_agents.schemas import (BUNDLE_SCHEMA, PER_SCHEMA, PER_SCHEMA_NATIVE_PREVIEW, PER_SCHEMA_RC1,
-                                PER_SCHEMA_RC4, PER_SCHEMA_RC5_POLICY, PER_SCHEMA_2_0_0)
+                                PER_SCHEMA_RC4, PER_SCHEMA_RC5_POLICY, PER_SCHEMA_2_0_0, PER_SCHEMA_2_1_0)
 from eio_agents.validation.canon import jb, q4, sha
+from eio_agents.validation.redaction import redact_span
 
 PREFIX = "sha256-"
 FP = re.compile(r"sha256-[0-9a-f]{64}")
@@ -53,9 +54,26 @@ RESORTED = frozenset(tuple(x.split(".")) for x in ("evidence.refs.*.statement.in
                                                     "findings.*.explanation.params.traps"))
 X = "[0-9a-f]"
 STRICT_VERSION = re.compile(r"(0|[1-9][0-9]{0,2})(\.(0|[1-9][0-9]{0,2})){1,2}")
+# A model identifier (0.8.0, a privacy-rule change approved by the maintainer): a model name with its release date or
+# version ('gpt-4o-2024-08-06', 'anthropic/claude-opus-4-1@20250805') is kept in clear in a field that names a model
+# (`bd:model`, `md:model`). The verifier's own copy of the projector's `per.bundle.MODEL_ID` (contract P3; parity:
+# tests/test_model_identifiers.py).
+MODEL_ID_PATTERN = (r"(?=.{1,100}\Z)(?![^/:]*[A-Za-z0-9]{24})(?!.*[0-9A-Fa-f]{16})"
+                    r"(?:[A-Za-z0-9][A-Za-z0-9._-]{0,39}[/:])?[A-Za-z0-9][A-Za-z0-9._-]*"
+                    r"(?:@(?:[0-9]{8}|[0-9]{4}-[0-9]{2}-[0-9]{2}|v?[0-9]{1,4}(?:\.[0-9]{1,4})*))?")
+_MODEL_SECRET = re.compile(r"(?:(?:sk|pk|rk)[-_](?:live|test|proj)[-_]|sk-|AKIA|gh[pousr]_|xox[abprs]-|glpat-)[A-Za-z0-9_\-]{8,}")
+
+
+def safe_model_identifier(text):
+    """Independently refuse a model-shaped value containing a PROD-42 sensitive token."""
+    return bool(re.fullmatch(MODEL_ID_PATTERN, text)) and redact_span(text)[1] == 0 and not _MODEL_SECRET.search(text)
+
+
 STRICT = {"version": STRICT_VERSION, "digest": re.compile(r"sha256:[0-9a-f]{64}|[0-9a-f]{7,64}"),   # b|d: kept in clear
           "package_version": re.compile(r"(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((a|b|rc)(0|[1-9][0-9]*))?(\.post(0|[1-9][0-9]*))?"
-                                        r"(\.dev(0|[1-9][0-9]*))?")}
+                                        r"(\.dev(0|[1-9][0-9]*))?"),
+          "model": re.compile(MODEL_ID_PATTERN)}
+MODEL_ROW = "machine-learning-model"         # m|d: the AI-BOM component whose name is the agent model
 FORM = {
     "id20": X + "{20}", "hex16": X + "{16}", "hex40": X + "{40}", "hex64": X + "{64}", "sha256": "sha256:" + X + "{64}",
     "lock_digest": f"{X}{{16}}|sha256:{X}{{64}}", "config_fingerprint": X + "{8,64}", "checks_version": X + "{7,40}",
@@ -71,11 +89,15 @@ CONTRACT = re.compile(r"require_all:[A-Z_]+|require_any|group:[1-9][0-9]*|minimu
 RULE = re.compile(r"profile\.(prohibited_use_case|min_score|block_on_(critical|high|medium|low|informational)|signoff_required)")
 COMPONENTS = frozenset(("release_gate", "open_findings", "human_oversight", "compliance_scope", "evidence_freshness"))
 PUBLIC_PROFILE_IDS = frozenset(("harness-2.x", "eio-agents.reference-scoring"))
-PUBLIC_PROFILE_VERSIONS = frozenset(("2.1.0", "0.0.0-draft", "0.2.0-draft.1", "0.3.0-draft.1", "0.3.1-draft.1"))
+PUBLIC_PROFILE_VERSIONS = frozenset(("2.1.0", "0.0.0-draft", "0.2.0-draft.1", "0.3.0-draft.1", "0.3.1-draft.1", "0.3.1"))
 PUBLIC_PROFILES = frozenset((("harness-2.x", "2.1.0"), ("eio-agents.reference-scoring", "0.0.0-draft"),
                              ("eio-agents.reference-scoring", "0.2.0-draft.1"),
                              ("eio-agents.reference-scoring", "0.3.0-draft.1"),
-                             ("eio-agents.reference-scoring", "0.3.1-draft.1")))
+                             ("eio-agents.reference-scoring", "0.3.1-draft.1"),
+                             ("eio-agents.reference-scoring", "0.3.1")))
+# the review guards a PER 2.1.0 record may carry (release semantics 2.2, owner decision #46)
+REVIEW_GUARDS = frozenset(("eio.release.high-review-queue", "eio.release.default-readiness-floor",
+                           "eio.release.hard-block-unmet"))
 PUBLIC_G_IDS = frozenset(("release_gate", "human_oversight", "policy_conformance", "obligation_coverage",
                           "evidence_freshness", "prohibited_use_case"))
 BASIS = re.compile(r"framework set of (eio\.region\.[a-z0-9-]+)")
@@ -455,7 +477,6 @@ b:timestamp
 c
     evidence.refs.*.excerpt
 d
-    claims.*.provenance.model
     evidence.refs.*.statement.inputs.files_searched.*
     evidence.refs.*.tool.name
     evidence.turns.*.retrievals.*.source
@@ -464,9 +485,6 @@ d
     provenance.capsule.caveats.*
     provenance.harness_llm.consensus.personas.*
     provenance.harness_llm.consensus.strategy
-    provenance.harness_llm.fallback.model
-    provenance.harness_llm.per_stage.*.model
-    provenance.harness_llm.primary.model
     provenance.inputs.context_artifacts.*.name
     provenance.inputs.governance_profile.name
     provenance.producer.name
@@ -478,9 +496,7 @@ d
     subject.agent.business_case
     subject.agent.class
     subject.agent.goal
-    subject.agent.model
     subject.agent.role
-    subject.ai_bom.components.*.name
 ad:basis
     scope.frameworks.*.basis.*
 ad:layout
@@ -509,11 +525,19 @@ ad:label
     evidence.turns.*.scenario
     findings.*.scenarios.*
     provenance.inputs.traps.selected.*
-    provenance.evaluator_models.*.model
     provenance.evaluator_models.*.role
-    telemetry.evaluator_models.*.model
     telemetry.evaluator_models.*.role
     reliability.named_lists.<key>.*
+bd:model
+    claims.*.provenance.model
+    provenance.evaluator_models.*.model
+    provenance.harness_llm.fallback.model
+    provenance.harness_llm.per_stage.*.model
+    provenance.harness_llm.primary.model
+    subject.agent.model
+    telemetry.evaluator_models.*.model
+md:model
+    subject.ai_bom.components.*.name
 bd:digest
     provenance.producer.patch_digest
     provenance.producer.revision
@@ -708,7 +732,8 @@ class Words:
         # Only the active rc3/rc4 drafts and rc1 baseline may expand this release's
         # clear-text vocabulary. Historical rc2 and diagnostic previews must
         # be checked with their own pinned releases, not silently trusted here.
-        for schema in (PER_SCHEMA_RC1, PER_SCHEMA, PER_SCHEMA_RC4, PER_SCHEMA_RC5_POLICY, PER_SCHEMA_2_0_0):
+        for schema in (PER_SCHEMA_RC1, PER_SCHEMA, PER_SCHEMA_RC4, PER_SCHEMA_RC5_POLICY,
+                       PER_SCHEMA_2_0_0, PER_SCHEMA_2_1_0):
             properties, constants = _schema(schema)
             p1 |= properties
             c1 |= constants
@@ -797,15 +822,23 @@ def is_member(w, arg, v):
 def decide(w, spec, text):
     """The record value of a clear text in a field of class `spec` (the converter's decision, recomputed)."""
     c, arg = spec
-    if text == "" and c in ("d", "ad", "bd"):
+    if text == "" and c in ("d", "ad", "bd", "md"):
         return text                               # an empty string carries no text
-    if c == "d":
+    if c in ("d", "md"):                          # an `md` text of the model row: `decide_row`
         return fingerprint(text)
     if c == "ad":
         return text if is_member(w, arg, text) else fingerprint(text)
     if c == "bd":
-        return text if STRICT[arg].fullmatch(text) else fingerprint(text)
+        return text if (safe_model_identifier(text) if arg == "model" else STRICT[arg].fullmatch(text)) else fingerprint(text)
     return text
+
+
+def decide_row(w, spec, text, rec, path):
+    """`decide` for a field whose class depends on its row: the agent model's AI-BOM row keeps a model identifier in
+    clear (m|d), any other row's name is fingerprinted."""
+    if spec[0] == "md" and text and _get(rec, path[:-1]).get("kind") == MODEL_ROW and safe_model_identifier(text):
+        return text
+    return decide(w, spec, text)
 
 
 def _via_ok(w, key):
@@ -909,7 +942,7 @@ def _gate_evidence(w, rec, row, label=None):
     scores = rec.get("scores") or {}
     # The native draft metric's MEASURED/WITHHELD status is not the archived
     # evidence-fraction DIAGNOSTIC_ONLY status used by this legacy gate.
-    metrics = [] if scores.get("kind") == "reference-draft" else scores.get("metrics") or []
+    metrics = [] if scores.get("kind") in ("reference-draft", "reference") else scores.get("metrics") or []
     _need(isinstance(metrics, list))
     diag = [m for m in metrics if m["measurement_status"] == "DIAGNOSTIC_ONLY"]
     if not diag:
@@ -999,6 +1032,17 @@ def _score(value):
 
 def _decisive(rec, row, field):
     kind, rid = _s(row["kind"]), _s(row["id"])
+    if kind == "review_guard" and rid == "eio.release.high-review-queue":
+        return ("no unresolved HIGH or CRITICAL findings" if field == "expected" else
+                f"{len(row['finding_ids'])} unresolved HIGH or CRITICAL finding(s)")
+    if kind == "review_guard" and rid == "eio.release.default-readiness-floor":
+        if field == "expected":
+            return "readiness >= 85.0"
+        value = rec["scores"]["readiness"]["value"]
+        return "withheld" if value is None else _score(_f(value))
+    if kind == "review_guard" and rid == "eio.release.hard-block-unmet":
+        return ("0" if field == "expected" else
+                str(len(row['obligation_ids'])))
     if kind == "cap":
         claim = {c["id"]: c for c in rec["claims"]}
         return ("no deterministic, witnessed APPLICABLE_FAIL on a cap predicate" if field == "expected" else
@@ -1153,7 +1197,9 @@ def fits(w, spec, v, rec, path, cat):
         else:
             ok = {"vocab": v in w.vocab, "check_name": v in w.checks, "metric_key": v in w.metric_keys,
                   "contract_token": bool(CONTRACT.fullmatch(v)), "profile_rule": bool(RULE.fullmatch(v)),
-                  "decisive_id": v in w.vocab or bool(RULE.fullmatch(v)), "caveat_id": v in CAVEAT_IDS}.get(arg)
+                  "decisive_id": v in w.vocab or bool(RULE.fullmatch(v)) or
+                  (rec["header"]["per_version"] == "2.1.0" and v in REVIEW_GUARDS),
+                  "caveat_id": v in CAVEAT_IDS}.get(arg)
         return None if ok else "not a member of its vocabulary"
     if c == "b":
         if arg == "legacy_profile_id":
@@ -1167,14 +1213,18 @@ def fits(w, spec, v, rec, path, cat):
         return None if FORM[arg].fullmatch(v) else f"not of the form {arg}"
     if c == "c":
         return None
-    if v == "" and c in ("d", "ad", "bd"):
+    if v == "" and c in ("d", "ad", "bd", "md"):
         return None
     if c == "d":
         return None if FP.fullmatch(v) else "not a fingerprint (clear text in a withheld field)"
+    if c == "md":
+        return None if FP.fullmatch(v) or decide_row(w, spec, v, rec, path) == v else \
+            "neither the model identifier of the model row nor a fingerprint"
     if c == "ad":
         return None if FP.fullmatch(v) or is_member(w, arg, v) else "a clear non-member (neither vocabulary nor a fingerprint)"
     if c == "bd":
-        return None if FP.fullmatch(v) or STRICT[arg].fullmatch(v) else f"neither of the strict form {arg} nor a fingerprint"
+        safe = safe_model_identifier(v) if arg == "model" else STRICT[arg].fullmatch(v)
+        return None if FP.fullmatch(v) or safe else f"neither of the strict form {arg} nor a fingerprint"
     if c == "r":
         return _rendered(w, arg, v, rec, path, cat)
     return f"the unknown class {c}"
@@ -1248,7 +1298,7 @@ def withheld(rec):
         spec = TABLE.get(gen(path))
         if spec is None:
             continue
-        if spec[0] in ("d", "ad", "bd") and FP.fullmatch(v):
+        if spec[0] in ("d", "ad", "bd", "md") and FP.fullmatch(v):
             out.append((path, v, spec))
         elif spec[0] == "r" and spec[1] in ("via", "ledger_key", "formula", "limitation"):
             out.extend((path, m.group(), spec) for m in FP_IN_TEXT.finditer(v) if len(m.group()) == 71)
@@ -1279,7 +1329,7 @@ def clear_view(rec, B):
     clear = {}
     for path, v in strings(rec):
         spec = TABLE.get(gen(path))
-        if spec is None or spec[0] not in ("d", "ad", "bd", "r"):
+        if spec is None or spec[0] not in ("d", "ad", "bd", "md", "r"):
             continue
         if spec[0] == "r":
             for m in FP_IN_TEXT.finditer(v):
@@ -1352,12 +1402,12 @@ def decision_problems(rec, clear, e):
     w, p = words(e), []
     for path, v in strings(rec):
         spec = TABLE.get(gen(path))
-        if spec is None or spec[0] not in ("d", "ad", "bd"):
+        if spec is None or spec[0] not in ("d", "ad", "bd", "md"):
             continue
         if not FP.fullmatch(v):
-            if decide(w, spec, v) != v:
+            if decide_row(w, spec, v, rec, path) != v:
                 p.append(f"{ptr(path)}: a clear value the converter fingerprints (T4)")
-        elif path in clear and decide(w, spec, clear[path]) != v:
+        elif path in clear and decide_row(w, spec, clear[path], rec, path) != v:
             p.append(f"{ptr(path)}: the decision over its clear text does not recompute (a vocabulary member fingerprinted) (T4)")
     return p
 
@@ -1435,7 +1485,7 @@ def identity_source_problems(rec, B, e):
                 and record_profile == "harness-2.x" and isinstance(declared_profile, dict)
                 and declared_profile.get("id") == record_profile):
             p.append("/scores/scoring_profile: not bound to the declared rc1 scoring profile (T4)")
-    elif scores.get("kind") == "reference-draft" and isinstance(record_profile, dict):
+    elif scores.get("kind") in ("reference-draft", "reference") and isinstance(record_profile, dict):
         # Native draft profile identity is pinned and checked by independent
         # D4, not supplied by legacy producer_declared.score_inputs.
         pass
@@ -1529,8 +1579,11 @@ def clear_text_problems(rec, B, e):
             prod.add(o)
     prod = {s for s in prod if s not in w.every and not any(f.fullmatch(s) for f in FORM.values()) and not NUMBER.fullmatch(s)
             and not _public(w, s)}
+    def released(path, v):                        # a model identifier kept in clear by its class (b|d, m|d)
+        spec = TABLE.get(gen(path)) or ("?", None)
+        return spec[0] in ("bd", "md") and spec[1] == "model" and decide_row(w, spec, v, rec, path) == v
     return [f"{ptr(path)}: a producer text of the bundle in clear (T5)" for path, v in strings(rec)
-            if v in prod and (TABLE.get(gen(path)) or ("?",))[0] != "c"]
+            if v in prod and (TABLE.get(gen(path)) or ("?",))[0] != "c" and not released(path, v)]
 
 
 LINK_VIA = "eio.graph.context-links:{key}→{criterion}/{control}"

@@ -19,14 +19,17 @@ def _rc4_score(rec: dict[str, Any]) -> bool:
     # shape. Do not strand measured axes/metrics merely because policy rules
     # were versioned separately from the score block.
     return (rec.get("header", {}).get("per_version") in
-            ("2.0.0-rc4-draft", "2.0.0-rc5-policy-draft", "2.0.0")
-            and score.get("kind") == "reference-draft"
-            and profile.get("version") in ("0.3.0-draft.1", "0.3.1-draft.1"))
+            ("2.0.0-rc4-draft", "2.0.0-rc5-policy-draft", "2.0.0", "2.1.0")
+            and (score.get("kind"), profile.get("version")) in (
+                ("reference-draft", "0.3.0-draft.1"), ("reference-draft", "0.3.1-draft.1"), ("reference", "0.3.1")))
 
 
 def _public_number(value: Any) -> int | float | None:
     """Never render arbitrary text from an invalid score row as a value."""
     return value if type(value) in (int, float) and 0 <= value <= 100 and math.isfinite(value) else None
+
+
+UNRATED = "unrated"   # the display of a finding with no severity (`severity` null in the record)
 
 
 def _norm(value: str) -> str:
@@ -40,7 +43,16 @@ def targets(rec: dict[str, Any]) -> list[dict[str, Any]]:
     def add(node: Any, key: str, label: str, kind: str) -> None:
         if isinstance(node, dict) and (isinstance(node.get("explanation"), dict)
                                        or (_rc4_score(rec) and kind in {"readiness", "axis", "metric"})):
-            item = {"id": key, "label": label, "value": node.get("value", node.get("state")), "kind": kind}
+            value = node.get("value", node.get("state"))
+            if value is None and kind == "control":
+                value = node.get("status")
+            elif value is None and kind == "gate":
+                value = node.get("met")
+            elif kind == "finding":
+                # a finding lists its severity; a finding with none (no in-scope obligation targets its predicate) is
+                # shown as "unrated", never as a missing value (owner decision #46)
+                value = node.get("severity") or UNRATED
+            item = {"id": key, "label": label, "value": value, "kind": kind}
             if _rc4_score(rec) and kind in {"readiness", "axis", "metric"}:
                 item["value"] = _public_number(node.get("value"))
                 item.update(status=node.get("status"), withheld_code=node.get("withheld_code"),

@@ -482,7 +482,7 @@ def score_native(claims, claim_bindings, refs, control_statuses, selected_framew
         require(isinstance(reportable_finding_ids, (list, tuple, set))
                 and isinstance(decisive_finding_ids, (list, tuple, set)), "REFERENCE_GOVERNANCE",
                 "reportable and decisive ids must be checked collections")
-    full_profile = profile.get("version") == profiles.REFERENCE_FULL_VERSION
+    full_profile = profile.get("version") in (profiles.REFERENCE_FULL_VERSION, profiles.REFERENCE_PUBLIC_VERSION)
     if full_profile and have_checked_ids:
         governance = full_governance_axis(policy, findings, control_statuses,
                                           reportable_ids=reportable_finding_ids, decisive_ids=decisive_finding_ids)

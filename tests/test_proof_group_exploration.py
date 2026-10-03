@@ -88,7 +88,7 @@ def test_group_keeps_receipt_and_policy_contract():
 
 def test_empty_citation_set_is_known_empty_with_full_contract():
     record = checked(prohibited_tool_bundle())
-    assert record["header"]["per_version"] == "2.0.0"
+    assert record["header"]["per_version"] == "2.1.0"
     claim, finding = tool_finding(record)
     assert claim["parameters"]["contract_check"]["status"] == "met"
     assert finding["proof_status"] == "UNPROVEN"

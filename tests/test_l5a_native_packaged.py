@@ -9,6 +9,7 @@ import pytest
 from eio_agents.api import convert, standards, validate, verify
 from eio_agents.base.errors import ConversionError
 from eio_agents.ontology import load
+from eio_agents.schemas import current_native_per_schema, per_schema
 from eio_agents.validation.reader import EIO
 
 
@@ -59,13 +60,17 @@ def test_packaged_native_dispatch_fails_closed_on_bad_provenance(source):
 
 def test_standards_identifies_only_the_standalone_projector():
     stated = standards()
-    assert stated["per_schema_id"] == "https://w3id.org/eio-agents/per/2.0.0-rc3-draft/per.schema.json"
-    assert stated["native_full_per_version"] == "2.0.0"
+    assert stated["per_schema_id"] == "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json"
+    assert stated["per_version"] == "2.1.0" and stated["release_semantics"] == "2.2"
+    assert stated["native_full_per_version"] == "2.1.0"
     assert stated["native_full_per_schema_id"] == (
-        "https://www.proofagent.ai/eio-agents/schema/per/2.0.0/per.schema.json"
+        "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json"
     )
+    assert stated["current_native_per_version"] == stated["native_full_per_version"]
+    assert current_native_per_schema()["$id"] == stated["current_native_per_schema_id"]
+    assert per_schema()["$id"] == stated["per_schema_id"]  # PER 2.1.0 is the default (owner decision #46)
     assert stated["native_full_scoring_profile_id"] == "eio-agents.reference-scoring"
-    assert stated["native_full_scoring_profile_version"] == "0.3.1-draft.1"
+    assert stated["native_full_scoring_profile_version"] == "0.3.1"
     assert stated["projector"].startswith("eio_agents.convert ")
     assert stated["converter"] == stated["projector"]
     assert "adapter_projector" not in stated

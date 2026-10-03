@@ -1,6 +1,6 @@
 # Standards coverage
 
-This page summarises how EIO 0.6.0, bundled with EIO-Agents `0.6.0rc1`, relates to external frameworks, standards and
+This page summarises how EIO 0.6.0, bundled with EIO-Agents `0.8.0`, relates to external frameworks, standards and
 laws, and where that coverage stops. Read it before you use a control status from a PER record for anything else.
 
 - [What EIO and PER are, and are not](#what-eio-and-per-are-and-are-not)
@@ -18,8 +18,8 @@ multi-party governance and no second, independent implementation. [GOVERNANCE.md
 meant to change.
 
 The core schemas' `$schema` value `https://json-schema.org/draft/2020-12/schema` names the official JSON Schema
-dialect; it does not label EIO 0.6.0 as a draft release. The separately versioned reference scoring profile remains
-`0.3.1-draft.1`.
+dialect; it does not label EIO 0.6.0 as a draft release. A PER 2.1.0 record binds the separately versioned reference
+scoring profile `0.3.1`; published PER 2.0.0 records keep their historical `0.3.1-draft.1` profile.
 
 A PER record does not certify anything. Its control statuses show which evidence from one evaluation run is relevant to a
 control. They do not establish that a framework applies to you, that you conform to it, or that an organisation meets its

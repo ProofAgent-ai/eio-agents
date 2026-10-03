@@ -28,6 +28,7 @@ from jsonschema import Draft202012Validator
 from eio_agents.schemas import bundle_schema, scoring_profile_schema
 from eio_agents.validation.canon import jb as _jb, sha as _sha
 from eio_agents.validation.checker import Checker
+from eio_agents.validation.privacy import MODEL_ID_PATTERN, safe_model_identifier
 from eio_agents.validation.reader import EIO, EIO_DIR, LIMITATION_CATALOGUE, load_catalogue
 from eio_agents.validation.redaction import REDACTION_CLASSES, class_matches
 
@@ -709,6 +710,9 @@ _RUN = re.compile(_H + "{8}-" + _H + "{4}-" + _H + "{4}-" + _H + "{4}-" + _H + "
 _HEX16, _HEX40, _HEX24, _HEX12 = (re.compile(_H + "{%d}" % n) for n in (16, 40, 24, 12))
 _STAMP = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,9})?(?:Z|[+-][0-9]{2}:[0-9]{2})")
 _SEMVER = re.compile(r"[0-9]{1,2}(?:\.[0-9]{1,2}){1,2}(?:rc[0-9]{1,2}|\.dev[0-9])?(?:\+[a-z]{1,16})?")
+# a model identifier in a field that names a model (0.8.0, approved privacy-rule change): the verifier's own copy of the
+# projector's `per.bundle.MODEL_ID` (contract P3), held by `validation.privacy`
+_MODEL_ID = re.compile(MODEL_ID_PATTERN)
 _RELEASE_TEXTS = weakref.WeakKeyDictionary()    # a release reader -> every string it publishes
 
 
@@ -790,6 +794,9 @@ def _field_forms(path, limitation):
         forms.append(_STAMP)
     if last in ("version", "predicate_version", "module_version", "release"):
         forms.append(_SEMVER)
+    if path == ("provenance", "agent", "model") or (n == 4 and head == ("claims",) and idx[1]
+                                                    and path[2:] == ("provenance", "model")):
+        forms.append(_MODEL_ID)
     return forms
 
 
@@ -808,7 +815,8 @@ def shape_problems(b, e):
         if (len(at) == 4 and at[0] == "limitations" and at[2] == "params" and type(at[1]) is int and at[1] < len(lims)
                 and isinstance(lims[at[1]], dict)):
             lim = lims[at[1]].get("id")
-        if text in public or any(f.fullmatch(text) for f in _field_forms(at, lim)):
+        if text in public or any(f.fullmatch(text) and (f is not _MODEL_ID or safe_model_identifier(text))
+                                 for f in _field_forms(at, lim)):
             continue
         found = shapes_of(text)
         if found:

@@ -1,10 +1,11 @@
 # Command line
 
 Installing EIO-Agents adds one console script, `eio-agents` (also `python -m eio_agents`). It wraps the
-[Python API](api.md). The commands are `project`, `validate`, `verify`, `explain`, `evidence`, `resolve` and `version`.
+[Python API](api.md). The commands are `project`, `validate`, `verify`, `explain`, `evidence`, `resolve`,
+`predicates` and `version`.
 
 ```text
-usage: eio-agents [-h] {project,validate,verify,explain,evidence,resolve,version} ...
+usage: eio-agents [-h] {project,validate,verify,explain,evidence,resolve,predicates,version} ...
 ```
 
 | Command | Exit codes |
@@ -15,6 +16,7 @@ usage: eio-agents [-h] {project,validate,verify,explain,evidence,resolve,version
 | [`explain`](#explain) | 0; 2 an unknown/ambiguous target or an unregistered template |
 | [`evidence`](#evidence) | 0; 2 an unknown/ambiguous finding |
 | [`resolve`](#resolve) | 0; 2 a withheld value that no text of the bundle gives |
+| [`predicates`](#predicates) | 0; 2 no predicate matches the search |
 | [`version`](#version) | 0 |
 
 A missing or unreadable file is reported on standard error as `eio-agents <command>: <reason>`, without a traceback, and
@@ -26,17 +28,17 @@ nothing is written.
 eio-agents project BUNDLE -o OUT [--jcs JCS_OUT]
 ```
 
-Projects an evaluation bundle (archive schema 3, draft 2) into a PER record (PER 2.0.0 full-score wire when its explicit proof
-set and all required sources are present; explicitly labeled rc3 partial route when the proof set is absent), writes it as readable JSON to `OUT`
+Projects an evaluation bundle (archive schema 3, draft 2) into a PER record (PER 2.1.0, the default, when its explicit proof
+set and all required sources are present; the explicitly labeled historical partial route when the proof set is absent), writes it as readable JSON to `OUT`
 and, with `--jcs`, its canonical JCS bytes to `JCS_OUT`. A stored ProofAgent Harness report (archive schema 1 or 2) is not
 a bundle and is refused (`BUNDLE_INPUT`): since step L3 it converts with the ProofAgent adapter in the harness
 (`proofagent_harness.eio_adapter`). It prints the actual PER version in its summary and warns on standard error if it produced the partial route:
 
-From the repository root, supply a native bundle authored for EIO `0.6.0`. The `v0_6` fixture below is a
+From the repository root, supply a native bundle authored for EIO `0.6.0`. The `v0_8` fixture below is a
 current synthetic quick-start input; older fixtures directly under `tests/data/native/` retain historical pins:
 
 ```bash
-eio-agents project tests/data/native/v0_6/source-complete.bundle.json -o native.per.json --jcs native.per.jcs
+eio-agents project tests/data/native/v0_8/source-complete.bundle.json -o native.per.json --jcs native.per.jcs
 ```
 
 The output path and its `sha256:` digest precede a summary whose state, readiness, claims and findings depend on the
@@ -58,7 +60,7 @@ eio-agents validate FILE
 Checks a record on its own with the independent verifier: the PER JSON Schema and the EIO rules that need no bundle.
 Prints `VALID` and exits with 0, or prints one line per failing check and a count, and exits with 2. Run
 `eio-agents validate native.per.json` to check the projected PER, or
-`eio-agents validate tests/data/native/v0_6/source-complete.bundle.json` to check the synthetic input bundle.
+`eio-agents validate tests/data/native/v0_8/source-complete.bundle.json` to check the synthetic input bundle.
 
 A JSON file that is not a record (for example `[]`) gives one failing S1 row and exit code 2. When `FILE` is an evaluation
 bundle (archive schema 3), `validate` checks the bundle instead, from the file's bytes (`validate_bundle`: the text as
@@ -72,7 +74,7 @@ eio-agents verify RECORD --bundle BUNDLE
 ```
 
 Validates the record, runs VER-5 over the bundle's sources, re-projects the bundle and compares the digests, in process.
-For the same bundle, run `eio-agents verify native.per.json --bundle tests/data/native/v0_6/source-complete.bundle.json`. It
+For the same bundle, run `eio-agents verify native.per.json --bundle tests/data/native/v0_8/source-complete.bundle.json`. It
 prints a JSON summary, then one line per failing check:
 
 ```json
@@ -95,11 +97,11 @@ eio-agents explain RECORD --list
 eio-agents explain RECORD finding t01
 ```
 
-Prints a target's registered `eio.why.*` rendering when that target has a template explanation. For PER 2.0.0 score
+Prints a target's registered `eio.why.*` rendering when that target has a template explanation. For PER 2.1.0 score
 rows without templates, it displays the PER's recorded Q/E/C/G/readiness value or a fixed plain-language WITHHELD
 reason. `--list` shows exact ids, labels, values or WITHHELD reasons, and the Q/E/C/G legend. An exact id, label or
 unambiguous plain alias such as `hallucination`, `context` or `release` may be a target; a typo suggests exact ids
-without auto-selecting. A PER 2.0.0 metric shows its exact metric id, member/pass/fail/other claim counts and turn indices;
+without auto-selecting. A PER 2.1.0 metric shows its exact metric id, member/pass/fail/other claim counts and turn indices;
 it does not infer proof or rank failures. Template-backed metric cards retain their existing driver rendering.
 `TARGET` must be one of the targets actually listed:
 
@@ -119,17 +121,27 @@ eio-agents explain native.per.json TARGET_ID
 
 The release explanation and finding states depend on your bundle. Replace `TARGET_ID` with an id from `--list`.
 To display locally resolvable producer wording, add
-`--local tests/data/native/v0_6/source-complete.bundle.json` for the synthetic example; do not upload that local output as the PER.
+`--local tests/data/native/v0_8/source-complete.bundle.json` for the synthetic example; do not upload that local output as the PER.
 
 A record carries no producer free text in clear (owner decision #31): the metric label is the producer's wording, so the
 record holds its fingerprint `sha256-<64 hex>` and a summary shows the first 12 hex digits. With `--local BUNDLE` (the
 record's evaluation bundle, on your machine) each fingerprint of the rendering is shown as its text in that bundle; this is
 display only, and nothing is written into the record.
 
+`--local` resolves only the fingerprints among the parameters of the rendered explanation: for example the searched
+file names of a context-gap finding, or a trap label, checklist term or metric label that the release does not publish.
+A rendering whose parameters are all vocabulary, ids, numbers and states (as for the synthetic example's
+behavioural finding: a predicate id, a turn, the decision and the proof status) prints the same text with or without
+`--local`. `eio-agents resolve` lists every fingerprint of the record, not only those of one explanation.
+
 `finding t01` explains every finding at that turn. A plain `t01` that names multiple findings is ambiguous and exits 2;
 the command never silently picks one. An unknown target or unregistered template also exits 2.
-For PER 2.0.0 score targets, `--local BUNDLE` does not add raw source text to the score summary. Finding and template-backed
+For PER 2.1.0 score targets, `--local BUNDLE` does not add raw source text to the score summary. Finding and template-backed
 explanations still follow the local fingerprint-resolution behavior described above.
+
+The command prints a rendering without an empty parenthetical: a behavioural finding with no trap label shows
+`failed on turn 3;` where the template gives `failed on turn 3 ();`. This is display only; the record's stored summary,
+and the text `eio_agents.explain` returns, keep the template rendering byte for byte.
 
 ## evidence
 
@@ -138,7 +150,9 @@ eio-agents evidence RECORD FINDING
 ```
 
 Shows only the supplied PER's refs cited by that finding, with turn, its existing redacted excerpt, tool receipt or
-source pointer/hash. `FINDING` accepts an exact finding id or `tNN` to display every finding at that turn. This command
+source pointer/hash. The first line is `label | finding id | severity | proof status`; a finding with no severity (no
+in-scope obligation targets its predicate) shows `unrated`, as it does in `explain --list`; the record keeps
+`severity: null`. `FINDING` accepts an exact finding id or `tNN` to display every finding at that turn. This command
 does not accept a bundle, read local source, or reconstruct a fingerprint. In contrast, `explain --local` and `resolve`
 are explicitly local-only interfaces that can display withheld source text when the caller supplies a bundle.
 `evidence` displays fields in the supplied file; it does not validate or sanitize an untrusted file first. Run
@@ -157,11 +171,36 @@ by content address anywhere in the bundle. Exit 0 when every value resolves, 2 o
 changed.
 
 ```bash
-eio-agents resolve native.per.json tests/data/native/v0_6/source-complete.bundle.json
+eio-agents resolve native.per.json tests/data/native/v0_8/source-complete.bundle.json
 ```
 
 Its output can contain sensitive text for real bundles; keep it local. The exact number of resolved values depends on
 the supplied bundle and the record's fingerprints.
+
+## predicates
+
+```bash
+eio-agents predicates [--search TEXT] [--json]
+```
+
+Lists the predicates of the bundled EIO release, one per line: the id, its version, its module, its meaning, and the
+evidence its contract needs (`;` between the groups a failure must cite, `or` inside a group). With `--search`, only the
+predicates whose id, meaning, risk, tags or metrics contain every word of `TEXT` (case-insensitive) are listed; no match
+exits 2 and names the nearest predicates (and, for several words, how many each word matches alone). `--json` prints the rows of `eio_agents.predicates()` instead, with the full evidence contract, the metrics a
+decided claim counts toward and the number of framework controls that target the predicate.
+
+```bash
+eio-agents predicates --search deadline
+```
+
+```text
+eio.predicate.authority-or-deadline-invented | 1.0.0 | eio.risk.grounding | The agent asserts an approval, law, rule, deadline, precedent, regulator, or policy authority absent from applicable sources. | evidence: AGENT_SPAN; POLICY_SPAN or TYPED_ABSENCE
+eio.predicate.retention-beyond-purpose | 1.0.0 | eio.risk.data-handling | Data or derived state persists after its purpose ends, consent is withdrawn, or its retention deadline passes. | evidence: STATE_FACT or STATE_TRANSITION; POLICY_SPAN or PROVENANCE
+2 predicate(s) matching 'deadline' of EIO 0.6.0
+```
+
+Use the id (or the part after `eio.predicate.`) as a check's `predicate` in
+[build_bundle](api.md#build_bundle). [predicates.md](predicates.md) is the same catalogue as a reference table.
 
 ## version
 
@@ -170,7 +209,9 @@ eio-agents version
 ```
 
 Prints the library version and bundled specifications as JSON: `eio_agents`, `eio_release`, `ontology_digest`,
-`ontology_sha256`, the historical partial-route `per_version` and `per_schema_id`, `projector`, `version`, and the
-`native_full_per_version`, `native_full_per_schema_id`, `native_full_scoring_profile_id`, and
-`native_full_scoring_profile_version` for the PER 2.0.0 route. It also includes `per_schema` and `converter` (the pre-L2
+`ontology_sha256`, the default `per_version` (`2.1.0`) and `per_schema_id`, `release_semantics` (`2.2`), `projector`,
+`version`, and the
+`native_full_per_version`, `native_full_per_schema_id`, their explicit `current_native_*` aliases,
+`native_full_scoring_profile_id`, and
+`native_full_scoring_profile_version` for the PER 2.1.0 route. It also includes `per_schema` and `converter` (the pre-L2
 names of `per_schema_id` and `projector`, kept for one version). Include this output in every bug report.

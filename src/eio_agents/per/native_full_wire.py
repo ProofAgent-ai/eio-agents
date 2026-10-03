@@ -1,4 +1,4 @@
-"""Versioned rc4 native full-score PER producer (draft profile 0.3).
+"""Versioned PER 2.1.0 native full-score producer (reference scoring profile 0.3.1, release semantics 2.2).
 
 The input is a null-score rc3 native PER that has passed independent D1/D2/D5
 source checks. The source extractor rederives reportable and decisive IDs from
@@ -23,16 +23,25 @@ from eio_agents.scoring.reference import score_native
 from eio_agents.semantics import why as sem_why
 
 
-PER_VERSION = "2.0.0"
-SCHEMA_URI = "https://www.proofagent.ai/eio-agents/schema/per/2.0.0/per.schema.json"
+PER_VERSION = "2.1.0"
+SCHEMA_URI = "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json"
+# Release semantics of PER 2.1.0 records. "2.1" (the unpublished 0.8.0 candidate) added the HIGH-review guard; "2.2"
+# adds the no-policy default floor (owner decision #46): with no declared policy the state is REVIEW whenever
+# readiness is below DEFAULT_READINESS_FLOOR (or withheld) or any HARD_BLOCK obligation is unmet. Never BLOCK.
+RELEASE_SEMANTICS = "2.2"
+HIGH_REVIEW_GUARD = "eio.release.high-review-queue"
+DEFAULT_FLOOR_GUARD = "eio.release.default-readiness-floor"
+HARD_BLOCK_GUARD = "eio.release.hard-block-unmet"
+DEFAULT_READINESS_FLOOR = 85.0
 POLICY_PER_VERSION = PER_VERSION
 POLICY_SCHEMA_URI = SCHEMA_URI
-SCORE_BASIS_VERSION = "eio-agents.score-basis/0.3.0-draft.1"
+SCORE_BASIS_VERSION = "eio-agents.score-basis/0.3.0"
+SCORE_KIND = "reference"
 REFERENCE_FULL_ID = profiles.REFERENCE_ID
-REFERENCE_FULL_VERSION = profiles.REFERENCE_FULL_VERSION
+REFERENCE_FULL_VERSION = profiles.REFERENCE_PUBLIC_VERSION
 _ROOT = Path(__file__).resolve().parents[1] / "schemas"
-SCORE_SCHEMA = _ROOT / "scoring/native-score-block-0.3.1-draft.1.schema.json"
-PER_SCHEMA = _ROOT / "per/per-2.0.0.schema.json"
+SCORE_SCHEMA = _ROOT / "scoring/native-score-block-0.3.1.schema.json"
+PER_SCHEMA = _ROOT / "per/per-2.1.0.schema.json"
 POLICY_PER_SCHEMA = PER_SCHEMA
 
 
@@ -48,7 +57,87 @@ def _versioned_unscored(record):
     result = copy.deepcopy(record)
     result["header"]["per_version"] = PER_VERSION
     result["header"]["schema_uri"] = SCHEMA_URI
+    result["header"]["release_semantics"] = RELEASE_SEMANTICS
+    result["release_recommendation"]["semantics"] = RELEASE_SEMANTICS
     return result
+
+
+def _apply_high_review_guard(record, finding_ids, *, ontology):
+    """Promote source-derived unresolved HIGH findings to a versioned REVIEW condition."""
+    require(isinstance(finding_ids, list) and finding_ids == sorted(set(finding_ids)),
+            "NATIVE_FULL_WIRE", "HIGH review queue is not sorted and unique")
+    release = record["release_recommendation"]
+    if finding_ids:
+        release["decisive"].append({"kind": "review_guard", "id": HIGH_REVIEW_GUARD,
+                                    "expected": "no unresolved HIGH or CRITICAL findings",
+                                    "observed": f"{len(finding_ids)} unresolved HIGH or CRITICAL finding(s)",
+                                    "claim_ids": [], "finding_ids": finding_ids, "effect": "REVIEW"})
+    release["state"] = ("BLOCK" if any(d["effect"] == "BLOCK" for d in release["decisive"]) else
+                        "REVIEW" if release["decisive"] else "PASS")
+    explanation = release["explanation"]
+    if release["decisive"]:
+        explanation["template_id"] = f"eio.why.release.{release['state'].lower()}@1"
+        explanation["params"] = {"n_decisive": len(release["decisive"]),
+                                 "decisive_list": [decisive_entry_text(record, d) for d in release["decisive"]],
+                                 "n_contributing": len(release["contributing"]),
+                                 "semantics": RELEASE_SEMANTICS}
+    else:
+        explanation["template_id"] = "eio.why.release.pass@1"
+        explanation["params"] = {"n_contributing": len(release["contributing"]),
+                                 "semantics": RELEASE_SEMANTICS}
+    explanation["summary"] = sem_why.render(ontology, explanation["template_id"], explanation["params"])
+
+
+def default_floor_guards(record, readiness):
+    """The release-semantics 2.2 no-policy guards (owner decision #46) of a scored PER 2.1.0 record, in order: the
+    default readiness floor (readiness below 85, or withheld) and unmet HARD_BLOCK obligations
+    (`coverage.summary.hard_block_unmet > 0`). Empty when a policy is declared. Each is a REVIEW: no proven failure is
+    implied, so it never BLOCKs (owner decision #2)."""
+    release = record["release_recommendation"]
+    if release["policy"]["source"] != "none":
+        return []
+    guards = []
+    if readiness is None or readiness < DEFAULT_READINESS_FLOOR:
+        guards.append({"kind": "review_guard", "id": DEFAULT_FLOOR_GUARD,
+                       "expected": default_floor_text("expected", readiness),
+                       "observed": default_floor_text("observed", readiness),
+                       "claim_ids": [], "finding_ids": [], "field_refs": ["/scores/readiness/value"],
+                       "effect": "REVIEW"})
+    unmet = [o["id"] for o in record["coverage"]["obligations"]
+             if o["met"] is False and o["release_impact"] == "HARD_BLOCK"]
+    require(len(unmet) == record["coverage"]["summary"]["hard_block_unmet"], "NATIVE_FULL_WIRE",
+            "coverage summary hard_block_unmet differs from the obligations")
+    if unmet:
+        guards.append({"kind": "review_guard", "id": HARD_BLOCK_GUARD,
+                       "expected": "0",
+                       "observed": str(len(unmet)),
+                       "claim_ids": [], "finding_ids": [], "obligation_ids": sorted(unmet),
+                       "field_refs": ["/coverage/summary/hard_block_unmet"], "effect": "REVIEW"})
+    return guards
+
+
+def default_floor_text(field, readiness):
+    """The `expected`/`observed` text of the default readiness floor guard."""
+    if field == "expected":
+        return f"readiness >= {sem_why.fmt_score(DEFAULT_READINESS_FLOOR)}"
+    return "withheld" if readiness is None else sem_why.fmt_score(readiness)
+
+
+def _apply_default_floor_guards(record, readiness, *, ontology):
+    """Append the no-policy default floor guards and re-render the release state and explanation."""
+    release = record["release_recommendation"]
+    guards = default_floor_guards(record, readiness)
+    if not guards:
+        return
+    release["decisive"].extend(guards)
+    release["state"] = ("BLOCK" if any(d["effect"] == "BLOCK" for d in release["decisive"]) else "REVIEW")
+    explanation = release["explanation"]
+    explanation["template_id"] = f"eio.why.release.{release['state'].lower()}@1"
+    explanation["params"] = {"n_decisive": len(release["decisive"]),
+                             "decisive_list": [decisive_entry_text(record, d) for d in release["decisive"]],
+                             "n_contributing": len(release["contributing"]),
+                             "semantics": RELEASE_SEMANTICS}
+    explanation["summary"] = sem_why.render(ontology, explanation["template_id"], explanation["params"])
 
 
 def _reconcile_scored_policy(record, value, *, ontology):
@@ -106,7 +195,7 @@ def full_score_block_problems(block, versioned_unscored, *, ontology):
         problems.append("rc4 score basis digest differs")
     if block.get("score_sha256") != H(jb({key: value for key, value in block.items() if key != "score_sha256"})):
         problems.append("rc4 score block digest differs")
-    document = profiles.reference_full_document(ontology)
+    document = profiles.reference_public_document(ontology)
     expected = {**profiles.record_profile(document), "ontology_sha256": ontology.ontology_sha256}
     if block.get("scoring_profile") != expected:
         problems.append("rc4 score profile identity or digest differs")
@@ -137,12 +226,14 @@ def project_native_full_per(bundle, unscored_per, verification, *, ontology):
     for value in proof_sets.values():
         require(value == sorted(set(value)), "NATIVE_FULL_WIRE", "source proof IDs are not sorted and unique")
     base = _versioned_unscored(unscored_per)
-    document = profiles.reference_full_document(ontology)
+    document = profiles.reference_public_document(ontology)
     draft = score_native(**inputs, ontology=ontology, profile=document)
     require(draft["profile_sha256"] == profiles.profile_sha256(document)
             and draft["ontology_sha256"] == ontology.ontology_sha256,
             "NATIVE_FULL_WIRE", "score does not bind profile and ontology")
     _reconcile_scored_policy(base, draft["readiness"]["value"], ontology=ontology)
+    _apply_high_review_guard(base, draft["high_review_queue"], ontology=ontology)
+    _apply_default_floor_guards(base, draft["readiness"]["value"], ontology=ontology)
 
     claim_ids = {row["id"] for row in base["claims"]}
     metrics = []
@@ -180,7 +271,7 @@ def project_native_full_per(bundle, unscored_per, verification, *, ontology):
                  "cap": {"applied": applied, "ceiling": 49.0 if applied else None,
                          "claim_ids": result["cap_claim_ids"],
                          "prohibited_use": inputs["policy"]["prohibited"]}}
-    block = {"kind": "reference-draft",
+    block = {"kind": SCORE_KIND,
              "scoring_profile": {**profiles.record_profile(document), "ontology_sha256": ontology.ontology_sha256},
              "score_basis_version": SCORE_BASIS_VERSION,
              "score_basis_sha256": _score_basis_sha256(base),

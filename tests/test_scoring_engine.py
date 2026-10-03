@@ -165,6 +165,7 @@ def test_the_registry_holds_the_draft_reference_scoring(eio):
     reg = profiles.profiles(eio)
     assert [(r["id"], r["version"], r["verifiability"], r["status"]) for r in reg] == [
         (profiles.REFERENCE_ID, profiles.REFERENCE_VERSION, "rederivable", "draft"),
+        (profiles.REFERENCE_ID, profiles.REFERENCE_PUBLIC_VERSION, "rederivable", "active"),
         (profiles.REFERENCE_ID, profiles.REFERENCE_FULL_VERSION, "rederivable", "draft")]
     doc = profiles.load_profile(profiles.REFERENCE_ID, profiles.REFERENCE_VERSION, eio)
     assert profiles.document_problems(doc) == [] and reg[0]["sha256"] == profiles.profile_sha256(doc)
@@ -177,7 +178,11 @@ def test_the_registry_holds_the_draft_reference_scoring(eio):
     full = profiles.load_profile(profiles.REFERENCE_ID, profiles.REFERENCE_FULL_VERSION, eio)
     assert full["g_component_ids"] == ["release_gate", "human_oversight", "policy_conformance",
                                        "obligation_coverage"]
-    assert reg[1]["sha256"] == profiles.profile_sha256(full)
+    assert reg[2]["sha256"] == profiles.profile_sha256(full)
+    public = profiles.load_profile(profiles.REFERENCE_ID, profiles.REFERENCE_PUBLIC_VERSION, eio)
+    assert reg[1]["sha256"] == profiles.profile_sha256(public) != reg[2]["sha256"]
+    assert (public["parameters"], public["formulas"], public["g_component_ids"]) == (
+        full["parameters"], full["formulas"], full["g_component_ids"])
     assert doc["gaps"]
     decl = {"id": doc["id"], "version": doc["version"], "verifiability": "rederivable", "sha256": profiles.profile_sha256(doc),
             "document": None}
@@ -214,5 +219,6 @@ def test_no_attested_adapter_document_is_package_data():
     assert sorted(hits) == sorted([
         ("reference-profile-0.2.0-draft.1.json", "eio-agents.reference-scoring"),
         ("reference-profile-0.3.1-draft.1.json", "eio-agents.reference-scoring"),
+        ("reference-profile-0.3.1.json", "eio-agents.reference-scoring"),
         ("reference-profile-0.3.0-draft.1.json", "eio-agents.reference-scoring"),
     ])
