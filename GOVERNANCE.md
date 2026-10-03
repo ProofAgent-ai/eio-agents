@@ -5,7 +5,7 @@ how releases are versioned.
 
 ## Current state
 
-EIO-Agents, EIO and PER 2.0 are created and maintained by ProofAgent. Today this is a single-vendor project: the
+EIO-Agents, EIO and PER are created and maintained by ProofAgent. Today this is a single-vendor project: the
 maintainers work for one company, and there is no second, independent implementation. Neutral, multi-party governance
 (for example a W3C Community Group or a foundation project) is a goal, not a fact. This document will change when that
 happens.

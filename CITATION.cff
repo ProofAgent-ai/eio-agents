@@ -19,7 +19,7 @@ keywords:
   - evidence
   - verification
 abstract: >-
-  Reference library for EIO (Evaluation Intelligence Ontology) and PER 2.0 evaluation records for AI agents.
+  Reference library for EIO (Evaluation Intelligence Ontology) and the Portable Evaluation Record (PER 2.1) for AI-agent evaluation.
   A model-graded verdict can support but never prove a claim, and a computed per-predicate witness rule
   decides which typed evidence can prove agent behaviour. Records are canonical and content-addressed, so
   a recipient with the exact evaluation bundle and matching library release can re-derive a record and check its digest.

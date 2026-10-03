@@ -13,7 +13,7 @@ laws, and where that coverage stops. Read it before you use a control status fro
 
 ## What EIO and PER are, and are not
 
-EIO and PER 2.0 are open specifications with a reference library. They are not yet standards: they have no public,
+EIO and PER are open specifications with a reference library. They are not yet standards: they have no public,
 multi-party governance and no second, independent implementation. [GOVERNANCE.md](../GOVERNANCE.md) sets out how that is
 meant to change.
 

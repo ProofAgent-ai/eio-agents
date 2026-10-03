@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/pypi/pyversions/eio-agents)](https://pypi.org/project/eio-agents/)
 [![License](https://img.shields.io/pypi/l/eio-agents)](https://github.com/ProofAgent-ai/eio-agents/blob/main/LICENSE)
 
-[![Evaluation stack: agent infrastructure, evaluation framework, EIO-Agents semantic layer, and Portable Evaluation Record](https://raw.githubusercontent.com/ProofAgent-ai/eio-agents/main/docs/eio-agents-stack.svg)](https://www.proofagent.ai/eio-agents)
+[![Evaluation stack: agent infrastructure, evaluation framework, EIO-Agents semantic layer, and Portable Evaluation Record](https://raw.githubusercontent.com/ProofAgent-ai/eio-agents/main/docs/eio-agents-stack.png)](https://www.proofagent.ai/eio-agents)
 
 **The framework-agnostic semantic layer for AI-agent evaluation.** EIO-Agents uses the Evaluation Intelligence Ontology (EIO) to turn an evaluator's observations into evidence-linked claims and a versioned Portable Evaluation Record (PER). It also validates, verifies, and explains that record.
 
@@ -30,7 +30,7 @@ Framework-control links show evidence relevance; they do **not** establish legal
 
 ## Evaluation-platform agnostic
 
-[![Many producers, one portable record: ProofAgent Harness as a native producer, and Inspect AI, promptfoo, DeepEval, OpenTelemetry GenAI and your own report through export converters, all build the same EIO bundle, which EIO-Agents turns into one PER 2.1.0](https://raw.githubusercontent.com/ProofAgent-ai/eio-agents/main/docs/eio-agents-adapters.svg)](https://www.proofagent.ai/eio-agents/per#adapters)
+[![Many producers, one portable record: ProofAgent Harness as a native producer, and Inspect AI, promptfoo, DeepEval, OpenTelemetry GenAI and your own report through export converters, all build the same EIO bundle, which EIO-Agents turns into one PER 2.1.0](https://raw.githubusercontent.com/ProofAgent-ai/eio-agents/main/docs/eio-agents-adapters.png)](https://www.proofagent.ai/eio-agents/per#adapters)
 
 A PER does not depend on who ran the evaluation. A **native producer** records EIO evidence during the run; an
 **export converter** maps a finished report through an explicit crosswalk. Both build the same EIO bundle with

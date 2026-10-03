@@ -1,5 +1,5 @@
 EIO-Agents (eio-agents)
-Reference library for the Evaluation Intelligence Ontology (EIO) and PER 2.0 evaluation records.
+Reference library for the Evaluation Intelligence Ontology (EIO) and the Portable Evaluation Record (PER).
 Copyright 2025-2026 ProofAI LLC
 
 Licensed under the Apache License, Version 2.0. See LICENSE for details.
@@ -8,7 +8,7 @@ ProofAgent and ProofAgent Harness are trademarks of ProofAI LLC.
 
 Bundled data
 This distribution includes the EIO ontology modules, the EIO JSON Schemas and JSON-LD context, the EIO reference cases,
-and the PER 2.0 JSON Schema and JSON-LD context. They are authored in this repository and licensed under the Apache
+and the PER JSON Schemas (2.1.0, and the earlier versions kept for verification) and JSON-LD context. They are authored in this repository and licensed under the Apache
 License, Version 2.0.
 
 Frameworks, standards and laws
