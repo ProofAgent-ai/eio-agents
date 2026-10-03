@@ -50,7 +50,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://www.proofagent.ai/eio-agents/schema/"
+Homepage = "https://www.proofagent.ai/eio-agents"
 Repository = "https://github.com/ProofAgent-ai/eio-agents"
 Documentation = "https://github.com/ProofAgent-ai/eio-agents/tree/main/docs"
 Issues = "https://github.com/ProofAgent-ai/eio-agents/issues"
