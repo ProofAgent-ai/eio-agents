@@ -86,9 +86,10 @@ def predicates(search: str | None = None, *, ontology: Ontology | None = None) -
     evidence, evidence_contract, metrics, controls, failure_scorable, risk, tags}` each. `evidence` states the
     evidence contract in words (`; ` between required groups, ` or ` inside one); `metrics` are the metrics a decided
     claim on the predicate counts toward (the normative derived-view edges of `eio.mapping.metrics`); `controls` is the
-    number of framework controls that target it; `failure_scorable` says whether a failed claim on it can be projected
-    into a scored native record (its contract has an evidence group that can prove agent behaviour, which the native
-    proof rule needs; a failure of any other predicate makes `convert` refuse the bundle). With `search`, only the
+    number of framework controls that target it; `failure_scorable` says whether a failed claim on it can be proven
+    or reported in a native record (its contract has an evidence group that can prove agent behaviour, which the native
+    proof rule needs). Since 0.8.3 a failure of any other predicate is still recorded, as an UNPROVEN finding in the
+    review queue (0.8.2 refused the bundle). With `search`, only the
     rows whose id, meaning, risk, tags or metrics contain every word of it (case-insensitive)."""
     eio = ontology if ontology is not None else load_ontology()
     edges: dict[str, set[str]] = {}

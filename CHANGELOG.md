@@ -10,6 +10,97 @@ The format is based on [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.
 Every entry states the bundled EIO release, the PER version, and whether record bytes change. The `.devN` versions
 below are development builds; `0.6.0rc1` was a release candidate. No version is a claim of certification.
 
+## [0.8.3]
+
+EIO-Agents 0.8.3 bundles the same EIO `0.6.0` (`ontology_digest` `a27cf1f3ab755446`) and produces the same PER `2.1.0`
+under release semantics `2.2`, with reference scoring profile `0.3.1` and bundle format `3.0.0`. No EIO data or schema
+changes. The native proof rule changes for findings (D-47); historical (adapter) records keep their published rule.
+
+### Fixed
+
+- **Native proof is per claim (D-47).** A native finding was `PROVEN` when any one of its claims was proven, so the
+  other, unproven claims of the same behavioural fingerprint were counted as `PROVEN` with it. The claims of one
+  fingerprint are now split by their own proof status: a `PROVEN` finding holds only proven claims and keeps the plain
+  `finding_id`; the rest form an `UNPROVEN` finding whose id, when both exist, is the stable digest of
+  `{run_id, fingerprint, proof_status: "UNPROVEN"}` (both carry the same `fingerprint`). Applies to native records
+  under the strict proof rule (`native_claim_proves: false`) only. Converter (`semantics.findings`,
+  `semantics.ids.finding_id`, `per.native_reportability`) and, independently, the verifier twin
+  (`validation.checker` F1, `validation.native_score.derive_proof_sets`): a PROVEN finding with an unproven claim, or a
+  split that is not one PROVEN and one UNPROVEN finding, fails verification.
+- **Reported per claim.** A finding is listed in `scores.proof_sets.reportable_finding_ids` only when every claim it
+  counts is reportable (R1-R5), in both twins; before, one reportable claim reported its siblings too.
+- **A failure the proof rule cannot prove is recorded.** A native `APPLICABLE_FAIL` on a predicate whose evidence
+  contract has no group that can prove agent behaviour (21 predicates under EIO 0.6.0, e.g.
+  `claim-contradicts-grounding`) withheld every proof set under 0.8.2, so a producer had to drop it (`build_bundle`
+  refused it with `BUILD_EVIDENCE`). It is now an `UNPROVEN` finding that is never reported (review queue); a proof
+  citation that names such a claim is refused by both twins. `predicates()` keeps `failure_scorable` (whether a failure
+  can be proven or reported).
+- **Proof relevance (D-47).** A proof citation must name a ref of a kind in the first group of the predicate's evidence
+  contract that can prove agent behaviour, in both twins (unchanged rule; now covered by vectors).
+
+### Added
+
+- Native test vector `tests/data/native/v0_8_3/proof-per-claim.bundle.json` and its PER `proof-per-claim.per.jcs`,
+  authored by `author_v0_8_3.py` with `build_bundle`; tests in `tests/test_0_8_3_fixes.py`.
+
+### Changed
+
+- Record bytes change: in the library version stamp, and for a native record whose fingerprint holds both proven and
+  unproven failures, or a failure of a proof-ineligible predicate. No earlier test vector changes bytes: every 0.8.0 and
+  0.8.2 vector re-derives byte for byte under its own version stamp (none holds such a finding).
+- `tests/test_native_score_gate.py::test_missing_ontology_proof_group_withholds_all_sets_not_empty_sets` (0.8.2 rule)
+  is replaced by `test_missing_ontology_proof_group_is_unproven_not_withheld`, and
+  `tests/test_build_semantic.py::test_a_failure_the_native_proof_rule_cannot_score_is_refused_first` by
+  `test_a_failure_the_native_proof_rule_cannot_prove_is_recorded_unproven`.
+- The custom-report example's record digest in its README is updated (version stamp).
+
+## [0.8.2]
+
+EIO-Agents 0.8.2 bundles the same EIO `0.6.0` (`ontology_digest` `a27cf1f3ab755446`) and produces the same PER `2.1.0`
+under release semantics `2.2`, with reference scoring profile `0.3.1` and bundle format `3.0.0`. No EIO data, schema or
+scoring rule changes.
+
+### Fixed
+
+- A native bundle with reliability trial records now converts to a valid PER. Under 0.8.1 such a bundle failed closed
+  with `NATIVE_SCORE_PREVIEW` (W1, then D2), so no native producer could publish re-test results. Three defects, each
+  fixed in the converter and, independently, in the verifier twin (`eio_agents.validation` still imports no converter
+  module):
+  - **Native ledger keys.** A recurrence row's `ledger_key` is the producer's trial-ledger key
+    `<scenario label>::<check>@<first turn>`. The check had to be a legacy check name, a vocabulary that is empty in the
+    standalone release. A native key may now name its own claim's predicate token instead: the predicate's local name
+    with hyphens as underscores (`eio.predicate.prohibited-tool-invoked` → `prohibited_tool_invoked`), at the claim's
+    first turn; the label is fingerprinted as before. Any other check or turn still fails, and a null key still fails
+    the PER schema.
+  - **Recurrence gate reason after claim-id renaming.** The native projection renames bundle claim ids; the
+    `eio.gate.no-critical-recurrence` reason (and its summary) embedded the pre-renaming id as text. It is now rebuilt
+    from the renamed rows, as the release explanation's decisive list already was.
+  - **Verifier trial lookup and label source.** The verifier's T4 check looked a recurrence row's trial record up by the
+    record's (renamed) claim id; it now maps a renamed id back to its bundle claim by the same digest D2 re-derives. The
+    ledger key's label fingerprint may resolve to the trial's named lists (`trials.named_lists.<list>.*`), where a
+    native producer lists its trial labels.
+
+### Added
+
+- Core limitation `per.lim.reliability.not_run` (`NOT_SUPPLIED`, path `/reliability`): no reliability re-tests were
+  run, so no finding carries a recurrence band. A producer declares it as a bundle limitation
+  `{"id": "per.lim.reliability.not_run", "path": null, "params": {}}`, in the same structure as
+  `per.lim.tool_policy.empty`. It is added to the core catalogue (`per/data/limitations-core.json`, now 28 rows) and
+  to the projector's catalogue (`per/data/limitations.json`, now 51 rows) with the same texts. The EIO release digests
+  and gates are unchanged.
+- Native trial test vector `tests/data/native/v0_8_2/native-trials.bundle.json` and its PER `native-trials.per.jcs`:
+  a code-verified prohibited-tool call declared with `narrower` fidelity, reproduced in 3 of 3 re-test passes. The PER
+  validates and verifies (`digest_match`), its recurrence is CONFIRMED, the no-critical-recurrence gate is unmet and
+  names the renamed claim, and the narrower claim is PROVEN; the tests show it is PROVEN only when CONFIRMED
+  (`tests/test_0_8_2_fixes.py`).
+
+### Changed
+
+- Record bytes change: yes, in the library version only (`header.converter.version`, `header.per_semantics_version`
+  and the score digests over the header), plus the fixes above where a bundle uses them. No earlier test vector is
+  reissued: the 0.8.0 vectors keep their bytes and re-derive byte for byte under their own version stamp
+  (`tests/released_version.py`). The custom-report example's record digest in its README is updated.
+
 ## [0.8.1]
 
 EIO-Agents 0.8.1 bundles the same EIO `0.6.0` (`ontology_digest` `a27cf1f3ab755446`) and produces the same PER `2.1.0`

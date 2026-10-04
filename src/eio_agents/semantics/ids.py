@@ -41,8 +41,12 @@ def context_gap_fingerprint(criterion, control):
     return hashlib.sha256(jb({"v": 1, "criterion": criterion, "control": control})).hexdigest()
 
 
-def finding_id(run_id, fingerprint):
-    return sd({"run_id": run_id, "fingerprint": fingerprint})
+def finding_id(run_id, fingerprint, proof_status=None):
+    """Finding id. `proof_status` is given only for the UNPROVEN part of a behavioural fingerprint that is split by
+    proof status (strict native proof, 0.8.3): its PROVEN part keeps the plain recipe, so the two ids differ."""
+    if proof_status is None:
+        return sd({"run_id": run_id, "fingerprint": fingerprint})
+    return sd({"run_id": run_id, "fingerprint": fingerprint, "proof_status": proof_status})
 
 
 def issue_signature(predicate, major):

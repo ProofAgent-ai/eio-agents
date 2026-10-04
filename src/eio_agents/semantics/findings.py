@@ -14,6 +14,11 @@ def findings(P, band_of, claim_proven, gaps):
     """The findings of a projection `P` (see `eio_agents.per.project`), sorted; `gaps` are the CONTEXT_GAP inputs
     `{criterion, control, ref, files, chars, terms}`."""
     eio = P.eio
+    # Strict native proof (0.8.3, D-47): a finding is PROVEN only per claim. The claims of one behavioural fingerprint
+    # are split by their own proof status, so no unproven claim is ever counted inside a PROVEN finding. The PROVEN part
+    # keeps the plain finding id; the UNPROVEN part of a split fingerprint takes the discriminated id
+    # (`ids.finding_id(..., "UNPROVEN")`). Historical rules keep one finding per fingerprint (their published bytes).
+    split = bool(getattr(P, "strict_native_proof", False))
     grp = {}
     for c in P.claims:
         if c["state"] != "APPLICABLE_FAIL" or eio.polarity(c["predicate"]) == "observation":
@@ -22,10 +27,14 @@ def findings(P, band_of, claim_proven, gaps):
         # the recipe's label slot takes the label's record value: a trap-library label in clear, any other label as its
         # fingerprint (decision #31; the verifier recomputes it from the record's `traps`)
         fp = ids.behavioural_fingerprint(c["predicate"], major, P.label_value(P.scenario_of(c)))
-        grp.setdefault(fp, []).append(c)
+        part = ("PROVEN" if claim_proven(c) else "UNPROVEN") if split else None
+        grp.setdefault((fp, part), []).append(c)
+    parts = {}
+    for fp, _part in grp:
+        parts[fp] = parts.get(fp, 0) + 1
     obl_rows = {o["id"]: o for o in P.obligations}
     F = []
-    for fp, cl in grp.items():
+    for (fp, part), cl in grp.items():
         pred = cl[0]["predicate"]
         pd = eio.pred[pred]
         major = int(cl[0]["predicate_version"].split(".")[0])
@@ -42,7 +51,7 @@ def findings(P, band_of, claim_proven, gaps):
         label = P.scenario_of(cl[0])
         turns = sorted({t for c in cl for t in c["turn_indices"]})
         labels = sorted({P.scenario_of(c) for c in cl} - {None})       # the declared scenario labels ([] without any)
-        fid = ids.finding_id(P.run_id, fp)
+        fid = ids.finding_id(P.run_id, fp, "UNPROVEN" if (part == "UNPROVEN" and parts[fp] > 1) else None)
         f = {"finding_id": fid, "fingerprint": fp, "issue_signature": ids.issue_signature(pred, major), "kind": "BEHAVIOURAL",
              "predicate": pred, "predicate_version": cl[0]["predicate_version"]}
         if pd.get("risk"):

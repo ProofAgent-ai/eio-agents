@@ -271,12 +271,8 @@ def derive_proof_sets(bundle, record, eio):
     refs = {r["id"]: r for r in bundle["graph"]["refs"]}
     if len(refs) != len(bundle["graph"]["refs"]):
         raise ScoreInputError("source evidence ref IDs are duplicated")
-    for claim in claims.values():
-        if claim["state"] != "APPLICABLE_FAIL" or eio.pred[claim["predicate"]]["polarity"] == "observation":
-            continue
-        groups = (eio.pred[claim["predicate"]].get("evidence_contract") or {}).get("require_groups") or []
-        if not any(any(eio.kinds[k]["can_prove_agent_behaviour"] for k in group) for group in groups):
-            return _withheld_proof("predicate has no explicit proof-eligible require-group in pinned EIO release")
+    # 0.8.3: a failure on a predicate without a proof-eligible require-group no longer withholds the sets; it is never
+    # proven or reportable (no citation can name it: refused below), and stays an UNPROVEN finding.
     source_to_neutral = {old["id"]: new["id"] for old, new in zip(bundle["claims"], inputs["claims"])}
     proof = defaultdict(list)
     seen = set()
@@ -304,7 +300,7 @@ def derive_proof_sets(bundle, record, eio):
         groups = ec.get("require_groups") or []
         first = next((set(group) for group in groups if any(eio.kinds[k]["can_prove_agent_behaviour"] for k in group)), set())
         if not first:
-            return _withheld_proof("predicate has no explicit proof-eligible require-group in pinned EIO release")
+            raise ScoreInputError("proof citation names a claim whose predicate has no proof-eligible contract group")
         if ref["kind"] not in first or ref["kind"] in ec.get("forbid_as_agent_proof", ()):
             raise ScoreInputError("proof citation kind is outside the first eligible contract group")
         episodes = bundle["graph"].get("episodes") or []
@@ -382,10 +378,14 @@ def derive_proof_sets(bundle, record, eio):
         if assigned & members:
             raise ScoreInputError("source claim belongs to multiple behavioural findings")
         assigned |= members
+        # 0.8.3 (D-47): proof is per claim; a finding holds only proven or only unproven claims
+        if members & proven and not members <= proven:
+            raise ScoreInputError("PER finding mixes independently proven and unproven claims")
         expected_proof = "PROVEN" if members & proven else "UNPROVEN"
         if finding.get("proof_status") != expected_proof:
             raise ScoreInputError("PER finding proof status contradicts independently checked claims")
-        if members & reportable:
+        # 0.8.3: reported only when every claim the finding counts is reportable
+        if members and members <= reportable:
             reportable_findings.add(finding["finding_id"])
         if members & decisive:
             decisive_findings.add(finding["finding_id"])

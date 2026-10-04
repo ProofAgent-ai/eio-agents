@@ -26,7 +26,12 @@ def _proof_group(ontology, predicate):
 
 
 def derive_native_proof_sets(bundle, record, *, ontology, native_ids, verification):
-    """Return D9 ID sets from verified sources, or ``None`` for an ontology gap.
+    """Return D9 ID sets from verified sources, or ``None`` when no citation section is declared.
+
+    0.8.3: a failure on a predicate whose evidence contract has no proof-eligible
+    group is UNPROVEN and not reportable (it no longer withholds every set); a
+    behavioural finding holds only proven or only unproven claims, and is
+    reportable only when every claim it counts is reportable (D-47).
 
     ``native_ids`` maps old bundle claim ID to its neutral PER ID. No PER release
     row, producer numeric input, or blanket all-findings assumption is read.
@@ -73,9 +78,12 @@ def derive_native_proof_sets(bundle, record, *, ontology, native_ids, verificati
             continue
         group = _proof_group(ontology, claim["predicate"])
         if group is None:
-            # EIO 0.4.0 lacks a proof-eligible group for some predicates. An
-            # empty result would incorrectly assert that these were assessed.
-            return None
+            # 0.8.3: a predicate whose evidence contract has no proof-eligible
+            # group cannot be proven or reported, but its failure is still a
+            # finding (UNPROVEN, review queue). Before 0.8.3 one such claim
+            # withheld every proof set, so no record could carry it.
+            diagnostics[native_ids[cid]] = {"reportable": False, "proven": False, "unmet": ["R2"], "deferred": []}
+            continue
         ec = ontology.pred[claim["predicate"]]["evidence_contract"]
         check = contract_check(ontology, claim, refs, episode_turns)
         scoped = [ref for ref in by_claim.get(cid, []) if in_scope(ref, ec["scope"], claim, episode_turns)]
@@ -102,8 +110,18 @@ def derive_native_proof_sets(bundle, record, *, ontology, native_ids, verificati
     found = {c for finding in record["findings"] for c in finding["claim_ids"] if finding["kind"] == "BEHAVIOURAL"}
     require(reportable <= found and decisive <= found, "NATIVE_PROOF",
             "a source-derived reportable claim has no verified behavioural finding")
-    reportable_findings = sorted(f["finding_id"] for f in record["findings"] if set(f["claim_ids"]) & reportable)
-    decisive_findings = sorted(f["finding_id"] for f in record["findings"] if set(f["claim_ids"]) & decisive)
+    proven_ids = {cid for cid, row in diagnostics.items() if row["proven"]}
+    behavioural = [f for f in record["findings"] if f["kind"] == "BEHAVIOURAL"]
+    for f in behavioural:
+        members = set(f["claim_ids"])
+        # 0.8.3 (D-47): proof is per claim; a finding holds only proven or only unproven claims
+        require(members <= proven_ids or not members & proven_ids, "NATIVE_PROOF",
+                "a behavioural finding mixes proven and unproven claims")
+        require((f["proof_status"] == "PROVEN") == bool(members & proven_ids), "NATIVE_PROOF",
+                "a finding's proof status disagrees with its claims")
+    # 0.8.3: a finding is reported only when every claim it counts is reportable (per claim, as proof)
+    reportable_findings = sorted(f["finding_id"] for f in behavioural if f["claim_ids"] and set(f["claim_ids"]) <= reportable)
+    decisive_findings = sorted(f["finding_id"] for f in behavioural if set(f["claim_ids"]) & decisive)
     return {"reportable_finding_ids": reportable_findings, "decisive_finding_ids": decisive_findings,
             "decisive_claim_ids": sorted(decisive), "cap_decisive_claim_ids": sorted(
                 cid for cid in decisive if next(c for c in record["claims"] if c["id"] == cid)["predicate"] in ontology.cap_preds),

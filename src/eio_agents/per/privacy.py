@@ -113,6 +113,7 @@ BASIS_PHRASE = re.compile(r"framework set of (eio\.region\.[a-z0-9-]+)")      # 
 VIA_LINK = re.compile("eio\\.graph\\.context-links:(?P<key>[^→]+)→(?P<criterion>eio\\.context\\.[^/]+)/(?P<control>.+)")
 VIA_CRITERION = re.compile(r"eio\.context\.criteria:(?P<criterion>[^/]+)/(?P<control>.+)")
 LEDGER = re.compile(r"(?P<label>.+)::(?P<check>[a-z0-9_]+)@(?P<turn>[1-9][0-9]*)")
+PREDICATE_ID = re.compile(r"eio\.predicate\.(?P<name>[a-z0-9][a-z0-9-]*)")
 DISPLAY_LABEL = re.compile("t[0-9]{2,} · (?P<predicate>[a-z0-9][a-z0-9-]*)|ctx · (?P<criterion>[a-z0-9][a-z0-9-]*) / (?P<control>[a-z0-9][a-z0-9-]*)")
 SEMANTICS = re.compile(r"2@(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*[+]eio(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
                        r"(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?\.[0-9a-f]{16}")
@@ -1203,17 +1204,27 @@ def decisive_entry_text(rec, row):
     return s + (" -> REVIEW" if row["effect"] == "REVIEW" else "")
 
 
+def predicate_token(predicate):
+    """The native ledger-key token of a release predicate id: its local name with hyphens as underscores
+    (`eio.predicate.prohibited-tool-invoked` -> `prohibited_tool_invoked`), or None for any other string."""
+    m = PREDICATE_ID.fullmatch(predicate) if isinstance(predicate, str) else None
+    return m.group("name").replace("-", "_") if m else None
+
+
 def ledger_key_problem(V, rec, row, v):
     """Why the ledger key `v` of the recurrence row `row` is not bound to its claim, or None. The key is the producer's
-    trial-ledger key (the record keeps no other copy of its label or check): its label is a trap-library label or a
-    fingerprint, its check a legacy check name of the release and its turn the claim's first turn."""
+    trial-ledger key (the record keeps no other copy of its label or check), `<label>::<check>@<turn>`: its label is a
+    trap-library label or a fingerprint, its turn the claim's first turn, and its check either a legacy check name of
+    the release or, for a native key, the predicate token of its own claim's predicate (`predicate_token`)."""
     m = LEDGER.fullmatch(v)
     claim = next((c for c in rec["claims"] if c["id"] == row["claim_id"]), None)
     if m is None or claim is None:
         return "is not a ledger key of a claim of the record"
     label_ok = is_fingerprint(m.group("label")) or m.group("label") in V.labels
-    bound = m.group("check") in V.check_names and m.group("turn") == str(_int(claim["turn_indices"][0]))
-    return None if label_ok and bound else "is not a sealed ledger key over a legacy check and its claim's first turn"
+    check_ok = m.group("check") in V.check_names or m.group("check") == predicate_token(claim["predicate"])
+    bound = check_ok and m.group("turn") == str(_int(claim["turn_indices"][0]))
+    return None if label_ok and bound else ("is not a sealed ledger key over a legacy check or its claim's predicate "
+                                            "token and its claim's first turn")
 
 
 def finding_ledger_key_text(rec, finding):

@@ -551,6 +551,17 @@
    "reason": "The producer declared no prohibited tools.",
    "impact": "Forbidden-tool obligations are evaluated against an empty set of prohibited tools, so no tool call can violate them.",
    "next_step": "Declare the tools the agent must not call, or confirm that none are prohibited."
+  },
+  {
+   "id": "per.lim.reliability.not_run",
+   "status": "NOT_SUPPLIED",
+   "paths": [
+    "/reliability"
+   ],
+   "raised_when": "the producer declares that no reliability re-tests were run",
+   "reason": "No reliability re-tests were run.",
+   "impact": "No finding carries a recurrence band, so a narrower claim cannot be proven by recurrence and the no-critical-recurrence gate is not evaluated.",
+   "next_step": "Re-run the failing claims in repeated passes and record them as trials."
   }
  ]
 }

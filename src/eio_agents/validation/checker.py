@@ -901,6 +901,15 @@ class Checker:
         e, rec, p = self.eio, self.rec, []
         obls = rec["coverage"]["obligations"]
         seen = Counter()
+        # strict native proof (0.8.3, D-47): a behavioural fingerprint may be split into a PROVEN and an UNPROVEN finding;
+        # the UNPROVEN part of a split takes the discriminated id, and every claim of a PROVEN finding is a proof candidate
+        strict = (((rec.get("provenance") or {}).get("producer") or {}).get("kind") == "native"
+                  and (e.profiles.get("eio.profile.proof-status") or {}).get("native_claim_proves") is False)
+        parts = Counter(f["fingerprint"] for f in rec["findings"] if f["kind"] == "BEHAVIOURAL")
+        part_status = {}
+        for f in rec["findings"]:
+            if f["kind"] == "BEHAVIOURAL":
+                part_status.setdefault(f["fingerprint"], []).append(f["proof_status"])
         for f in rec["findings"]:
             fid = f["finding_id"]
             if f["kind"] == "BEHAVIOURAL":
@@ -916,7 +925,14 @@ class Checker:
                 scenarios = f["scenarios"] if rec["header"]["schema_uri"] in NEUTRAL_SCHEMA_URIS else f["traps"]
                 label = scenarios[0] if scenarios else None
                 fp = hashlib.sha256(jb({"v": 1, "predicate": f["predicate"], "predicate_major": major, "trap": label})).hexdigest()
-                if (f["fingerprint"], f["finding_id"], f["issue_signature"]) != (fp, sd({"run_id": rec["provenance"]["run"]["run_id"], "fingerprint": fp}),
+                id_payload = {"run_id": rec["provenance"]["run"]["run_id"], "fingerprint": fp}
+                if parts[f["fingerprint"]] > 1:
+                    if not strict or sorted(part_status[f["fingerprint"]]) != ["PROVEN", "UNPROVEN"]:
+                        p.append(f"finding {fid}: a behavioural fingerprint is split other than into one PROVEN and one "
+                                 "UNPROVEN finding (strict native proof only)")
+                    elif f["proof_status"] == "UNPROVEN":
+                        id_payload["proof_status"] = "UNPROVEN"
+                if (f["fingerprint"], f["finding_id"], f["issue_signature"]) != (fp, sd(id_payload),
                                                                                sd({"predicate": f["predicate"], "major": major})):
                     p.append(f"finding {fid}: fingerprint / finding_id / issue_signature do not recompute (03 §6)")
                 if not self.abridged:
@@ -939,6 +955,9 @@ class Checker:
                 if f["proof_status"] == "PROVEN" and not any(self.proof_candidate(c) for c in cl):
                     p.append(f"finding {fid}: PROVEN needs a deterministic or human claim with a witnessing ref inside its "
                              "contract scope (W1: no claim of it records contract_check without no_witnessing_ref)")
+                if strict and f["proof_status"] == "PROVEN" and not all(self.proof_candidate(c) for c in cl):
+                    p.append(f"finding {fid}: a PROVEN native finding holds a claim that is not a proof candidate "
+                             "(strict native proof is per claim, D-47)")
                 if not self.abridged:
                     ctl = [k["control_id"] for k in rec["controls"] if set(f["claim_ids"]) & set(k["claim_ids"])]
                     if f["control_ids"] != ctl:

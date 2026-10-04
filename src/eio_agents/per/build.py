@@ -397,13 +397,8 @@ def build_bundle(*, run_id: str, producer: dict[str, str], agent: dict[str, str]
             _need(evidence, "BUILD_EVIDENCE", f"check {k} ({p}, turn {t}) cites no evidence: give a 'quote' from the "
                   f"agent answer{' or record the tool calls' if 'TOOL_RECEIPT' in kinds else ''} (its evidence "
                   f"contract names {', '.join(sorted(kinds)) or 'no kind'})")
-        if state == "APPLICABLE_FAIL" and eio.pred[p]["polarity"] != "observation":
-            groups = (eio.pred[p].get("evidence_contract") or {}).get("require_groups") or []
-            _need(any(eio.kind[x]["can_prove_agent_behaviour"] for g in groups for x in g), "BUILD_EVIDENCE",
-                  f"check {k} ({p}, turn {t}) failed, but EIO {eio.release} cannot score a failure of this predicate "
-                  "in a native record: its evidence contract has no evidence group that can prove agent behaviour "
-                  "(only require_all or require_any), and the native proof rule needs one, so `convert` would refuse "
-                  "the bundle. Map the check to another predicate (`eio-agents predicates` lists which can fail)")
+        # 0.8.3: a failure of a predicate whose evidence contract has no group that can prove agent behaviour is
+        # accepted: `convert` records it as an UNPROVEN, unreportable finding (0.8.2 refused the bundle).
         if state == "APPLICABLE_FAIL":
             _need(any(r["can_prove_agent_behaviour"] for r in evidence), "BUILD_EVIDENCE",
                   f"check {k} ({p}, turn {t}) failed but cites nothing the agent did: give a 'quote' of the agent "

@@ -360,19 +360,25 @@ def test_source_contract_scope_recomputed_even_if_per_says_met():
     assert derive_proof_sets(bundle, record, _draft_proof_eio())["reportable_finding_ids"] == []
 
 
-def test_missing_ontology_proof_group_withholds_all_sets_not_empty_sets():
+def test_missing_ontology_proof_group_is_unproven_not_withheld():
+    """0.8.3: a failure on a predicate without a proof-eligible group no longer withholds every set (0.8.2 returned
+    None). A citation naming it is refused; without one the sets are derived and the claim is neither proven nor
+    reportable."""
     bundle, record = _proof_sources()
     eio = _draft_proof_eio()
     predicate = next(c["predicate"] for c in bundle["claims"] if c["state"] == "APPLICABLE_FAIL")
     eio.pred[predicate]["evidence_contract"]["require_groups"] = []
-    result = derive_proof_sets(bundle, record, eio)
-    assert result["reportable_finding_ids"] is None
-    assert result["decisive_claim_ids"] is None
-    assert "proof-eligible" in result["withheld"]
+    with pytest.raises(ScoreInputError, match="proof-eligible"):
+        derive_proof_sets(bundle, record, eio)
     bundle["native_scoring"]["proof_citations"] = []
     bundle["stage_records"][-1]["output_sha256"] = sha(jb({"native_scoring": bundle["native_scoring"]}))
     record["header"]["archive_sha256"] = sha(jb(bundle))
-    assert derive_proof_sets(bundle, record, eio)["reportable_finding_ids"] is None
+    for finding in record["findings"]:
+        finding["proof_status"] = "UNPROVEN"
+    result = derive_proof_sets(bundle, record, eio)
+    assert result["withheld"] is None
+    assert result["reportable_finding_ids"] == [] and result["decisive_claim_ids"] == []
+    assert result["proven_claim_ids"] == []
 
 
 def test_independent_r1_r2_r4_metric_arithmetic_and_missing_severity():

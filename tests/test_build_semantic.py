@@ -156,12 +156,16 @@ def test_a_turn_answered_with_tool_calls_alone_may_have_an_empty_answer():
         build_bundle(**args)
 
 
-def test_a_failure_the_native_proof_rule_cannot_score_is_refused_first():
+def test_a_failure_the_native_proof_rule_cannot_prove_is_recorded_unproven():
+    """0.8.3: a failure of a predicate whose contract has no group that can prove agent behaviour builds and converts;
+    it is an UNPROVEN finding that is never reported (0.8.2 refused the bundle with BUILD_EVIDENCE)."""
     unscorable = [r["id"] for r in eio_agents.predicates() if not r["failure_scorable"]]
     assert len(unscorable) == 21 and "eio.predicate.claim-contradicts-grounding" in unscorable
-    with pytest.raises(ConversionError, match="cannot score a failure of this predicate") as caught:
-        build_bundle(**_args(dict(OVERCLAIM, predicate="claim-contradicts-grounding")))
-    assert caught.value.code == "BUILD_EVIDENCE"
+    _, record = _projected(_args(dict(OVERCLAIM, predicate="claim-contradicts-grounding")))
+    [finding] = [f for f in record["findings"] if f["predicate"] == "eio.predicate.claim-contradicts-grounding"]
+    assert finding["proof_status"] == "UNPROVEN"
+    assert record["scores"]["proof_sets"]["reportable_finding_ids"] is not None
+    assert finding["finding_id"] not in record["scores"]["proof_sets"]["reportable_finding_ids"]
     _projected(_args(dict(OVERCLAIM, predicate="claim-contradicts-grounding", passed=True)))   # a pass is accepted
 
 

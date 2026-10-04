@@ -33,7 +33,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from eio_agents.per.limitations import CATALOGUE as LIMITATION_CATALOGUE
 from eio_agents.schemas import (BUNDLE_SCHEMA, LEGACY_BUNDLE_SCHEMAS, PER_SCHEMA, PER_SCHEMA_NATIVE_PREVIEW, PER_SCHEMA_RC1,
                                 PER_SCHEMA_RC4, PER_SCHEMA_RC5_POLICY, PER_SCHEMA_2_0_0, PER_SCHEMA_2_1_0)
-from eio_agents.validation.canon import jb, q4, sha
+from eio_agents.validation.canon import jb, q4, sd, sha
 from eio_agents.validation.redaction import redact_span
 
 PREFIX = "sha256-"
@@ -104,6 +104,7 @@ BASIS = re.compile(r"framework set of (eio\.region\.[a-z0-9-]+)")
 VIA_LINK = re.compile("eio\\.graph\\.context-links:(?P<key>[^→]+)→(?P<criterion>eio\\.context\\.[^/]+)/(?P<control>.+)")
 VIA_CRITERION = re.compile(r"eio\.context\.criteria:(?P<criterion>[^/]+)/(?P<control>.+)")
 LEDGER = re.compile(r"(?P<label>.+)::(?P<check>[a-z0-9_]+)@(?P<turn>[1-9][0-9]*)")
+PREDICATE = re.compile(r"eio\.predicate\.(?P<name>[a-z0-9][a-z0-9-]*)")
 LABEL = re.compile("t[0-9]{2,} · (?P<predicate>[a-z0-9][a-z0-9-]*)|ctx · (?P<criterion>[a-z0-9][a-z0-9-]*) / (?P<control>[a-z0-9][a-z0-9-]*)")
 SEMANTICS = re.compile(r"2@(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*[+]eio(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
                        r"(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?\.[0-9a-f]{16}")
@@ -667,7 +668,8 @@ SOURCES = {tuple(r.split(".")): tuple(tuple(a.split(".")) for a in s.split("|"))
            for r, s in (line.split() for line in SOURCES_TEXT.strip().splitlines())}
 # rendered texts whose inner values are fingerprints: their bundle sources
 TEXT_SOURCES = {"via": (("producer_declared", "context_links", "claims", "<key>"), ("producer_declared", "context_links", "rows", "{name}")),
-                "ledger_key": (("trials", "records", "*", "ledger_key"), ("producer_declared", "scenarios", "turns", "*", "label")),
+                "ledger_key": (("trials", "records", "*", "ledger_key"), ("producer_declared", "scenarios", "turns", "*", "label"),
+                               ("trials", "named_lists", "<key>", "*")),        # a native trial's scenario label
                 "limitation": (("limitations", "*", "params", "<key>"), ("limitations", "*", "params", "<key>", "*")),
                 "formula": (("sources", "calls_field"), ("sources", "state_field")),
                 "converter": (("producer_declared", "score_inputs", "metrics", "*", "label"),)}   # a gate's metric label
@@ -1081,9 +1083,16 @@ def _decisive_entry(rec, row):
     return text + (" -> REVIEW" if row["effect"] == "REVIEW" else "")
 
 
+def _native_check(predicate):
+    """A native ledger key's check: the local name of the claim's release predicate, hyphens as underscores."""
+    m = PREDICATE.fullmatch(predicate) if isinstance(predicate, str) else None
+    return m["name"].replace("-", "_") if m else None
+
+
 def _ledger_bound(w, rec, row, v):
     """None when the recurrence row's ledger key `v` (the producer's trial-ledger key: the record has no other copy of
-    its label) is a library label or a fingerprint, a legacy check name and the row's claim's first turn, else why not."""
+    its label) is a library label or a fingerprint, a legacy check name or (a native key) its claim's predicate token,
+    and the row's claim's first turn, else why not."""
     m = LEDGER.fullmatch(v)
     claims = [c for c in rec["claims"] if c["id"] == row["claim_id"]]
     if not m or len(claims) != 1:
@@ -1091,8 +1100,9 @@ def _ledger_bound(w, rec, row, v):
     c = claims[0]
     if not (FP.fullmatch(m["label"]) or m["label"] in w.labels):
         return "a ledger key over a clear label outside the trap library"
-    if m["check"] not in w.checks or m["turn"] != str(_i(c["turn_indices"][0])):
-        return "a ledger key over a check outside the release or another turn than its claim's"
+    check_ok = m["check"] in w.checks or m["check"] == _native_check(c["predicate"])
+    if not check_ok or m["turn"] != str(_i(c["turn_indices"][0])):
+        return "a ledger key over a check outside the release or its claim's predicate, or another turn than its claim's"
     return None
 
 
@@ -1593,6 +1603,21 @@ def clear_text_problems(rec, B, e):
 LINK_VIA = "eio.graph.context-links:{key}→{criterion}/{control}"
 
 
+def _neutral_claim_ids(B):
+    """{record claim id: bundle claim id} for a native record, which renames each bundle claim to the digest of its run,
+    predicate, predicate version, source key and sorted turns (as D2 re-derives it); a bundle's trial records name the
+    bundle claim id. A malformed claim is left out (D2 reports it)."""
+    out = {}
+    for c in B.get("claims") or []:
+        try:
+            out[sd({"run_id": c["run_id"], "predicate": c["predicate"], "predicate_version": c["predicate_version"],
+                    "source_key": (c.get("parameters") or {}).get("source_key"),
+                    "turn_indices": sorted(c["turn_indices"])})] = c["id"]
+        except (KeyError, TypeError, AttributeError, ValueError):
+            continue
+    return out
+
+
 def rendered_source_problems(rec, B, e):
     """T4 for the rendered texts: each rebuilt gate reason equals the record's, with the evidence gate's metrics named by
     the decision over the bundle's label of the same metric (not any text of the bundle); each recurrence row's ledger key
@@ -1617,8 +1642,9 @@ def rendered_source_problems(rec, B, e):
             p.append(f"/release_recommendation/gate_results/{i}/explanation/params/reason: not the rendering of its record rows "
                      "and its metrics' bundle labels (T4)")
     trials = {x.get("claim_id"): x for x in (B.get("trials") or {}).get("records") or [] if isinstance(x, dict)}
+    renamed = _neutral_claim_ids(B)
     for i, row in enumerate((rec.get("reliability") or {}).get("recurrence") or []):
-        src = (trials.get(row.get("claim_id")) or {}).get("ledger_key")
+        src = (trials.get(row.get("claim_id")) or trials.get(renamed.get(row.get("claim_id"))) or {}).get("ledger_key")
         m = LEDGER.fullmatch(src) if isinstance(src, str) else None
         want = f"{m['label'] if m['label'] in w.labels else fingerprint(m['label'])}::{m['check']}@{m['turn']}" if m else None
         if isinstance(row.get("ledger_key"), str) and row["ledger_key"] != want:

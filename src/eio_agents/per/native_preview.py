@@ -27,7 +27,7 @@ from eio_agents.per.catalogue_split import (
     validate_record_catalogues,
 )
 from eio_agents.per.limitations import CATALOGUE as RC1_LIMITATIONS
-from eio_agents.per.privacy import decisive_entry_text
+from eio_agents.per.privacy import decisive_entry_text, gate_reason_text, vocabulary
 from eio_agents.per.projection import project
 from eio_agents.semantics import why as sem_why
 
@@ -110,6 +110,13 @@ def _neutralize(old: dict, bundle: dict, ontology) -> dict:
     if "decisive_list" in explanation["params"]:
         explanation["params"]["decisive_list"] = [decisive_entry_text(rec, row) for row in release["decisive"]]
         explanation["summary"] = sem_why.render(ontology, explanation["template_id"], explanation["params"])
+    # The no-critical-recurrence gate reason names its claims by id in text too: rebuild it from the post-remap rows.
+    for gate_row in release.get("gate_results") or []:
+        if gate_row.get("gate") == "eio.gate.no-critical-recurrence" and gate_row.get("claim_ids"):
+            gate_explanation = gate_row["explanation"]
+            gate_explanation["params"]["reason"] = gate_reason_text(vocabulary(ontology), rec, gate_row)
+            gate_explanation["summary"] = sem_why.render(ontology, gate_explanation["template_id"],
+                                                         gate_explanation["params"])
     rec["claims"].sort(key=lambda c: (tuple(c["turn_indices"]), c["predicate"], c["id"]))
 
     for turn in rec["evidence"]["turns"]:

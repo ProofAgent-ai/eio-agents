@@ -153,7 +153,7 @@ Each check names an EIO predicate (`eio-agents predicates --search deadline` fin
 
 ## Versions and limits
 
-- **Package:** `0.8.1` · **ontology:** EIO `0.6.0` · **record:** PER `2.1.0` (every new record; release semantics `2.2`) · **bundle:** format `3.0.0` · **reference scoring profile:** `0.3.1`. Missing inputs leave affected values **WITHHELD**, never guessed. Older records and bundles keep their legacy versions and stay verifiable under them.
+- **Package:** `0.8.3` · **ontology:** EIO `0.6.0` · **record:** PER `2.1.0` (every new record; release semantics `2.2`) · **bundle:** format `3.0.0` · **reference scoring profile:** `0.3.1`. Missing inputs leave affected values **WITHHELD**, never guessed. Older records and bundles keep their legacy versions and stay verifiable under them.
 - **Open format:** PER 2.1.0 uses [JSON Schema 2020-12](https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json) and EIO publishes a JSON-LD context (see [Schemas and reference files](#schemas-and-reference-files)). Every schema is also bundled in the package for offline validation. It is a versioned ProofAgent specification, **not** a W3C- or ISO-ratified standard or a compliance certification.
 - **Framework mappings:** provisional evidence-relevance links, not legal or regulatory compliance determinations. Historical ProofAgent report conversion requires the matching adapter and pinned EIO release.
 

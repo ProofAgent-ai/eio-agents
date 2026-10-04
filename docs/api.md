@@ -9,7 +9,7 @@ API; see [versioning.md](versioning.md#roadmap-steps) for its status.
 ```python
 import eio_agents
 
-eio_agents.__version__        # "0.8.1", equal to the distribution version
+eio_agents.__version__        # "0.8.3", equal to the distribution version
 ```
 
 - [build_bundle](#build_bundle)
@@ -201,9 +201,14 @@ historical pins. See the
 - **Output check (contract §6.2 step 7).** The record is validated before it is returned against its PER schema and the
   release's ids. Every record is PER `2.1.0`; rc1 conversion is adapter scope.
 - **Proof.** Under this release, a native claim is `PROVEN` only with a verified targeted role=`proof` citation
-  to a proof-eligible witnessing ref and exact fidelity or `CONFIRMED` recurrence. D5 independently checks the proof
-  status against the source bundle. Historical 0.4.0 native proof had a different rule and remains tied to its old pin;
-  an adapter must derive its own fidelity and proof inputs from its crosswalk.
+  to a proof-eligible witnessing ref and exact fidelity or `CONFIRMED` recurrence. The cited ref must be of a kind the
+  predicate's evidence contract names in its first group that can prove agent behaviour (D-47). Since 0.8.3 proof is
+  per claim: the claims of one behavioural fingerprint are split into a `PROVEN` finding (only proven claims, the plain
+  `finding_id`) and an `UNPROVEN` finding (the rest; `finding_id` over `{run_id, fingerprint, proof_status: "UNPROVEN"}`
+  when both exist), and a finding is reportable only when every claim it counts is reportable. A failure of a predicate
+  whose contract has no such group is recorded as an `UNPROVEN`, unreportable finding (0.8.2 withheld every proof set).
+  D5 independently checks the proof status against the source bundle. Historical 0.4.0 native proof had a different
+  rule and remains tied to its old pin; an adapter must derive its own fidelity and proof inputs from its crosswalk.
 - **Digests.** `header.archive_sha256` names the archive: the stored report an adapter's bundle was read from
   (`header.source_archive`), or the canonical bundle itself (JCS digest; always so for a native producer). Preserve the
   original source archive bytes when verifying an adapter-produced archive identity.
@@ -433,7 +438,7 @@ Returns the versions of the specifications bundled in this build:
     "per_schema_id": "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json",
     "release_semantics": "2.2",
     "projector": "eio_agents.convert <library version>",
-    "version": "0.8.1",
+    "version": "0.8.3",
     "native_full_per_version": "2.1.0",
     "native_full_per_schema_id": "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json",
     "current_native_per_version": "2.1.0",
@@ -487,9 +492,10 @@ Returns the predicates of the bundled EIO release in id order, one row each:
 `evidence` states the evidence contract in words (`;` between groups, `or` inside one); `metrics` are the metrics a
 decided claim on the predicate counts toward (the normative derived-view edges of `eio.mapping.metrics`); `controls` is
 the number of framework controls that target the predicate. `failure_scorable` says whether a failed claim on it can
-be projected into a scored native record: the native proof rule needs an evidence group of the contract that can prove
+be proven or reported in a native record: the native proof rule needs an evidence group of the contract that can prove
 agent behaviour, and under EIO 0.6.0 21 predicates (those whose contract has only `require_all` or `require_any`
-kinds) have none, so a failure of one of them makes `convert` refuse the bundle. With `search`, only the rows whose id, meaning, risk, tags
+kinds) have none. Since 0.8.3 a failure of one of them is still recorded, as an UNPROVEN finding in the review queue
+that is never reported (0.8.2 refused the bundle). With `search`, only the rows whose id, meaning, risk, tags
 or metrics contain every word of it (case-insensitive) are returned. `eio-agents predicates` prints the same rows, and
 [predicates.md](predicates.md) is generated from them.
 

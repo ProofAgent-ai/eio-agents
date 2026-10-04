@@ -16,7 +16,7 @@ DATA = Path(__file__).parent / "data/native/v0_8"
 HISTORICAL = Path(__file__).parent / "data/native/v0_6"
 PER_2_1 = Path(__file__).parent / "data/native/per_2_1"
 # The 0.8 vectors were issued by EIO-Agents 0.8.0 and are never reissued for a patch release: they re-derive byte for
-# byte under the version stamp they carry (tests/released_version.py; 0.8.1 changes only that stamp).
+# byte under the version stamp they carry (tests/released_version.py; 0.8.1, 0.8.2 and 0.8.3 change only that stamp for them).
 ISSUED = "0.8.0"
 
 
