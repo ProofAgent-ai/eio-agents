@@ -14,6 +14,7 @@ from eio_agents.validation.canon import jb, sha
 from eio_agents.validation.full_score import full_native_score_gate, load_full_score_resources
 from eio_agents.validation.reader import EIO, EIO_DIR
 from eio_agents.validation.score_basis import score_basis_sha256
+from released_version import library_version
 from test_proof_group_exploration import prohibited_tool_bundle
 
 
@@ -26,19 +27,21 @@ def _bundle():
 
 
 def test_external_native_bundle_scores_and_verifies_without_adapter():
-    bundle = _bundle()
-    record = convert(bundle)
-    schema = per_schema("2.1.0")
-    assert record["header"]["per_version"] == "2.1.0"
-    assert record["header"]["schema_uri"] == schema["$id"]
-    assert per_sha256(record) == EXPECTED_PER_SHA256
-    assert record["scores"]["kind"] == "reference"
-    assert record["scores"]["axes"][3]["value"] == 25.0
-    assert record["scores"]["readiness"]["value"] is None
-    assert [row["proof_status"] for row in record["findings"]] == ["UNPROVEN"]
-    assert validate(record) == []
-    result = verify(record, bundle)
-    assert result["valid"] and result["digest_match"] and result["failures"] == []
+    # a 0.8.0 vector and digest: re-derived under the library version stamp it was issued with
+    with library_version("0.8.0"):
+        bundle = _bundle()
+        record = convert(bundle)
+        schema = per_schema("2.1.0")
+        assert record["header"]["per_version"] == "2.1.0"
+        assert record["header"]["schema_uri"] == schema["$id"]
+        assert per_sha256(record) == EXPECTED_PER_SHA256
+        assert record["scores"]["kind"] == "reference"
+        assert record["scores"]["axes"][3]["value"] == 25.0
+        assert record["scores"]["readiness"]["value"] is None
+        assert [row["proof_status"] for row in record["findings"]] == ["UNPROVEN"]
+        assert validate(record) == []
+        result = verify(record, bundle)
+        assert result["valid"] and result["digest_match"] and result["failures"] == []
 
 
 def test_uncited_native_bundle_cannot_claim_proven_even_if_d3_is_bypassed():

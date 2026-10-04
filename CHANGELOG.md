@@ -10,6 +10,40 @@ The format is based on [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.
 Every entry states the bundled EIO release, the PER version, and whether record bytes change. The `.devN` versions
 below are development builds; `0.6.0rc1` was a release candidate. No version is a claim of certification.
 
+## [0.8.1]
+
+EIO-Agents 0.8.1 bundles the same EIO `0.6.0` (`ontology_digest` `a27cf1f3ab755446`) and produces the same PER `2.1.0`
+under release semantics `2.2`, with reference scoring profile `0.3.1` and bundle format `3.0.0`. No EIO data, schema or
+scoring rule changes.
+
+### Fixed
+
+- Declared evaluator models now reach the record. `convert` reset `provenance.evaluator_models` and
+  `telemetry.evaluator_models` to empty lists, dropping the models a producer declares in the bundle's
+  `provenance.telemetry.evaluator_models`. The record's telemetry now keeps every declared `{role, model}` row, in
+  declared order (the role sealed as a label, the model in clear, a null model kept as null); its provenance keeps the
+  rows that name a model, as PER 2.1.0 requires. A declaration that is not a list of `{role, model}` objects (a
+  non-empty role, a non-empty model or null) fails closed with `BUNDLE_INPUT`. The verifier re-derives the same rows,
+  so a record whose evaluator models differ from its bundle fails the digest comparison. A bundle that declares no
+  evaluator models, or an empty list, projects exactly as under 0.8.0.
+- A producer can disclose an explicitly empty set of prohibited tools. The closed limitation catalogue (CONS-17) had no
+  row for it, so such a disclosure failed with `UNKNOWN_LIMITATION`. New core row `per.lim.tool_policy.empty`
+  (`NOT_SUPPLIED`, path `/coverage/obligations`): the producer declared no prohibited tools, so forbidden-tool
+  obligations are evaluated against an empty set. It is added to the core catalogue (`per/data/limitations-core.json`,
+  now 27 rows) and to the projector's catalogue (`per/data/limitations.json`, now 50 rows) with the same texts; a
+  producer declares it as a bundle limitation `{"id": "per.lim.tool_policy.empty", "path": null, "params": {}}`. No
+  digest pins these files: the EIO release digests (`tools/eio_digests.py`) and gates (`tools/eio_gates.py`) are
+  unchanged and pass.
+
+### Changed
+
+- Record bytes change: yes, in the library version only (`header.converter.version`, `header.per_semantics_version`
+  and the score digests over the header), plus the two fixes above where a bundle uses them. No test vector is
+  reissued: the 0.8.0 vectors under `tests/data/native/v0_8/`, `per_2_1/` and `legacy_draft2/` keep their bytes and are
+  re-derived byte for byte under the library version stamp they were issued with (`tests/released_version.py`); at
+  0.8.1 they differ only in that stamp (`tests/test_0_8_1_fixes.py`). A record made by 0.8.0 re-derives byte for byte
+  only under 0.8.0. The custom-report example's record digest in its README is updated.
+
 ## [0.8.0] - 2026-10-03
 
 EIO-Agents 0.8.0 bundles EIO `0.6.0` (`ontology_digest` `a27cf1f3ab755446`) and produces PER `2.1.0` for every new

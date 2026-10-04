@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use EIO-Agents, please cite it as below."
 type: software
 title: "EIO-Agents: Evaluation Intelligence Ontology for AI Agents (reference library)"
-version: 0.8.0
+version: 0.8.1
 license: Apache-2.0
 repository-code: "https://github.com/ProofAgent-ai/eio-agents"
 authors:

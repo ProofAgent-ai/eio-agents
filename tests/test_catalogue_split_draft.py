@@ -57,14 +57,14 @@ def _sample(row):
 def test_core_declared_split_is_exact_and_neutral():
     core = load_core_limitations()
     adapter = _declared_catalogue()
-    assert len(core["limitations"]) == 26
+    assert len(core["limitations"]) == 27                            # 0.8.1: + per.lim.tool_policy.empty
     assert len(adapter["limitations"]) == 1
     assert all(row["id"].startswith("per.lim.") for row in core["limitations"])
     assert all(row["id"].startswith("vendor.eio.lim.") for row in adapter["limitations"])
     assert "proofagent" not in json.dumps(core).lower()
     assert adapter["sha256"] == catalogue_sha256(adapter)
     merged = merge_catalogues(core, {"declared_limitation_catalogues": [adapter]}, kind="limitations")
-    assert len(merged) == 27
+    assert len(merged) == 28
 
 
 def test_declared_rows_validate_without_adapter_install():

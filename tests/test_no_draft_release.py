@@ -20,6 +20,7 @@ from eio_agents.api import _legacy_convert
 from eio_agents.per.bundle import stage_digest
 from eio_agents.schemas import BUNDLE_SCHEMA, BUNDLE_SCHEMA_ID, PER_SCHEMA_2_1_0, bundle_schema
 from eio_agents.validation import validate_bundle
+from released_version import library_version
 
 ROOT = Path(__file__).resolve().parents[1]
 NATIVE = ROOT / "tests" / "data" / "native"
@@ -180,7 +181,8 @@ def test_legacy_draft_bundles_and_records_still_validate_and_verify():
         assert validate_bundle(bundle_bytes) == []                  # read byte for byte with its pinned schema
         record = json.loads((LEGACY / f"{stem}.per.jcs").read_bytes())
         assert eio_agents.validate(record) == []
-        result = eio_agents.verify(record, bundle_bytes)
+        with library_version("0.8.0"):                              # re-derived under the version that issued it
+            result = eio_agents.verify(record, bundle_bytes)
         assert result["valid"] and result["digest_match"], (stem, result["failures"])
     rc3 = json.loads((LEGACY / "native.per.jcs").read_bytes())
     assert rc3["header"]["per_version"] == "2.0.0-rc3-draft"       # the legacy identity it was issued with

@@ -540,6 +540,17 @@
    "reason": "The checker record's outcome disagrees with its cell resolution; the resolution was used.",
    "impact": "The claim state follows the cell jury, not the record outcome.",
    "next_step": "Emit checker records whose outcome equals the cell resolution."
+  },
+  {
+   "id": "per.lim.tool_policy.empty",
+   "status": "NOT_SUPPLIED",
+   "paths": [
+    "/coverage/obligations"
+   ],
+   "raised_when": "the producer declares an explicitly empty set of prohibited tools",
+   "reason": "The producer declared no prohibited tools.",
+   "impact": "Forbidden-tool obligations are evaluated against an empty set of prohibited tools, so no tool call can violate them.",
+   "next_step": "Declare the tools the agent must not call, or confirm that none are prohibited."
   }
  ]
 }

@@ -9,7 +9,7 @@ API; see [versioning.md](versioning.md#roadmap-steps) for its status.
 ```python
 import eio_agents
 
-eio_agents.__version__        # "0.8.0", equal to the distribution version
+eio_agents.__version__        # "0.8.1", equal to the distribution version
 ```
 
 - [build_bundle](#build_bundle)
@@ -433,7 +433,7 @@ Returns the versions of the specifications bundled in this build:
     "per_schema_id": "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json",
     "release_semantics": "2.2",
     "projector": "eio_agents.convert <library version>",
-    "version": "0.8.0",
+    "version": "0.8.1",
     "native_full_per_version": "2.1.0",
     "native_full_per_schema_id": "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json",
     "current_native_per_version": "2.1.0",

@@ -19,7 +19,7 @@ python3.11 -m venv .venv
 .venv/bin/eio-agents version
 ```
 
-The version output should report package `0.8.0`, EIO
+The version output should report package `0.8.1`, EIO
 `0.6.0`, the default PER `2.1.0` with release semantics `2.2`, and reference
 profile `0.3.1`. The PER schema identifier is
 `https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json`. The package embeds the schema for offline validation; live HTTP resolution is checked separately for each release.

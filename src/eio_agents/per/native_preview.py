@@ -47,6 +47,22 @@ def _replace_ids(value, old_to_new: dict[str, str]):
     return old_to_new.get(value, value) if isinstance(value, str) else value
 
 
+def _evaluator_models(telemetry: dict) -> list[dict]:
+    """The evaluator models the bundle declares in `provenance.telemetry.evaluator_models`, as the projection carried
+    them (the role sealed as a label, the model in clear): `{model, role}` each, in declared order, the model null when
+    the producer names none for that role. No declaration gives an empty list. The record's provenance keeps the rows
+    that name a model (PER 2.1.0 requires one there); its telemetry keeps every declared row."""
+    models = telemetry.get("evaluator_models")
+    if models is None:
+        return []
+    require(isinstance(models, list) and all(
+        isinstance(m, dict) and set(m) == {"role", "model"} and isinstance(m["role"], str) and m["role"] != ""
+        and (m["model"] is None or (isinstance(m["model"], str) and m["model"] != "")) for m in models),
+        "BUNDLE_INPUT", "provenance.telemetry.evaluator_models must be a list of {role, model} objects, the role a "
+        "non-empty string and the model a non-empty string or null")
+    return [{"model": m["model"], "role": m["role"]} for m in models]
+
+
 def _neutralize(old: dict, bundle: dict, ontology) -> dict:
     rec = copy.deepcopy(old)
     head = rec["header"]
@@ -58,8 +74,9 @@ def _neutralize(old: dict, bundle: dict, ontology) -> dict:
 
     producer = bundle["provenance"]["producer"]
     rec["provenance"]["producer"]["kind"] = producer["kind"]
-    rec["provenance"]["evaluator_models"] = []
-    rec["telemetry"]["evaluator_models"] = []
+    models = _evaluator_models(rec["telemetry"])
+    rec["provenance"]["evaluator_models"] = [m for m in models if m["model"] is not None]
+    rec["telemetry"]["evaluator_models"] = models
     rec["provenance"]["inputs"].pop("traps", None)
     rec["provenance"]["inputs"].pop("checks_version", None)
     rec["provenance"]["run"].pop("config_fingerprint", None)

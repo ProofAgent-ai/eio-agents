@@ -9,46 +9,52 @@ import pytest
 from eio_agents import ConversionError, canonical_bytes, convert, validate, verify
 from eio_agents.validation import validate_bundle
 from full_native_score_case import source_complete_bundle
+from released_version import library_version
 
 
 DATA = Path(__file__).parent / "data/native/v0_8"
 HISTORICAL = Path(__file__).parent / "data/native/v0_6"
 PER_2_1 = Path(__file__).parent / "data/native/per_2_1"
+# The 0.8 vectors were issued by EIO-Agents 0.8.0 and are never reissued for a patch release: they re-derive byte for
+# byte under the version stamp they carry (tests/released_version.py; 0.8.1 changes only that stamp).
+ISSUED = "0.8.0"
 
 
 def test_unscored_0_8_fixture_is_current_and_exact():
-    bundle_bytes = (DATA / "native.bundle.json").read_bytes()
-    assert hashlib.sha256(bundle_bytes).hexdigest() == "bf425c5a4eb63fdd458aed5240e4bd0fdc38138a7df55632d9ecb0e13b791f9c"
-    assert json.loads(bundle_bytes)["bundle_version"] == "3.0.0"
-    assert validate_bundle(bundle_bytes) == []
-    record = convert(bundle_bytes)
-    assert record["header"]["eio"]["release"] == "0.6.0"
-    assert record["header"]["per_version"] == "2.1.0"
-    assert record["header"]["release_semantics"] == "2.2"
-    assert record["scores"] is None                                   # no native scoring inputs: no score is guessed
-    assert record["release_recommendation"]["state"] == "REVIEW"      # no policy: readiness withheld (decision #46)
-    assert canonical_bytes(record) == (DATA / "native.per.jcs").read_bytes()
-    assert validate(record) == []
-    assert verify(record, bundle_bytes)["valid"]
+    with library_version(ISSUED):
+        bundle_bytes = (DATA / "native.bundle.json").read_bytes()
+        assert hashlib.sha256(bundle_bytes).hexdigest() == "bf425c5a4eb63fdd458aed5240e4bd0fdc38138a7df55632d9ecb0e13b791f9c"
+        assert json.loads(bundle_bytes)["bundle_version"] == "3.0.0"
+        assert validate_bundle(bundle_bytes) == []
+        record = convert(bundle_bytes)
+        assert record["header"]["eio"]["release"] == "0.6.0"
+        assert record["header"]["per_version"] == "2.1.0"
+        assert record["header"]["release_semantics"] == "2.2"
+        assert record["scores"] is None                                   # no native scoring inputs: no score is guessed
+        assert record["release_recommendation"]["state"] == "REVIEW"      # no policy: readiness withheld (decision #46)
+        assert canonical_bytes(record) == (DATA / "native.per.jcs").read_bytes()
+        assert validate(record) == []
+        assert verify(record, bundle_bytes)["valid"]
 
 
 def test_scored_0_8_fixture_is_source_complete_and_exact():
-    bundle_bytes = (DATA / "source-complete.bundle.json").read_bytes()
-    assert hashlib.sha256(bundle_bytes).hexdigest() == "9df95b00e5dcf536aede3c4c8f37c6d2a196f574237e36d4f7f1c8a5e15cded7"
-    bundle = json.loads(bundle_bytes)
-    assert bundle == source_complete_bundle()
-    assert validate_bundle(bundle_bytes) == []
-    record = convert(bundle_bytes)
-    assert record["header"]["eio"]["release"] == "0.6.0"
-    assert record["header"]["per_version"] == "2.1.0"
-    assert record["scores"]["scoring_profile"]["version"] == "0.3.1"
-    assert record["header"]["release_semantics"] == "2.2"
-    assert record["release_recommendation"]["state"] == "REVIEW"      # no policy: default floor 85 (decision #46)
-    assert canonical_bytes(record) == (DATA / "source-complete.per.jcs").read_bytes()
-    assert validate(record) == []
-    result = verify(record, bundle_bytes)
-    assert result["valid"] and result["digest_match"]
-    assert b"zqxjvw-full-score-private-marker" not in bundle_bytes + canonical_bytes(record)
+    with library_version(ISSUED):
+        bundle_bytes = (DATA / "source-complete.bundle.json").read_bytes()
+        assert hashlib.sha256(bundle_bytes).hexdigest() == "9df95b00e5dcf536aede3c4c8f37c6d2a196f574237e36d4f7f1c8a5e15cded7"
+        bundle = json.loads(bundle_bytes)
+        assert bundle == source_complete_bundle()
+        assert validate_bundle(bundle_bytes) == []
+        record = convert(bundle_bytes)
+        assert record["header"]["eio"]["release"] == "0.6.0"
+        assert record["header"]["per_version"] == "2.1.0"
+        assert record["scores"]["scoring_profile"]["version"] == "0.3.1"
+        assert record["header"]["release_semantics"] == "2.2"
+        assert record["release_recommendation"]["state"] == "REVIEW"      # no policy: default floor 85 (decision #46)
+        assert canonical_bytes(record) == (DATA / "source-complete.per.jcs").read_bytes()
+        assert validate(record) == []
+        result = verify(record, bundle_bytes)
+        assert result["valid"] and result["digest_match"]
+        assert b"zqxjvw-full-score-private-marker" not in bundle_bytes + canonical_bytes(record)
 
 
 def test_published_per_2_0_golden_is_immutable_and_still_validates():
@@ -60,9 +66,10 @@ def test_published_per_2_0_golden_is_immutable_and_still_validates():
 
 
 def test_historical_0_6_bundle_reprojects_to_versioned_per_2_1():
-    bundle = (HISTORICAL / "source-complete.bundle.json").read_bytes()
-    assert hashlib.sha256(bundle).hexdigest() == "0660c2a2fb554a0ed7a312109b998384b0aa98960bdd861d2e7263035cdbd6f3"
-    assert canonical_bytes(convert(bundle)) == (PER_2_1 / "source-complete.per.jcs").read_bytes()
+    with library_version(ISSUED):
+        bundle = (HISTORICAL / "source-complete.bundle.json").read_bytes()
+        assert hashlib.sha256(bundle).hexdigest() == "0660c2a2fb554a0ed7a312109b998384b0aa98960bdd861d2e7263035cdbd6f3"
+        assert canonical_bytes(convert(bundle)) == (PER_2_1 / "source-complete.per.jcs").read_bytes()
 
 
 def test_historical_rc5_golden_and_schema_remain_pinned():

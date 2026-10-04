@@ -11,6 +11,7 @@ from eio_agents import ConversionError, build_bundle
 from eio_agents.evidence.context_refs import policy_span_ref
 from eio_agents.ontology import load
 from eio_agents.validation import validate_bundle
+from released_version import library_version
 
 DATA = Path(__file__).parent / "data"
 REPORT = json.loads((DATA / "report" / "travel_report.json").read_text(encoding="utf-8"))
@@ -63,12 +64,14 @@ def test_building_is_deterministic(built):
 
 def test_it_reproduces_the_hand_written_converter():
     """The same report through the reference converter (over the sample bundle) gives the same bundle and record."""
-    reference = reference_bundle(REPORT, TEMPLATE)
-    args = _args(plan_hash=TEMPLATE["header"]["plan_hash"], seed=TEMPLATE["header"]["seed"],
-                 telemetry=reference["provenance"]["telemetry"], system_prompt_public=True)
-    bundle = build_bundle(**args)
-    assert eio_agents.canonical_bytes(bundle) == eio_agents.canonical_bytes(reference)
-    assert eio_agents.per_sha256(eio_agents.convert(bundle)) == eio_agents.per_sha256(eio_agents.convert(reference))
+    # the template is a 0.8.0 vector, so the bundle is built under the library version stamp it carries
+    with library_version(TEMPLATE["header"]["eio_agents"]["version"]):
+        reference = reference_bundle(REPORT, TEMPLATE)
+        args = _args(plan_hash=TEMPLATE["header"]["plan_hash"], seed=TEMPLATE["header"]["seed"],
+                     telemetry=reference["provenance"]["telemetry"], system_prompt_public=True)
+        bundle = build_bundle(**args)
+        assert eio_agents.canonical_bytes(bundle) == eio_agents.canonical_bytes(reference)
+        assert eio_agents.per_sha256(eio_agents.convert(bundle)) == eio_agents.per_sha256(eio_agents.convert(reference))
 
 
 def test_system_prompt_is_confidential_by_default_and_public_only_by_opt_in():

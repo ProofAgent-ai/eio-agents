@@ -17,7 +17,7 @@ record's digest, which identities are legacy, and the implementation steps cited
 
 | Line | Current | Where it is reported |
 |---|---|---|
-| Library (`eio-agents`) | `0.8.0` | `eio_agents.__version__`, `eio-agents version` |
+| Library (`eio-agents`) | `0.8.1` | `eio_agents.__version__`, `eio-agents version` |
 | EIO release | `0.6.0` (`ontology_digest` `a27cf1f3ab755446`) | `standards()["eio_release"]`, every record's `header.eio` |
 | PER version | `2.1.0`, release semantics `2.2` | `standards()["per_version"]` and `standards()["release_semantics"]`; each record's `header.per_version`, `header.schema_uri` and `header.release_semantics` |
 | Bundle format | `3.0.0` (archive schema 3) | `standards()["bundle_version"]` and `standards()["bundle_schema_id"]`; each bundle's `bundle_version` |

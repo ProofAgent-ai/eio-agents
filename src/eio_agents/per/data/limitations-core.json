@@ -289,6 +289,17 @@
       "reason": "No tool declares its subject argument or action class.",
       "impact": "No claim is bound to a subject; a subject-free state fact or typed absence never satisfies a subject-constrained predicate.",
       "next_step": "Declare subject_argument and action_class for every tool (archive schema 2)."
+    },
+    {
+      "id": "per.lim.tool_policy.empty",
+      "status": "NOT_SUPPLIED",
+      "paths": [
+        "/coverage/obligations"
+      ],
+      "raised_when": "the producer declares an explicitly empty set of prohibited tools",
+      "reason": "The producer declared no prohibited tools.",
+      "impact": "Forbidden-tool obligations are evaluated against an empty set of prohibited tools, so no tool call can violate them.",
+      "next_step": "Declare the tools the agent must not call, or confirm that none are prohibited."
     }
   ]
 }

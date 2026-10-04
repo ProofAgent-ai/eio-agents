@@ -4,7 +4,7 @@ Every number must be recomputed from the bundle and EIO ontology.  The
 fixture contains no producer-supplied score, freshness assertion or receipt.
 """
 
-from eio_agents import __version__
+from eio_agents.base import version as library
 from eio_agents.base.canon import H
 from eio_agents.ontology import load
 from eio_agents.per import bundle as native_bundle
@@ -26,7 +26,7 @@ def reissued_cited_bundle():
     # Reissue the synthetic 0.5 source as a current-release test vector. Its
     # archived original remains unchanged and must still fail a 0.6 pin check.
     bundle["header"]["eio_agents"].update(
-        version=__version__, ontology_sha256=ontology.ontology_sha256)
+        version=library.VERSION, ontology_sha256=ontology.ontology_sha256)   # read per call (tests/released_version.py)
     bundle["header"]["eio"].update(
         release=ontology.release, ontology_digest=ontology.ontology_digest,
         ontology_sha256=ontology.ontology_sha256)
