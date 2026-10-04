@@ -6,7 +6,7 @@
 
 [![Evaluation stack: agent infrastructure, evaluation framework, EIO-Agents semantic layer, and Portable Evaluation Record](https://raw.githubusercontent.com/ProofAgent-ai/eio-agents/main/docs/eio-agents-stack.png)](https://www.proofagent.ai/eio-agents)
 
-**The framework-agnostic semantic layer for AI-agent evaluation.** EIO-Agents uses the Evaluation Intelligence Ontology (EIO) to turn an evaluator's observations into evidence-linked claims and a versioned Portable Evaluation Record (PER). It also validates, verifies, and explains that record.
+**The semantic layer for AI-agent evaluation: the Evaluation Intelligence Ontology (EIO) and the Portable Evaluation Record (PER 2.1). Convert, validate, verify, explain.**
 
 [The EIO semantic layer](https://www.proofagent.ai/eio-agents/eio) · [Schema reference](https://www.proofagent.ai/eio-agents/eio/schema) · [See a PER example](https://www.proofagent.ai/eio-agents/per) · [Read the quick start](https://github.com/ProofAgent-ai/eio-agents/blob/main/docs/quickstart.md) · [How a score is built, in plain language](https://github.com/ProofAgent-ai/eio-agents/blob/main/docs/overview.md)
 
