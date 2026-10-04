@@ -1,4 +1,4 @@
-# EIO-Agents
+# EIO-Agents — Evaluation Intelligence Ontology for AI Agents (Standard Semantic Layer)
 
 [![PyPI](https://img.shields.io/pypi/v/eio-agents)](https://pypi.org/project/eio-agents/)
 [![Python](https://img.shields.io/pypi/pyversions/eio-agents)](https://pypi.org/project/eio-agents/)
