@@ -58,6 +58,9 @@ ALLOWLIST = {  # (module, name): why it is here, and the step that removes it
     **{("per/native_preview.py", name): "isolated L5a native bridge; remove with final rc2 projector rewrite"
        for name in ("adjudication_source", "harness_llm", "legacy_check", "legacy_decided_by", "mapping_relation",
                     "state_source", "trap", "traps")},
+    # ---- 0.8.5: 'compliance' is an evaluator role label of telemetry.evaluator_usage (USAGE_LABELS), not the rc1 key
+    ("per/privacy.py", "compliance"): "0.8.5 evaluator-usage role label kept in clear (USAGE_LABELS)",
+    ("validation/privacy.py", "compliance"): "0.8.5 twin of the evaluator-usage role labels (USAGE_LABELS)",
     # ---- split plan §6.2 L2 Exit allowlist
     ("semantics/ids.py", "legacy_check"): "the claim-id recipe slot (null natively); renamed source_key at L5a (LS4)",
     ("semantics/ids.py", "trap"): "the fingerprint key (the scenario label, or null); kept until S7 (LS5)",

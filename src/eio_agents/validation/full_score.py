@@ -46,6 +46,8 @@ HISTORICAL_SCORE_KIND = "reference-draft"
 PER_SCHEMA_URI = "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json"
 PER_VERSION_JURY = "2.1.1"   # PER 2.1.0 plus jury-consensus proof (EIO-Agents 0.8.4); the same score identity
 PER_SCHEMA_URI_JURY = "https://www.proofagent.ai/eio-agents/schema/per/2.1.1/per.schema.json"
+PER_VERSION_USAGE = "2.1.2"   # PER 2.1.1 plus optional evaluator usage telemetry (EIO-Agents 0.8.5); the same score identity
+PER_SCHEMA_URI_USAGE = "https://www.proofagent.ai/eio-agents/schema/per/2.1.2/per.schema.json"
 POLICY_PER_VERSION = PER_VERSION
 POLICY_PER_SCHEMA_URI = PER_SCHEMA_URI
 EIO_RELEASE = "0.6.0"
@@ -65,6 +67,7 @@ PINNED_SCORE_SCHEMA_SHA256 = PINNED_RESOURCES[PROFILE_VERSION][3]
 # the score identities each pinned full-score PER version binds: (profile version, score basis version, score kind)
 PER_SCORE_IDENTITY = {PER_VERSION: (PROFILE_VERSION, SCORE_BASIS_VERSION, SCORE_KIND),
                       PER_VERSION_JURY: (PROFILE_VERSION, SCORE_BASIS_VERSION, SCORE_KIND),
+                      PER_VERSION_USAGE: (PROFILE_VERSION, SCORE_BASIS_VERSION, SCORE_KIND),
                       "2.0.0": (HISTORICAL_PROFILE_VERSION, HISTORICAL_SCORE_BASIS_VERSION, HISTORICAL_SCORE_KIND)}
 _PACKAGE = Path(__file__).resolve().parents[1]
 
@@ -179,7 +182,8 @@ def diagnose_full_score_block(bundle, record, block, eio, *, approved_profile):
         raise ScoreInputError("verifier-owned profile is missing")
     header = record.get("header") or {}
     expected_uri = {"2.0.0": "https://www.proofagent.ai/eio-agents/schema/per/2.0.0/per.schema.json",
-                    PER_VERSION: PER_SCHEMA_URI, PER_VERSION_JURY: PER_SCHEMA_URI_JURY}.get(header.get("per_version"))
+                    PER_VERSION: PER_SCHEMA_URI, PER_VERSION_JURY: PER_SCHEMA_URI_JURY,
+                    PER_VERSION_USAGE: PER_SCHEMA_URI_USAGE}.get(header.get("per_version"))
     if expected_uri is None or header.get("schema_uri") != expected_uri:
         raise ScoreInputError("full score requires an exact pinned PER 2.0.0 or 2.1.0 schema")
     profile_version, basis_version, score_kind = PER_SCORE_IDENTITY[header["per_version"]]
@@ -286,7 +290,7 @@ def diagnose_full_score_block(bundle, record, block, eio, *, approved_profile):
     state = (record.get("release_recommendation") or {}).get("state")
     review = high_review_guard(state, record["findings"], proof, checked_severity=severity)
     _check(state, review["state"], "release_recommendation.state.HIGH_guard", mismatches, compared)
-    if header["per_version"] in (PER_VERSION, PER_VERSION_JURY):
+    if header["per_version"] in (PER_VERSION, PER_VERSION_JURY, PER_VERSION_USAGE):
         guards = [d for d in record["release_recommendation"]["decisive"]
                   if d["kind"] == "review_guard" and d["id"] == "eio.release.high-review-queue"]
         queue = review["high_review_queue"]

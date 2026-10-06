@@ -797,7 +797,11 @@ def _field_forms(path, limitation):
     if last in ("version", "predicate_version", "module_version", "release"):
         forms.append(_SEMVER)
     if path == ("provenance", "agent", "model") or (n == 4 and head == ("claims",) and idx[1]
-                                                    and path[2:] == ("provenance", "model")):
+                                                    and path[2:] == ("provenance", "model")) or (
+            # 0.8.5: an evaluator model named in telemetry
+            (n == 5 and path[:3] == ("provenance", "telemetry", "evaluator_models") and idx[3] and last == "model")
+            or (n == 6 and path[:4] == ("provenance", "telemetry", "evaluator_usage", "by_role") and idx[4]
+                and last == "model")):
         forms.append(_MODEL_ID)
     return forms
 

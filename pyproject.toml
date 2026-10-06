@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "eio-agents"
-version = "0.8.4"
+version = "0.8.5"
 description = "The semantic layer for AI-agent evaluation: the Evaluation Intelligence Ontology (EIO) and the Portable Evaluation Record (PER 2.1). Convert, validate, verify, explain."
 readme = "README.md"
 license = "Apache-2.0"

@@ -80,7 +80,7 @@ def test_eio_data_is_package_data_of_ontology():
         "per-2.0.0-rc3-neutral-preview.schema.json", "per-2.0.0-rc4-draft.schema.json",
         "per-2.0.0-rc5-policy-draft.schema.json",
         "per-2.0.0.schema.json", "per-2.0.context.jsonld", "per-2.0.schema.json",
-        "per-2.1.0.schema.json", "per-2.1.1.schema.json"]
+        "per-2.1.0.schema.json", "per-2.1.1.schema.json", "per-2.1.2.schema.json"]
     assert sorted(p.name for p in (SRC / "schemas" / "scoring").iterdir()) == [
         "native-score-block-0.1.0-draft.schema.json", "native-score-block-0.2.0-draft.1.schema.json",
         "native-score-block-0.3.0-draft.1.schema.json", "native-score-block-0.3.1-draft.1.schema.json",

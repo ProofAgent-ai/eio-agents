@@ -33,7 +33,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from eio_agents.per.limitations import CATALOGUE as LIMITATION_CATALOGUE
 from eio_agents.schemas import (BUNDLE_SCHEMA, LEGACY_BUNDLE_SCHEMAS, PER_SCHEMA, PER_SCHEMA_NATIVE_PREVIEW, PER_SCHEMA_RC1,
                                 PER_SCHEMA_RC4, PER_SCHEMA_RC5_POLICY, PER_SCHEMA_2_0_0, PER_SCHEMA_2_1_0,
-                                PER_SCHEMA_2_1_1)
+                                PER_SCHEMA_2_1_1, PER_SCHEMA_2_1_2)
 from eio_agents.validation.canon import jb, q4, sd, sha
 from eio_agents.validation.redaction import redact_span
 
@@ -334,6 +334,8 @@ a:vocab
     subject.ai_bom.components.*.kind
     telemetry.agent_under_test.cost_provenance
     telemetry.harness_llm.cost_provenance
+    telemetry.evaluator_usage.conventions
+    telemetry.evaluator_usage.provenance
 a:check_name
     claims.*.parameters.applicability_basis.premise_check
     claims.*.parameters.legacy_check
@@ -518,6 +520,9 @@ ad:release
     scores.metrics.*.explanation.params.reason
 ad:source_ref
     evidence.refs.*.source_ref
+ad:usage
+    telemetry.evaluator_usage.by_role.*.role
+    telemetry.evaluator_usage.errors.types.*
 ad:label
     claims.*.parameters.trap
     evidence.turns.*.trap
@@ -538,6 +543,7 @@ bd:model
     provenance.harness_llm.primary.model
     subject.agent.model
     telemetry.evaluator_models.*.model
+    telemetry.evaluator_usage.by_role.*.model
 md:model
     subject.ai_bom.components.*.name
 bd:digest
@@ -736,7 +742,7 @@ class Words:
         # clear-text vocabulary. Historical rc2 and diagnostic previews must
         # be checked with their own pinned releases, not silently trusted here.
         for schema in (PER_SCHEMA_RC1, PER_SCHEMA, PER_SCHEMA_RC4, PER_SCHEMA_RC5_POLICY,
-                       PER_SCHEMA_2_0_0, PER_SCHEMA_2_1_0, PER_SCHEMA_2_1_1):
+                       PER_SCHEMA_2_0_0, PER_SCHEMA_2_1_0, PER_SCHEMA_2_1_1, PER_SCHEMA_2_1_2):
             properties, constants = _schema(schema)
             p1 |= properties
             c1 |= constants
@@ -807,7 +813,15 @@ def members(doc):
     return out
 
 
+# 0.8.5: the evaluator-usage labels (`telemetry.evaluator_usage` roles and OpenTelemetry error.type tokens) the record
+# keeps in clear (`ad:usage`); any other label is its fingerprint
+USAGE_LABELS = frozenset(("planner", "conductor", "jury", "retest_jury", "context_assessor", "compliance", "confirmation",
+                          "scoring_observer", "other", "timeout", "rate_limit", "provider_error", "invalid_output"))
+
+
 def is_member(w, arg, v):
+    if arg == "usage":
+        return v in USAGE_LABELS
     if arg == "label":
         return v in w.labels
     if arg == "release":
@@ -1211,7 +1225,7 @@ def fits(w, spec, v, rec, path, cat):
             ok = {"vocab": v in w.vocab, "check_name": v in w.checks, "metric_key": v in w.metric_keys,
                   "contract_token": bool(CONTRACT.fullmatch(v)), "profile_rule": bool(RULE.fullmatch(v)),
                   "decisive_id": v in w.vocab or bool(RULE.fullmatch(v)) or
-                  (rec["header"]["per_version"] in ("2.1.0", "2.1.1") and v in REVIEW_GUARDS),
+                  (rec["header"]["per_version"] in ("2.1.0", "2.1.1", "2.1.2") and v in REVIEW_GUARDS),
                   "caveat_id": v in CAVEAT_IDS}.get(arg)
         return None if ok else "not a member of its vocabulary"
     if c == "b":
@@ -1596,6 +1610,8 @@ def clear_text_problems(rec, B, e):
             and not _public(w, s)}
     def released(path, v):                        # a model identifier kept in clear by its class (b|d, m|d)
         spec = TABLE.get(gen(path)) or ("?", None)
+        if spec == ("ad", "usage"):               # 0.8.5: a closed evaluator-usage label (`USAGE_LABELS`)
+            return v in USAGE_LABELS
         return spec[0] in ("bd", "md") and spec[1] == "model" and decide_row(w, spec, v, rec, path) == v
     return [f"{ptr(path)}: a producer text of the bundle in clear (T5)" for path, v in strings(rec)
             if v in prod and (TABLE.get(gen(path)) or ("?",))[0] != "c" and not released(path, v)]

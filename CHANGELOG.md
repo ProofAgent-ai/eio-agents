@@ -10,6 +10,42 @@ The format is based on [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.
 Every entry states the bundled EIO release, the PER version, and whether record bytes change. The `.devN` versions
 below are development builds; `0.6.0rc1` was a release candidate. No version is a claim of certification.
 
+## [0.8.5]
+
+EIO-Agents 0.8.5 bundles the same EIO `0.6.0` (`ontology_digest` `a27cf1f3ab755446`), release semantics `2.2`,
+reference scoring profile `0.3.1` and bundle format `3.0.0` (unchanged: its `provenance.telemetry` object is open). It
+adds **PER `2.1.2`**, issued only for a record carrying `telemetry.evaluator_usage`. Every other record is PER `2.1.0` or
+`2.1.1` as before and converts to the same bytes under its issuing version. No EIO data changes.
+
+### Added
+
+- **Evaluator usage telemetry** (`telemetry.evaluator_usage`, optional): the evaluator's (harness's) own LLM usage,
+  speed and reliability, aligned with the OpenTelemetry GenAI semantic conventions (`conventions: "otel-gen-ai"`),
+  with no cost fields: `provenance` (`MEASURED`/`PARTIAL`/`UNAVAILABLE`), `wall_clock_seconds`, `llm_calls`, `tokens`
+  `{input, output}`, per-call `duration_ms` `{p50, p95, max}` (`gen_ai.client.operation.duration`), `errors`
+  `{count, types}` (`error.type`), `retries` and `by_role` rows `{role, model, llm_calls, tokens, duration_ms, errors}`.
+  Producers pass it in `build_bundle(telemetry={..., "evaluator_usage": {...}})`; `build_bundle` and `convert` refuse a
+  malformed block (unknown or missing key, any cost field, negative or fractional count, a role or error type outside
+  `[a-z][a-z0-9_]{0,31}`, `p50 > p95` or `p95 > max`). In the record, durations are integer milliseconds rounded
+  half-up (PROD-10) and the wall clock has at most 4 decimal places. The agent-under-test usage stays in
+  `telemetry.agent_under_test`, unchanged.
+- **PER 2.1.2** (`schemas/per/per-2.1.2.schema.json`): PER 2.1.1 (including its jury-consensus proof rule) plus the
+  optional `telemetry.evaluator_usage` block. The verifier checks that 2.1.2 is issued exactly when the block is present
+  (`validation.checker` S2). `standards()["telemetry_per_version"]` is `"2.1.2"`.
+- **Closed field table.** `by_role.*.model` is a model identifier (`bd:model`); `by_role.*.role` and `errors.types.*`
+  are a new `ad:usage` class: the known roles (`planner`, `conductor`, `jury`, `retest_jury`, `context_assessor`,
+  `compliance`, `confirmation`, `scoring_observer`, `other`) and error types (`timeout`, `rate_limit`,
+  `provider_error`, `invalid_output`) in clear, any other label as its fingerprint.
+
+### Fixed
+
+- **Model identifiers in telemetry.** `provenance.telemetry.evaluator_models[].model` and
+  `evaluator_usage.by_role[].model` now take the model-identifier exemption of the shape backstop (as the agent's and a
+  jury claim's model already did), so ids such as `anthropic/claude-haiku-4-5`, `claude-haiku-4-5-20251001` or
+  `anthropic/claude-opus-4-1@20250805` are no longer refused as `BUILD_PERSONAL_DATA`. Sensitive shapes (secret keys,
+  e-mail addresses, ID-number shapes) are still refused, and every other telemetry field keeps the full rule. Producer
+  (`per.bundle.SHAPE_FORMS`) and verifier twin (`validation.validate`).
+
 ## [0.8.4]
 
 EIO-Agents 0.8.4 bundles the same EIO `0.6.0` (`ontology_digest` `a27cf1f3ab755446`), release semantics `2.2`,

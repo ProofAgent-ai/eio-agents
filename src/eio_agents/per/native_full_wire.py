@@ -39,7 +39,12 @@ DEFAULT_READINESS_FLOOR = 85.0
 # only when one of its findings is PROVEN by a jury (decided_by semantic), so every other record keeps its 2.1.0 bytes.
 PER_VERSION_JURY = "2.1.1"
 SCHEMA_URI_JURY = "https://www.proofagent.ai/eio-agents/schema/per/2.1.1/per.schema.json"
-PER_2_1 = (PER_VERSION, PER_VERSION_JURY)
+# PER 2.1.2 (EIO-Agents 0.8.5) is PER 2.1.1 plus the optional `telemetry.evaluator_usage` block (the evaluator's own LLM
+# usage, OpenTelemetry GenAI aligned): a record is issued as 2.1.2 only when it carries that block, so every other
+# record keeps its 2.1.0 or 2.1.1 bytes. 2.1.2 keeps the 2.1.1 jury-consensus proof rule.
+PER_VERSION_USAGE = "2.1.2"
+SCHEMA_URI_USAGE = "https://www.proofagent.ai/eio-agents/schema/per/2.1.2/per.schema.json"
+PER_2_1 = (PER_VERSION, PER_VERSION_JURY, PER_VERSION_USAGE)
 POLICY_PER_VERSION = PER_VERSION
 POLICY_SCHEMA_URI = SCHEMA_URI
 SCORE_BASIS_VERSION = "eio-agents.score-basis/0.3.0"
@@ -50,6 +55,7 @@ _ROOT = Path(__file__).resolve().parents[1] / "schemas"
 SCORE_SCHEMA = _ROOT / "scoring/native-score-block-0.3.1.schema.json"
 PER_SCHEMA = _ROOT / "per/per-2.1.0.schema.json"
 PER_SCHEMA_JURY = _ROOT / "per/per-2.1.1.schema.json"
+PER_SCHEMA_USAGE = _ROOT / "per/per-2.1.2.schema.json"
 POLICY_PER_SCHEMA = PER_SCHEMA
 
 
@@ -59,8 +65,14 @@ def jury_proven(record):
                for f in record.get("findings") or [])
 
 
+def carries_evaluator_usage(record):
+    """Whether a record carries the evaluator's own usage (`telemetry.evaluator_usage`; it is then PER 2.1.2)."""
+    return "evaluator_usage" in (record.get("telemetry") or {})
+
+
 def _schema_of(record):
-    return PER_SCHEMA_JURY if record["header"]["per_version"] == PER_VERSION_JURY else PER_SCHEMA
+    return {PER_VERSION_JURY: PER_SCHEMA_JURY, PER_VERSION_USAGE: PER_SCHEMA_USAGE}.get(
+        record["header"]["per_version"], PER_SCHEMA)
 
 
 def _checked_schema(path):
@@ -74,9 +86,10 @@ def _versioned_unscored(record):
     require(record["header"]["per_version"] == "2.0.0-rc3-draft" and record.get("scores") is None,
             "NATIVE_FULL_WIRE", "a verified null-score neutral PER projection is required")
     result = copy.deepcopy(record)
-    jury = jury_proven(result)
-    result["header"]["per_version"] = PER_VERSION_JURY if jury else PER_VERSION
-    result["header"]["schema_uri"] = SCHEMA_URI_JURY if jury else SCHEMA_URI
+    version, uri = ((PER_VERSION_USAGE, SCHEMA_URI_USAGE) if carries_evaluator_usage(result) else
+                    (PER_VERSION_JURY, SCHEMA_URI_JURY) if jury_proven(result) else (PER_VERSION, SCHEMA_URI))
+    result["header"]["per_version"] = version
+    result["header"]["schema_uri"] = uri
     result["header"]["release_semantics"] = RELEASE_SEMANTICS
     result["release_recommendation"]["semantics"] = RELEASE_SEMANTICS
     return result

@@ -18,7 +18,7 @@ from eio_agents.base.version import VERSION
 from eio_agents.base.canon import H, jb, sd
 from eio_agents.base.errors import ConversionError, require
 from eio_agents.ontology import load as load_ontology
-from eio_agents.per import bundle as B
+from eio_agents.per import bundle as B, evaluator_usage
 from eio_agents.per.catalogue_split import (
     RC1_TO_CORE_ID,
     load_core_limitations,
@@ -36,6 +36,7 @@ PUBLIC_RC3_SCHEMA_URI = "https://w3id.org/eio-agents/per/2.0.0-rc3-draft/per.sch
 # Exact spelling is a proposal for owner review, not a stable published id.
 NO_SCORING_PROFILE_ID = "per.lim.scoring_profile.none"
 PREVIEW_SCHEMA = Path(__file__).resolve().parents[1] / "schemas/per/per-2.0.0-rc3-neutral-preview.schema.json"
+PER_2_1_2_SCHEMA = Path(__file__).resolve().parents[1] / "schemas/per/per-2.1.2.schema.json"
 PUBLIC_RC3_SCHEMA = Path(__file__).resolve().parents[1] / "schemas/per/per-2.0.0-rc3-draft.schema.json"
 
 
@@ -46,6 +47,16 @@ def _admit_jury_consensus(schema):
     then = schema["$defs"]["finding"]["allOf"][3]["then"]["properties"]["decided_by"]
     require(then == {"enum": ["deterministic", "human"]}, "NATIVE_PREVIEW_SCHEMA", "unexpected PROVEN proof rule")
     then["enum"] = ["deterministic", "human", "semantic"]
+    return schema
+
+
+def _admit_evaluator_usage(schema):
+    """This internal projection's schema admitting the optional `telemetry.evaluator_usage` block of PER 2.1.2
+    (EIO-Agents 0.8.5), taken from the published 2.1.2 schema. Applied in memory to a projection carrying the block,
+    which is then finalized to PER 2.1.2; the published rc3 schemas are never changed."""
+    defs = json.loads(PER_2_1_2_SCHEMA.read_text(encoding="utf-8"))["$defs"]
+    schema["$defs"]["evaluator_usage"] = defs["evaluator_usage"]
+    schema["$defs"]["telemetry"]["properties"]["evaluator_usage"] = defs["telemetry"]["properties"]["evaluator_usage"]
     return schema
 
 
@@ -87,6 +98,9 @@ def _neutralize(old: dict, bundle: dict, ontology) -> dict:
     models = _evaluator_models(rec["telemetry"])
     rec["provenance"]["evaluator_models"] = [m for m in models if m["model"] is not None]
     rec["telemetry"]["evaluator_models"] = models
+    if "evaluator_usage" in rec["telemetry"]:   # 0.8.5: issued as PER 2.1.2 (`native_full_wire`)
+        evaluator_usage.check(bundle["provenance"]["telemetry"]["evaluator_usage"])
+        evaluator_usage.in_record(rec["telemetry"]["evaluator_usage"])
     rec["provenance"]["inputs"].pop("traps", None)
     rec["provenance"]["inputs"].pop("checks_version", None)
     rec["provenance"]["run"].pop("config_fingerprint", None)
@@ -186,6 +200,8 @@ def _project_neutral(b, *, ontology):
     schema = json.loads(schema_path.read_text())
     if any(f.get("proof_status") == "PROVEN" and f.get("decided_by") == "semantic" for f in rec.get("findings") or []):
         schema = _admit_jury_consensus(schema)
+    if "evaluator_usage" in rec["telemetry"]:
+        schema = _admit_evaluator_usage(schema)
     bad = list(Draft202012Validator(schema).iter_errors(rec))
     require(not bad, "NATIVE_PREVIEW_SCHEMA", f"{len(bad)} schema problems; first: {bad[0].message[:120]}" if bad else "")
     return rec

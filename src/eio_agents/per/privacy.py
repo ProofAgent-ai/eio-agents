@@ -346,6 +346,8 @@ a:vocab
     subject.ai_bom.components.*.kind
     telemetry.agent_under_test.cost_provenance
     telemetry.harness_llm.cost_provenance
+    telemetry.evaluator_usage.conventions
+    telemetry.evaluator_usage.provenance
 a:check_name
     claims.*.parameters.applicability_basis.premise_check
     claims.*.parameters.legacy_check
@@ -530,6 +532,9 @@ ad:release
     scores.metrics.*.explanation.params.reason
 ad:source_ref
     evidence.refs.*.source_ref
+ad:usage
+    telemetry.evaluator_usage.by_role.*.role
+    telemetry.evaluator_usage.errors.types.*
 ad:label
     claims.*.parameters.scenario
     claims.*.parameters.trap
@@ -550,6 +555,7 @@ bd:model
     provenance.harness_llm.primary.model
     subject.agent.model
     telemetry.evaluator_models.*.model
+    telemetry.evaluator_usage.by_role.*.model
 md:model
     subject.ai_bom.components.*.name
 bd:digest
@@ -697,7 +703,7 @@ def schema_vocabulary():
         props, consts = set(), set()
         for d in (per_schema("2.0.0-rc1"), per_schema("2.0.0-rc3-draft"), per_schema("2.0.0-rc4-draft"),
                   per_schema("2.0.0-rc5-policy-draft"), per_schema("2.0.0"),
-                  per_schema("2.1.0"), per_schema("2.1.1"), bundle_schema(), bundle_schema({"bundle_draft": 2})):
+                  per_schema("2.1.0"), per_schema("2.1.1"), per_schema("2.1.2"), bundle_schema(), bundle_schema({"bundle_draft": 2})):
             _schema_strings(d, props, consts)
         # The scored-route precheck uses this one diagnostic header URI. Do
         # not import the preview schema's other words into public vocabulary.
@@ -746,7 +752,15 @@ def label_value(eio, label):
     return label if label in vocabulary(eio).labels else fingerprint(label)
 
 
+# 0.8.5: the evaluator-usage labels (`telemetry.evaluator_usage` roles and OpenTelemetry error.type tokens) the record
+# keeps in clear (`ad:usage`); any other label is its fingerprint
+USAGE_LABELS = frozenset(("planner", "conductor", "jury", "retest_jury", "context_assessor", "compliance", "confirmation",
+                          "scoring_observer", "other", "timeout", "rate_limit", "provider_error", "invalid_output"))
+
+
 def _member(V, arg, v):
+    if arg == "usage":
+        return v in USAGE_LABELS
     """Whether `v` is a member of the vocabulary `arg` of an (a|d) field."""
     if arg == "label":
         return v in V.labels
@@ -1311,7 +1325,7 @@ def value_problem(V, spec, v, path, rec):
         ok = {"vocab": lambda: v in V.vocab, "check_name": lambda: v in V.check_names,
               "metric_key": lambda: v in V.metric_keys, "contract_token": lambda: CONTRACT_TOKEN.fullmatch(v),
               "profile_rule": lambda: PROFILE_RULE.fullmatch(v), "decisive_id": lambda: v in V.vocab or PROFILE_RULE.fullmatch(v) or (
-                  rec["header"]["per_version"] in ("2.1.0", "2.1.1") and v in REVIEW_GUARD_IDS),
+                  rec["header"]["per_version"] in ("2.1.0", "2.1.1", "2.1.2") and v in REVIEW_GUARD_IDS),
               "caveat_id": lambda: v in {x["id"] for x in CAVEATS.values()},
               "component_id": lambda: v in V.vocab or v in COMPONENT_TOKENS or (
                   rec["scores"]["axes"][path[2]]["axis"] == "eio.axis.governance" and v in APPROVED_G_COMPONENTS)}[arg]()
@@ -1392,7 +1406,8 @@ def problems(eio, rec, producer=frozenset()):
             out.append(("PRIVACY_UNCLASSIFIED", f"{pointer(p)}: {'.'.join(gpath(p))} is not in the closed field table"))
             continue
         why_not = value_problem(V, spec, v, p, rec)
-        released = spec[0] in ("bd", "md") and not FINGERPRINT.fullmatch(v) and not why_not   # a decided clear form
+        released = ((spec[0] in ("bd", "md") or spec == ("ad", "usage"))   # a decided clear form (0.8.5: usage labels)
+                    and not FINGERPRINT.fullmatch(v) and not why_not)
         if spec[0] != "c" and v in producer and not released:
             out.append(("PRIVACY_CLEAR_TEXT", f"{pointer(p)} carries a producer text of the bundle in clear"))
         if why_not:

@@ -249,6 +249,7 @@ def c_sources(rec, B, eio=None):
         "https://www.proofagent.ai/eio-agents/schema/per/2.0.0/per.schema.json",
         "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json",
         "https://www.proofagent.ai/eio-agents/schema/per/2.1.1/per.schema.json",
+        "https://www.proofagent.ai/eio-agents/schema/per/2.1.2/per.schema.json",
     }
     for te in ev["turns"]:
         t = turns.get(te["turn_index"])

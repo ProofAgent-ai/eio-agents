@@ -48,11 +48,12 @@ POLICY_RC5_URI = "urn:eio-agents:provisional:per:2.0.0-rc5-policy-draft"
 PER_2_0_0_URI = "https://www.proofagent.ai/eio-agents/schema/per/2.0.0/per.schema.json"
 PER_2_1_0_URI = "https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json"
 PER_2_1_1_URI = "https://www.proofagent.ai/eio-agents/schema/per/2.1.1/per.schema.json"   # 2.1.0 + jury-consensus proof
-PER_2_1 = ("2.1.0", "2.1.1")
+PER_2_1_2_URI = "https://www.proofagent.ai/eio-agents/schema/per/2.1.2/per.schema.json"   # 2.1.1 + optional evaluator usage
+PER_2_1 = ("2.1.0", "2.1.1", "2.1.2")
 NEUTRAL_SCHEMA_URIS = frozenset((NEUTRAL_RC3_PREVIEW_URI, INTERNAL_RC3_PREVIEW_URI, NEUTRAL_RC4_URI,
-                                 POLICY_RC5_URI, PER_2_0_0_URI, PER_2_1_0_URI, PER_2_1_1_URI))
+                                 POLICY_RC5_URI, PER_2_0_0_URI, PER_2_1_0_URI, PER_2_1_1_URI, PER_2_1_2_URI))
 SCHEMA_VERSIONS = ("2.0.0-rc1", "2.0.0-rc2-draft", "2.0.0-rc3-draft",
-                   "2.0.0-rc3-neutral-preview", "2.0.0-rc4-draft", "2.0.0-rc5-policy-draft", "2.0.0", "2.1.0", "2.1.1")
+                   "2.0.0-rc3-neutral-preview", "2.0.0-rc4-draft", "2.0.0-rc5-policy-draft", "2.0.0", "2.1.0", "2.1.1", "2.1.2")
 
 
 def _schema_for_uri(uri):
@@ -174,6 +175,12 @@ class Checker:
             rule = schema["$defs"]["finding"]["allOf"][3]["then"]["properties"]["decided_by"]
             if rule == {"enum": ["deterministic", "human"]}:
                 rule["enum"] = ["deterministic", "human", "semantic"]
+        # 0.8.5: the internal rc3 projection a PER 2.1.2 record is finalized from carries telemetry.evaluator_usage;
+        # its schema admits that optional block in memory, exactly as PER 2.1.2 defines it
+        if uri in (NEUTRAL_RC3_PREVIEW_URI, INTERNAL_RC3_PREVIEW_URI) and "evaluator_usage" in (self.rec.get("telemetry") or {}):
+            defs = json.loads(PER_SCHEMAS["2.1.2"].read_text(encoding="utf-8"))["$defs"]
+            schema["$defs"]["evaluator_usage"] = defs["evaluator_usage"]
+            schema["$defs"]["telemetry"]["properties"]["evaluator_usage"] = defs["telemetry"]["properties"]["evaluator_usage"]
         errs = list(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(self.rec))
         return [f"{'/'.join(map(str, e.path))}: {e.message[:160]}" for e in errs], f"0 errors against {uri}"
 
@@ -665,7 +672,11 @@ class Checker:
         # candidate without the no-policy default floor, which is not reinterpreted under 2.2
         semantics = "2.2" if h["per_version"] in PER_2_1 else RELEASE_SEMANTICS
         jury = any(f.get("proof_status") == "PROVEN" and f.get("decided_by") == "semantic" for f in self.rec["findings"])
-        if h["per_version"] in PER_2_1 and (h["per_version"] == "2.1.1") != jury:
+        usage = "evaluator_usage" in (self.rec.get("telemetry") or {})
+        if h["per_version"] in PER_2_1 and (h["per_version"] == "2.1.2") != usage:
+            p.append(f"a PER {h['per_version']} record {'must' if h['per_version'] == '2.1.2' else 'cannot'} carry "
+                     "telemetry.evaluator_usage (PER 2.1.2 is issued exactly when it does)")
+        elif h["per_version"] in PER_2_1[:2] and (h["per_version"] == "2.1.1") != jury:
             p.append(f"a PER {h['per_version']} record {'must' if h['per_version'] == '2.1.1' else 'cannot'} hold a finding "
                      "PROVEN by jury consensus (PER 2.1.1 is issued exactly when one is)")
         if h["release_semantics"] != semantics:

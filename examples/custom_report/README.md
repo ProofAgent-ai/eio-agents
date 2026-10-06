@@ -35,7 +35,7 @@ python -m pytest -q test_convert.py
 `convert.py` prints:
 
 ```text
-my.per.json: PER 2.1.0 · sha256:b47d052e5738544cb4abcab6d63c15741a212cccfa8a59721822903e8682de68 · readiness 41.0227
+my.per.json: PER 2.1.0 · sha256:981b7b58c0ab779835330fe6ce8d435dc277fd902abf5ca77b938f705239d45f · readiness 41.0227
 ```
 
 The report declares no release policy, so the record's release recommendation is REVIEW: readiness is below the

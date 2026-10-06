@@ -66,6 +66,8 @@ def standards() -> dict[str, str]:
         "current_native_per_version": native_full_wire.PER_VERSION,
         # 0.8.4: a record holding a finding PROVEN by jury consensus is issued as PER 2.1.1 (2.1.0 + that proof rule)
         "jury_per_version": native_full_wire.PER_VERSION_JURY,
+        # 0.8.5: a record carrying the evaluator's own usage (telemetry.evaluator_usage) is issued as PER 2.1.2
+        "telemetry_per_version": native_full_wire.PER_VERSION_USAGE,
         "current_native_per_schema_id": native_full_wire.SCHEMA_URI,
         "native_full_scoring_profile_id": native_full_wire.REFERENCE_FULL_ID,
         "native_full_scoring_profile_version": native_full_wire.REFERENCE_FULL_VERSION,

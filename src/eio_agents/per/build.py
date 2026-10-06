@@ -30,6 +30,7 @@ from eio_agents.adjudication import pool
 from eio_agents.base.version import VERSION
 from eio_agents.evidence.refs import no_call_ref, receipt_ref, span_ref
 from eio_agents.ontology import load
+from eio_agents.per import evaluator_usage
 from eio_agents.per.bundle import stage_digest
 from eio_agents.schemas import BUNDLE_VERSION
 from eio_agents.semantics.claims import make_claim
@@ -474,6 +475,8 @@ def build_bundle(*, run_id: str, producer: dict[str, str], agent: dict[str, str]
                                           "cost_usd": None, "cost_provenance": "UNAVAILABLE"},
                      "wall_clock_seconds": None}
     _need(isinstance(telemetry, dict), "BUILD_INPUT", "'telemetry' must be an object")
+    if "evaluator_usage" in telemetry:   # 0.8.5: the evaluator's own usage (PER 2.1.2); checked before it is sealed
+        evaluator_usage.check(telemetry["evaluator_usage"], code="BUILD_INPUT")
 
     b = {
         "archive_schema": 3, "bundle_version": BUNDLE_VERSION,

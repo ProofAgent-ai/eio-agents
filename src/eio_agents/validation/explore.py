@@ -19,7 +19,7 @@ def _rc4_score(rec: dict[str, Any]) -> bool:
     # shape. Do not strand measured axes/metrics merely because policy rules
     # were versioned separately from the score block.
     return (rec.get("header", {}).get("per_version") in
-            ("2.0.0-rc4-draft", "2.0.0-rc5-policy-draft", "2.0.0", "2.1.0", "2.1.1")
+            ("2.0.0-rc4-draft", "2.0.0-rc5-policy-draft", "2.0.0", "2.1.0", "2.1.1", "2.1.2")
             and (score.get("kind"), profile.get("version")) in (
                 ("reference-draft", "0.3.0-draft.1"), ("reference-draft", "0.3.1-draft.1"), ("reference", "0.3.1")))
 

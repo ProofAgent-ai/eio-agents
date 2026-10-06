@@ -1025,8 +1025,11 @@ SHAPE_FORMS = (
     ("a version (at most three groups of at most two digits, 'rcN', '.devN', a '+label') in a version member",
      lambda p, lid: p[-1] in ("version", "predicate_version", "module_version", "release"),
      re.compile(r"[0-9]{1,2}(?:\.[0-9]{1,2}){1,2}(?:rc[0-9]{1,2}|\.dev[0-9])?(?:\+[a-z]{1,16})?")),
-    ("a model identifier (`MODEL_ID`) in a field that names a model: the agent under test's, a model-graded claim's",
-     lambda p, lid: _at(p, "provenance", "agent", "model") or _at(p, "claims", 0, "provenance", "model"),
+    ("a model identifier (`MODEL_ID`) in a field that names a model: the agent under test's, a model-graded claim's, "
+     "an evaluator model's in telemetry (0.8.5: `evaluator_models` and `evaluator_usage.by_role`)",
+     lambda p, lid: _at(p, "provenance", "agent", "model") or _at(p, "claims", 0, "provenance", "model")
+     or _at(p, "provenance", "telemetry", "evaluator_models", 0, "model")
+     or _at(p, "provenance", "telemetry", "evaluator_usage", "by_role", 0, "model"),
      re.compile(MODEL_ID)),
 )
 # a short plain decimal (1-3 digits, a point, 1-2 digits) is not a digit run or group: a score, a rate or a model family
