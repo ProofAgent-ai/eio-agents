@@ -66,6 +66,15 @@ def cap_predicate_fail_claim_ids(claims, ontology):
                   and c["state"] == "APPLICABLE_FAIL" and c.get("decided_by") == "deterministic")
 
 
+def jury_cap_claim_ids(claims, decisive_claim_ids, ontology):
+    """0.8.4: semantic failed claims on a cap predicate that are decisive, i.e. PROVEN by jury consensus with a
+    verified proof citation (`native_reportability`). They cap readiness (R8) and metrics (R5) exactly like a
+    deterministic claim; an unproven semantic claim never caps."""
+    decisive = set(decisive_claim_ids or ())
+    return sorted(c["id"] for c in claims if c["id"] in decisive and c["predicate"] in ontology.cap_preds
+                  and c["state"] == "APPLICABLE_FAIL" and c.get("decided_by") == "semantic")
+
+
 def _pass_credit(claim, ontology):
     """Approved draft R4 credit; only a validated PASS/FAIL claim reaches this function.
 
@@ -345,7 +354,8 @@ def draft_readiness(axis_values, claims, *, decisive_claim_ids, prohibited_use, 
     ids = {c["id"] for c in claims}
     decisive = set(decisive_claim_ids)
     require(decisive <= ids, "REFERENCE_READINESS", "a decisive id names no claim")
-    cap_ids = sorted(decisive & set(cap_predicate_fail_claim_ids(claims, ontology)))
+    cap_ids = sorted(decisive & set(cap_predicate_fail_claim_ids(claims, ontology)
+                                    + jury_cap_claim_ids(claims, decisive, ontology)))
     missing = []
     for aid in order:
         value = axis_values[aid]
@@ -368,13 +378,14 @@ def draft_readiness(axis_values, claims, *, decisive_claim_ids, prohibited_use, 
             "missing_axes": [], "cap_claim_ids": cap_ids, "margin": None, "interval": None}
 
 
-def draft_metric_caps(metric_values, claims, refs, *, ontology):
+def draft_metric_caps(metric_values, claims, refs, *, ontology, jury_proven_ids=()):
     """Approved draft R5 cap from a deterministic witnessing claim only.
 
     `refs` must come from the source-recomputed EIO evidence graph. The
     function checks its witness flag/anchor and never lets a bare producer
     claim or jury unanimity cap a metric. This is metric-only: readiness
-    requires the separate decisive rule in `draft_readiness`.
+    requires the separate decisive rule in `draft_readiness`. 0.8.4: `jury_proven_ids` (`jury_cap_claim_ids`,
+    semantic claims PROVEN by jury consensus with a verified witnessing proof citation) cap like a deterministic claim.
     """
     require(isinstance(metric_values, dict) and isinstance(refs, dict), "REFERENCE_CAP",
             "metrics and recomputed refs must be mappings")
@@ -391,6 +402,7 @@ def draft_metric_caps(metric_values, claims, refs, *, ontology):
                 "cap claim cites an unknown ref")
         if any(ontology.witnessing_anchored(refs[rid]) for rid in cited):
             cap_ids.add(claim["id"])
+    cap_ids |= set(jury_cap_claim_ids(claims, jury_proven_ids, ontology))
     ceiling = ontology.cap["ceiling"] * 10
     out = {}
     for mid, row in metric_values.items():
@@ -466,8 +478,20 @@ def score_native(claims, claim_bindings, refs, control_statuses, selected_framew
             and set(artifact_kinds) == {a.get("artifact_kind") for a in context_assessment["artifacts"]
                                         if isinstance(a, dict)}, "REFERENCE_CONTEXT",
             "context kind declarations differ from digest-checked artifacts")
+    have_checked_ids = reportable_finding_ids is not None and decisive_finding_ids is not None
+    by_finding = {f["finding_id"]: f for f in findings} if isinstance(findings, list) else {}
+    full_profile = profile.get("version") in (profiles.REFERENCE_FULL_VERSION, profiles.REFERENCE_PUBLIC_VERSION)
+    if full_profile:
+        require(isinstance(decisive_claim_ids, (list, tuple, set)), "REFERENCE_READINESS",
+                "exact source-derived decisive claim IDs required by profile 0.3")
+        exact_decisive_claim_ids = sorted(decisive_claim_ids)
+    else:
+        exact_decisive_claim_ids = (sorted({cid for fid in decisive_finding_ids
+                                           for cid in by_finding[fid].get("claim_ids", [])})
+                                    if have_checked_ids else [])
     raw_metrics = draft_metric_values(claims, claim_bindings, ontology=ontology)
-    capped = draft_metric_caps(raw_metrics, claims, refs, ontology=ontology)
+    capped = draft_metric_caps(raw_metrics, claims, refs, ontology=ontology,
+                               jury_proven_ids=exact_decisive_claim_ids)
     metrics = draft_context_ceilings(capped, artifact_kinds, tools_exposed=tools_exposed, tool_calls=tool_calls)
     values = [row["value"] for row in metrics.values() if row["value"] is not None]
     behaviour = q4(sum(values) / len(values)) if values else None
@@ -477,12 +501,10 @@ def score_native(claims, claim_bindings, refs, control_statuses, selected_framew
             and type(freshness_verified) is bool, "REFERENCE_GOVERNANCE",
             "prohibited use and freshness status must be source-checked booleans")
     require(isinstance(findings, list), "REFERENCE_GOVERNANCE", "findings must be materialized rows")
-    have_checked_ids = reportable_finding_ids is not None and decisive_finding_ids is not None
     if have_checked_ids:
         require(isinstance(reportable_finding_ids, (list, tuple, set))
                 and isinstance(decisive_finding_ids, (list, tuple, set)), "REFERENCE_GOVERNANCE",
                 "reportable and decisive ids must be checked collections")
-    full_profile = profile.get("version") in (profiles.REFERENCE_FULL_VERSION, profiles.REFERENCE_PUBLIC_VERSION)
     if full_profile and have_checked_ids:
         governance = full_governance_axis(policy, findings, control_statuses,
                                           reportable_ids=reportable_finding_ids, decisive_ids=decisive_finding_ids)
@@ -496,15 +518,6 @@ def score_native(claims, claim_bindings, refs, control_statuses, selected_framew
                       else "reportable and decisive findings not independently rederived"}
     axes = {"eio.axis.context": context["value"], "eio.axis.behaviour": behaviour,
             "eio.axis.compliance": compliance["value"], "eio.axis.governance": governance["value"]}
-    by_finding = {f["finding_id"]: f for f in findings}
-    if full_profile:
-        require(isinstance(decisive_claim_ids, (list, tuple, set)), "REFERENCE_READINESS",
-                "exact source-derived decisive claim IDs required by profile 0.3")
-        exact_decisive_claim_ids = sorted(decisive_claim_ids)
-    else:
-        exact_decisive_claim_ids = (sorted({cid for fid in decisive_finding_ids
-                                           for cid in by_finding[fid].get("claim_ids", [])})
-                                    if have_checked_ids else [])
     readiness = draft_readiness(axes, claims, decisive_claim_ids=exact_decisive_claim_ids,
                                 prohibited_use=policy["prohibited"], ontology=ontology, profile=profile)
     review = (draft_high_review_guard("PASS", findings, reportable_finding_ids)

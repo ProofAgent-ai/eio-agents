@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-__version__ = "0.8.3"
+__version__ = "0.8.4"
 
 # public name -> the module that defines it (every lookup below is an explicit import; no dynamic import, no discovery)
 # eio_agents.api (projection, verifier and the predicate catalogue, in process)

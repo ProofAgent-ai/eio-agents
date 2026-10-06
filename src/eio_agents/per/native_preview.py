@@ -39,6 +39,16 @@ PREVIEW_SCHEMA = Path(__file__).resolve().parents[1] / "schemas/per/per-2.0.0-rc
 PUBLIC_RC3_SCHEMA = Path(__file__).resolve().parents[1] / "schemas/per/per-2.0.0-rc3-draft.schema.json"
 
 
+def _admit_jury_consensus(schema):
+    """This internal projection's schema with the one rule PER 2.1.1 changes: a PROVEN finding may be decided by a jury
+    consensus (`semantic`, EIO-Agents 0.8.4). Applied in memory to a projection holding such a finding, which is then
+    finalized to PER 2.1.1; the published rc3 schemas are never changed."""
+    then = schema["$defs"]["finding"]["allOf"][3]["then"]["properties"]["decided_by"]
+    require(then == {"enum": ["deterministic", "human"]}, "NATIVE_PREVIEW_SCHEMA", "unexpected PROVEN proof rule")
+    then["enum"] = ["deterministic", "human", "semantic"]
+    return schema
+
+
 def _replace_ids(value, old_to_new: dict[str, str]):
     if isinstance(value, dict):
         return {key: _replace_ids(item, old_to_new) for key, item in value.items()}
@@ -174,6 +184,8 @@ def _project_neutral(b, *, ontology):
     rec = _neutralize(old, b, ontology)
     schema_path = PREVIEW_SCHEMA if rec["header"]["schema_uri"] == SCHEMA_URI else PUBLIC_RC3_SCHEMA
     schema = json.loads(schema_path.read_text())
+    if any(f.get("proof_status") == "PROVEN" and f.get("decided_by") == "semantic" for f in rec.get("findings") or []):
+        schema = _admit_jury_consensus(schema)
     bad = list(Draft202012Validator(schema).iter_errors(rec))
     require(not bad, "NATIVE_PREVIEW_SCHEMA", f"{len(bad)} schema problems; first: {bad[0].message[:120]}" if bad else "")
     return rec

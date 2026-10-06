@@ -697,7 +697,7 @@ def schema_vocabulary():
         props, consts = set(), set()
         for d in (per_schema("2.0.0-rc1"), per_schema("2.0.0-rc3-draft"), per_schema("2.0.0-rc4-draft"),
                   per_schema("2.0.0-rc5-policy-draft"), per_schema("2.0.0"),
-                  per_schema("2.1.0"), bundle_schema(), bundle_schema({"bundle_draft": 2})):
+                  per_schema("2.1.0"), per_schema("2.1.1"), bundle_schema(), bundle_schema({"bundle_draft": 2})):
             _schema_strings(d, props, consts)
         # The scored-route precheck uses this one diagnostic header URI. Do
         # not import the preview schema's other words into public vocabulary.
@@ -1311,7 +1311,7 @@ def value_problem(V, spec, v, path, rec):
         ok = {"vocab": lambda: v in V.vocab, "check_name": lambda: v in V.check_names,
               "metric_key": lambda: v in V.metric_keys, "contract_token": lambda: CONTRACT_TOKEN.fullmatch(v),
               "profile_rule": lambda: PROFILE_RULE.fullmatch(v), "decisive_id": lambda: v in V.vocab or PROFILE_RULE.fullmatch(v) or (
-                  rec["header"]["per_version"] == "2.1.0" and v in REVIEW_GUARD_IDS),
+                  rec["header"]["per_version"] in ("2.1.0", "2.1.1") and v in REVIEW_GUARD_IDS),
               "caveat_id": lambda: v in {x["id"] for x in CAVEATS.values()},
               "component_id": lambda: v in V.vocab or v in COMPONENT_TOKENS or (
                   rec["scores"]["axes"][path[2]]["axis"] == "eio.axis.governance" and v in APPROVED_G_COMPONENTS)}[arg]()

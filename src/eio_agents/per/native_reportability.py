@@ -90,7 +90,8 @@ def derive_native_proof_sets(bundle, record, *, ontology, native_ids, verificati
         band = band_of(trials.get(cid), passes)["band"]
         for_proof = dict(claim)
         for_proof["parameters"] = dict(claim["parameters"], contract_check=check)
-        proven = native_claim_proven(for_proof, band, claim["parameters"]["fidelity"], by_claim.get(cid, []))
+        proven = native_claim_proven(for_proof, band, claim["parameters"]["fidelity"], by_claim.get(cid, []),
+                                     ontology.polarity(claim["predicate"]))
         r2 = bool(scoped)
         r3 = r2 and all(item == "counterevidence" for item in check["unmet"])
         r4 = proven or (claim["decided_by"] == "deterministic" and any(ref["anchor"] in ("exact", "receipt") for ref in scoped)

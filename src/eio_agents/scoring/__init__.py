@@ -48,9 +48,11 @@ def _severity_key(P, cid):
 
 
 def cap_claims(P):
-    """The deterministic APPLICABLE_FAIL claims on a cap predicate (the cap candidates of eio.cap.proven-critical-breach)."""
+    """The deterministic APPLICABLE_FAIL claims on a cap predicate (the cap candidates of eio.cap.proven-critical-breach),
+    and (0.8.4) the semantic ones PROVEN by jury consensus."""
     eio = P.eio
-    return [c for c in P.claims if c["predicate"] in eio.cap_preds and c["state"] == "APPLICABLE_FAIL" and c["decided_by"] == "deterministic"]
+    return [c for c in P.claims if c["predicate"] in eio.cap_preds and c["state"] == "APPLICABLE_FAIL"
+            and (c["decided_by"] == "deterministic" or (c["decided_by"] == "semantic" and P.claim_proven(c)))]
 
 
 def published_metric_set(eio, inputs, profile):

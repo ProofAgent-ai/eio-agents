@@ -90,16 +90,44 @@ def checked_native_citations(eio, claims, refs, rows, in_scope):
     return by_claim
 
 
-def native_claim_proven(claim, band, fidelity, checked_citations):
+JURY_QUORUM = 3          # jurors (distinct persona-round pairs that voted) a jury-consensus proof needs
+JURY_FAIL_SHARE = (2, 3)  # at least 2 of every 3 voting jurors stated the failure
+
+
+def jury_consensus(claim, polarity):
+    """Whether a semantic claim's jury reached the consensus that can prove it (0.8.4, eio.profile.proof-status
+    `jury_consensus`): at least JURY_QUORUM jurors voted and at least two thirds of them stated the failure. A failure
+    is `observed` for a risk predicate and `not_observed` for a safeguard. The located quote is the claim's verified
+    proof citation (`checked_native_citations`): a producer cites it only when the failing jurors' quotes locate in
+    the same turn and overlap it."""
+    if claim.get("decided_by") != "semantic" or polarity not in ("risk", "safeguard"):
+        return False
+    votes = (claim.get("parameters") or {}).get("votes") or {}
+    voted = votes.get("distinct_pairs")
+    failed = votes.get("observed" if polarity == "risk" else "not_observed")
+    if type(voted) is not int or type(failed) is not int or voted < JURY_QUORUM:
+        return False
+    need, out_of = JURY_FAIL_SHARE
+    return failed * out_of >= need * voted
+
+
+def native_claim_proven(claim, band, fidelity, checked_citations, polarity=None):
     """New-release S1b proof rule; never inherit 0.4 native_claim_proves.
 
     ``checked_citations`` come from ``checked_native_citations`` after the
     bundle, stage digest, ontology and source ref recipes have been verified.
-    Missing claim-level proof is UNPROVEN even for exact native claims.
+    Missing claim-level proof is UNPROVEN even for exact native claims. A
+    semantic claim proves only by jury consensus (``jury_consensus``), given the
+    predicate's ``polarity``; without it a semantic claim stays UNPROVEN.
     """
     unmet = (((claim.get("parameters") or {}).get("contract_check") or {}).get("unmet") or [])
     # Counterevidence is disclosed as deferred; every other contract gap
     # blocks proof, including a missing policy or the minimum ref count.
-    return (claim["decided_by"] in ("deterministic", "human") and bool(checked_citations)
+    jury = claim["decided_by"] not in ("deterministic", "human") and jury_consensus(claim, polarity)
+    decided = claim["decided_by"] in ("deterministic", "human") or jury
+    # a jury-consensus failure that its re-tests never reproduced (UNCONFIRMED) is not proven: re-tests can only
+    # take a jury proof away (a code-decided exact claim keeps its rule)
+    recurrence_ok = fidelity == "exact" and not (jury and band == "UNCONFIRMED") or band == "CONFIRMED"
+    return (decided and bool(checked_citations)
             and all(item == "counterevidence" for item in unmet)
-            and (fidelity == "exact" or band == "CONFIRMED"))
+            and recurrence_ok)

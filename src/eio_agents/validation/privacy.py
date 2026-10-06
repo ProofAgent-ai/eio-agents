@@ -32,7 +32,8 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from eio_agents.per.limitations import CATALOGUE as LIMITATION_CATALOGUE
 from eio_agents.schemas import (BUNDLE_SCHEMA, LEGACY_BUNDLE_SCHEMAS, PER_SCHEMA, PER_SCHEMA_NATIVE_PREVIEW, PER_SCHEMA_RC1,
-                                PER_SCHEMA_RC4, PER_SCHEMA_RC5_POLICY, PER_SCHEMA_2_0_0, PER_SCHEMA_2_1_0)
+                                PER_SCHEMA_RC4, PER_SCHEMA_RC5_POLICY, PER_SCHEMA_2_0_0, PER_SCHEMA_2_1_0,
+                                PER_SCHEMA_2_1_1)
 from eio_agents.validation.canon import jb, q4, sd, sha
 from eio_agents.validation.redaction import redact_span
 
@@ -735,7 +736,7 @@ class Words:
         # clear-text vocabulary. Historical rc2 and diagnostic previews must
         # be checked with their own pinned releases, not silently trusted here.
         for schema in (PER_SCHEMA_RC1, PER_SCHEMA, PER_SCHEMA_RC4, PER_SCHEMA_RC5_POLICY,
-                       PER_SCHEMA_2_0_0, PER_SCHEMA_2_1_0):
+                       PER_SCHEMA_2_0_0, PER_SCHEMA_2_1_0, PER_SCHEMA_2_1_1):
             properties, constants = _schema(schema)
             p1 |= properties
             c1 |= constants
@@ -1210,7 +1211,7 @@ def fits(w, spec, v, rec, path, cat):
             ok = {"vocab": v in w.vocab, "check_name": v in w.checks, "metric_key": v in w.metric_keys,
                   "contract_token": bool(CONTRACT.fullmatch(v)), "profile_rule": bool(RULE.fullmatch(v)),
                   "decisive_id": v in w.vocab or bool(RULE.fullmatch(v)) or
-                  (rec["header"]["per_version"] == "2.1.0" and v in REVIEW_GUARDS),
+                  (rec["header"]["per_version"] in ("2.1.0", "2.1.1") and v in REVIEW_GUARDS),
                   "caveat_id": v in CAVEAT_IDS}.get(arg)
         return None if ok else "not a member of its vocabulary"
     if c == "b":

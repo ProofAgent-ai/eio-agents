@@ -10,6 +10,47 @@ The format is based on [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.
 Every entry states the bundled EIO release, the PER version, and whether record bytes change. The `.devN` versions
 below are development builds; `0.6.0rc1` was a release candidate. No version is a claim of certification.
 
+## [0.8.4]
+
+EIO-Agents 0.8.4 bundles the same EIO `0.6.0` (`ontology_digest` `a27cf1f3ab755446`), release semantics `2.2`,
+reference scoring profile `0.3.1` and bundle format `3.0.0`. It adds **PER `2.1.1`**, which is PER `2.1.0` with one rule
+changed (below), issued only for a record holding a finding PROVEN by jury consensus. Every other record is PER `2.1.0`
+as before: every record issued by 0.8.3 converts and verifies to the same bytes. No EIO data changes.
+
+### Added
+
+- **Jury-consensus proof (semantic R4(b)).** A semantic (jury-decided) native claim can now be `PROVEN`. It needs, on
+  top of the existing native proof conditions (a verified `role: proof` citation to a witnessing anchored agent span,
+  the evidence contract met, fidelity `exact` or recurrence `CONFIRMED`):
+  - **quorum**: at least three jurors voted (`votes.distinct_pairs >= 3`);
+  - **consensus**: at least two thirds of them stated the failure (`votes.observed` for a risk predicate,
+    `votes.not_observed` for a safeguard), so 2 of 3 or 3 of 3.
+  Re-tests can only take a jury proof away: a jury-consensus claim whose re-tests never reproduced it (recurrence
+  `UNCONFIRMED`) is not proven; a `narrower` one needs `CONFIRMED`. Code-decided claims keep their rule.
+  A semantic claim without consensus, or without a verified citation, stays `UNPROVEN` as before. The finding's
+  `decided_by` stays `semantic`; `proof_status` is `PROVEN`. Converter (`semantics.proof.jury_consensus`,
+  `native_claim_proven`, `per.native_reportability`) and, independently, the verifier twin
+  (`validation.native_score.jury_consensus`, `derive_proof_sets`; `validation.checker` F1 and `proof_candidate`).
+- **PER 2.1.1** (`schemas/per/per-2.1.1.schema.json`). The PER 2.1.0 schema requires a PROVEN finding to be
+  `deterministic` or `human`; 2.1.1 also admits `semantic` and changes nothing else (version identity aside). The
+  converter issues 2.1.1 exactly when a finding is PROVEN by jury consensus, and the verifier checks that it is
+  (`validation.checker` S2). The published rc3 schemas are unchanged: the internal rc3 projection admits the rule in
+  memory only.
+- **Producers cite the located quote.** A producer emits the semantic claim's proof citation only when every juror that
+  stated the failure quoted the agent answer, each quote occurs exactly once, and the quotes overlap the cited span.
+  `build_bundle` accepts an optional `quote` on each juror of a check's `jury` and applies this rule; without per-juror
+  quotes it emits no citation and the claim stays `UNPROVEN`.
+- **A jury-proven critical breach caps and blocks.** A semantic claim on an `eio.cap.proven-critical-breach` predicate
+  that is PROVEN by jury consensus now applies the cap exactly like a deterministic, witnessed one: the decisive `cap`
+  entry (BLOCK), readiness capped at 49 and the metric ceiling (R5). An unproven semantic claim never caps. Producer
+  (`semantics.release`, `scoring.reference`, `scoring.cap_claims`) and verifier twin (`validation.native_score`
+  R5/R8, `validation.checker` cap and cap reasons, `validation.score_block_diagnostic`).
+
+### Note
+
+- The `eio.profile.proof-status` text of EIO `0.6.0` (`semantic_never_proven`) is unchanged so the ontology digest and
+  every pinned record keep verifying; the profile text is updated with the next EIO release.
+
 ## [0.8.3]
 
 EIO-Agents 0.8.3 bundles the same EIO `0.6.0` (`ontology_digest` `a27cf1f3ab755446`) and produces the same PER `2.1.0`

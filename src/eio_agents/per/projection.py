@@ -205,7 +205,8 @@ class Projection:
     def claim_proven(self, c):
         if self.strict_native_proof:
             return sem_proof.native_claim_proven(c, self.band_of(c)["band"], self.fidelity(c),
-                                                 self.native_proof_citations.get(c["id"], []))
+                                                 self.native_proof_citations.get(c["id"], []),
+                                                 self.eio.polarity(c["predicate"]))
         return sem_proof.claim_proven(self.eio, c, self.refs, self.band_of(c)["band"], self.fidelity(c))
 
     def basis(self, cl):

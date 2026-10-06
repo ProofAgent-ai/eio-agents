@@ -119,7 +119,7 @@ def diagnose_draft_score_block(bundle, unscored_per, block, eio, *, approved_pro
     cap = eio.caps.get("eio.cap.proven-critical-breach") or {}
     cap_predicates = set(cap.get("applies_to_predicates") or [])
     cap_possible = {c["id"] for c in inputs["claims"] if c["state"] == "APPLICABLE_FAIL"
-                    and c["decided_by"] == "deterministic" and c["predicate"] in cap_predicates}
+                    and c["decided_by"] in ("deterministic", "semantic") and c["predicate"] in cap_predicates}
     all_metric_numbers_checked = True
     for mid in metric_ids:
         row, expected = by_metric.get(mid), computed[mid]

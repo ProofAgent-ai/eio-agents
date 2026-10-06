@@ -25,13 +25,15 @@ PER_SCHEMA_RC4 = PER_SCHEMA_DIR / "per-2.0.0-rc4-draft.schema.json"
 PER_SCHEMA_RC5_POLICY = PER_SCHEMA_DIR / "per-2.0.0-rc5-policy-draft.schema.json"
 PER_SCHEMA_2_0_0 = PER_SCHEMA_DIR / "per-2.0.0.schema.json"
 PER_SCHEMA_2_1_0 = PER_SCHEMA_DIR / "per-2.1.0.schema.json"
+PER_SCHEMA_2_1_1 = PER_SCHEMA_DIR / "per-2.1.1.schema.json"   # 2.1.0 plus jury-consensus proof (EIO-Agents 0.8.4)
 PER_SCHEMAS = {"2.0.0-rc1": PER_SCHEMA_RC1, "2.0.0-rc2-draft": PER_SCHEMA_RC2,
                "2.0.0-rc2-neutral-preview": PER_SCHEMA_RC2_NATIVE_PREVIEW,
                "2.0.0-rc3-draft": PER_SCHEMA,
                "2.0.0-rc3-neutral-preview": PER_SCHEMA_NATIVE_PREVIEW,
                "2.0.0-rc4-draft": PER_SCHEMA_RC4,
                "2.0.0-rc5-policy-draft": PER_SCHEMA_RC5_POLICY,
-               "2.0.0": PER_SCHEMA_2_0_0, "2.1.0": PER_SCHEMA_2_1_0}      # per_version -> schema file
+               "2.0.0": PER_SCHEMA_2_0_0, "2.1.0": PER_SCHEMA_2_1_0,
+               "2.1.1": PER_SCHEMA_2_1_1}      # per_version -> schema file
 PER_CONTEXT = PER_SCHEMA_DIR / "per-2.0-rc3-draft.context.jsonld"   # legacy JSON-LD context of rc3 records
 BUNDLE_SCHEMA_DIR = HERE / "bundle"
 BUNDLE_VERSION = "3.0.0"                              # the bundle format of every new bundle (`bundle_version`)

@@ -143,8 +143,11 @@ def release(P, gate_results, metric_by_id, metric_members, readiness_value, read
         return owning(P.CLAIM2F, P.FORDER, cids)
     decisive, rules = [], []
     # (1) cap
+    # 0.8.4: a semantic claim PROVEN by jury consensus (`proof.native_claim_proven`) caps exactly like a
+    # deterministic, witnessed one; an unproven semantic claim never caps
     C = [c for c in P.claims if c["predicate"] in eio.cap_preds and c["state"] == "APPLICABLE_FAIL"
-         and c["decided_by"] == "deterministic" and any(P.witnessing_anchored(r) for r in c["evidence"])]
+         and (c["decided_by"] == "deterministic" or (c["decided_by"] == "semantic" and P.claim_proven(c)))
+         and any(P.witnessing_anchored(r) for r in c["evidence"])]
     if C:
         p = "PROVEN" if any(P.claim_proven(c) for c in C) else "UNPROVEN"
         decisive.append({"kind": "cap", "id": eio.cap["id"], "expected": "no deterministic, witnessed APPLICABLE_FAIL on a cap predicate",

@@ -31,6 +31,17 @@ def _withheld_proof(reason):
             "witnessed_claim_ids": None, "withheld": reason}
 
 
+def jury_consensus(claim, polarity):
+    """Independently recompute the 0.8.4 jury-consensus decision of a semantic claim from its own votes: at least
+    three jurors voted and at least two thirds stated the failure (`observed` for a risk predicate, `not_observed` for
+    a safeguard)."""
+    if claim.get("decided_by") != "semantic" or polarity not in ("risk", "safeguard"):
+        return False
+    votes = (claim.get("parameters") or {}).get("votes") or {}
+    voted, failed = votes.get("distinct_pairs"), votes.get("observed" if polarity == "risk" else "not_observed")
+    return type(voted) is int and type(failed) is int and voted >= 3 and 3 * failed >= 2 * voted
+
+
 def _proof_in_scope(ref, claim, contract, episodes):
     """Recompute the R3 core witness scope from the original bundle graph."""
     scope = contract.get("scope")
@@ -251,8 +262,9 @@ def derive_proof_sets(bundle, record, eio):
     native wire. It must be invoked *after* schema/stage, record, and VER-5
     source checks; those checks establish that each ref locator recomputes
     against the original bundle. A missing citation-role section withholds
-    all sets. Semantic R4(b) is inactive until S4; semantic ballot counts alone
-    never promote a finding under this S1b profile.
+    all sets. Semantic R4(b) is active only through jury consensus (0.8.4): a
+    semantic claim proves when its votes reach the consensus and it carries a
+    verified located quote; ballot counts alone never promote a finding.
     """
     source = bundle.get("native_scoring") or {}
     citations = source.get("proof_citations")
@@ -351,16 +363,21 @@ def derive_proof_sets(bundle, record, eio):
         if fidelity not in ("exact", "narrower"):
             raise ScoreInputError("native claim fidelity is absent or unknown")
         recurrence = band[cid]
-        is_proven = (claim["decided_by"] in ("deterministic", "human")
-                     and (fidelity == "exact" or recurrence == "CONFIRMED"))
+        # 0.8.4: a semantic claim is decided for proof by jury consensus, recounted from the source claim's own
+        # votes (never the PER's), with its located quote as the verified proof citation above.
+        jury = (claim["decided_by"] not in ("deterministic", "human")
+                and jury_consensus(claim, eio.pred[claim["predicate"]]["polarity"]))
+        decided = claim["decided_by"] in ("deterministic", "human") or jury
+        # a jury proof is taken away by re-tests that never reproduced it (UNCONFIRMED)
+        is_proven = decided and ((fidelity == "exact" and not (jury and recurrence == "UNCONFIRMED"))
+                                 or recurrence == "CONFIRMED")
         if is_proven:
             proven.add(cid)
         strong = is_proven or (claim["decided_by"] == "deterministic"
                                and any(c["citation_anchor"] in ("exact", "receipt") for c in anchored)
                                and (fidelity == "exact" or recurrence != "UNCONFIRMED"))
-        # S1b: semantic R4(b) has not been activated. A stored vote count cannot
-        # stand in for each persona's separately located quote.
-        if claim["decided_by"] == "semantic":
+        # Semantic R4(b) is active only through jury consensus: a semantic claim without it is never strong.
+        if claim["decided_by"] == "semantic" and not is_proven:
             strong = False
         recurrence_ok = is_proven or recurrence != "UNCONFIRMED"
         if strong and recurrence_ok:
@@ -457,9 +474,11 @@ def citation_bound_r8_cap(bundle, record, eio):
     decisive = set(proof["decisive_claim_ids"])
     if not decisive <= set(claims):
         raise ScoreInputError("decisive proof set names an unknown source claim")
+    # 0.8.4: a decisive semantic claim is PROVEN by jury consensus (recounted in `derive_proof_sets` from the
+    # source votes, its verified proof citation and recurrence) and caps exactly like a deterministic one
     cap_ids = sorted(cid for cid in decisive if claims[cid]["predicate"] in predicates
                      and claims[cid]["state"] == "APPLICABLE_FAIL"
-                     and claims[cid]["decided_by"] == "deterministic")
+                     and claims[cid]["decided_by"] in ("deterministic", "semantic"))
     prohibited = inputs["policy"].get("prohibited")
     if type(prohibited) is not bool:
         raise ScoreInputError("prohibited-use fact must be an explicit source boolean")
@@ -512,6 +531,15 @@ def source_bound_r5_metric_caps(metric_rows, bundle, record, eio, *, verificatio
                     and _proof_in_scope(ref, claim, ec, episodes)):
                 candidates.add(claim["id"])
                 break
+    # 0.8.4: a semantic FAIL on a cap predicate caps only when independently PROVEN by jury consensus (decisive in
+    # `derive_proof_sets`); proof sets are rederived only when such a claim exists, so other records are unchanged
+    if any(claim["state"] == "APPLICABLE_FAIL" and claim["decided_by"] == "semantic"
+           and claim["predicate"] in predicates for claim in inputs["claims"]):
+        proof = derive_proof_sets(bundle, record, eio)
+        decisive = set(proof["decisive_claim_ids"] or ())
+        candidates |= {claim["id"] for claim in inputs["claims"] if claim["id"] in decisive
+                       and claim["state"] == "APPLICABLE_FAIL" and claim["decided_by"] == "semantic"
+                       and claim["predicate"] in predicates}
     raw = metric_values(inputs["claims"], inputs["claim_bindings"], eio)
     if set(metric_rows) != set(raw):
         raise ScoreInputError("metric set differs from pinned ontology")

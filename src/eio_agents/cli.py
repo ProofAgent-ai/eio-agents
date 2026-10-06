@@ -91,7 +91,7 @@ def _run(a) -> int:
         rr, sc = rec["release_recommendation"], rec["scores"]
         readiness = sc["readiness"]["value"] if sc else None
         wire = rec["header"]["per_version"]
-        if wire != api.standards()["current_native_per_version"]:
+        if wire not in (api.standards()["current_native_per_version"], api.standards()["jury_per_version"]):
             print(f"PARTIAL/HISTORICAL PER {wire}: not the current native scored contract", file=sys.stderr)
         print(f"{a.out}: PER {wire} · {digest} · state {rr['state']} · readiness {readiness} · claims {len(rec['claims'])} · "
               f"findings {len(rec['findings'])}")

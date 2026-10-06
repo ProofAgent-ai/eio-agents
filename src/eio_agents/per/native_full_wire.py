@@ -35,6 +35,11 @@ HIGH_REVIEW_GUARD = "eio.release.high-review-queue"
 DEFAULT_FLOOR_GUARD = "eio.release.default-readiness-floor"
 HARD_BLOCK_GUARD = "eio.release.hard-block-unmet"
 DEFAULT_READINESS_FLOOR = 85.0
+# PER 2.1.1 (EIO-Agents 0.8.4) is PER 2.1.0 whose proof rule also admits jury consensus: a record is issued as 2.1.1
+# only when one of its findings is PROVEN by a jury (decided_by semantic), so every other record keeps its 2.1.0 bytes.
+PER_VERSION_JURY = "2.1.1"
+SCHEMA_URI_JURY = "https://www.proofagent.ai/eio-agents/schema/per/2.1.1/per.schema.json"
+PER_2_1 = (PER_VERSION, PER_VERSION_JURY)
 POLICY_PER_VERSION = PER_VERSION
 POLICY_SCHEMA_URI = SCHEMA_URI
 SCORE_BASIS_VERSION = "eio-agents.score-basis/0.3.0"
@@ -44,7 +49,18 @@ REFERENCE_FULL_VERSION = profiles.REFERENCE_PUBLIC_VERSION
 _ROOT = Path(__file__).resolve().parents[1] / "schemas"
 SCORE_SCHEMA = _ROOT / "scoring/native-score-block-0.3.1.schema.json"
 PER_SCHEMA = _ROOT / "per/per-2.1.0.schema.json"
+PER_SCHEMA_JURY = _ROOT / "per/per-2.1.1.schema.json"
 POLICY_PER_SCHEMA = PER_SCHEMA
+
+
+def jury_proven(record):
+    """Whether a record holds a finding PROVEN by jury consensus (it is then PER 2.1.1)."""
+    return any(f.get("proof_status") == "PROVEN" and f.get("decided_by") == "semantic"
+               for f in record.get("findings") or [])
+
+
+def _schema_of(record):
+    return PER_SCHEMA_JURY if record["header"]["per_version"] == PER_VERSION_JURY else PER_SCHEMA
 
 
 def _checked_schema(path):
@@ -58,8 +74,9 @@ def _versioned_unscored(record):
     require(record["header"]["per_version"] == "2.0.0-rc3-draft" and record.get("scores") is None,
             "NATIVE_FULL_WIRE", "a verified null-score neutral PER projection is required")
     result = copy.deepcopy(record)
-    result["header"]["per_version"] = PER_VERSION
-    result["header"]["schema_uri"] = SCHEMA_URI
+    jury = jury_proven(result)
+    result["header"]["per_version"] = PER_VERSION_JURY if jury else PER_VERSION
+    result["header"]["schema_uri"] = SCHEMA_URI_JURY if jury else SCHEMA_URI
     result["header"]["release_semantics"] = RELEASE_SEMANTICS
     result["release_recommendation"]["semantics"] = RELEASE_SEMANTICS
     return result
@@ -209,8 +226,8 @@ def project_unscored_per(record, *, ontology):
     base = _versioned_unscored(record)
     _apply_high_review_guard(base, high_review_queue_unscored(base), ontology=ontology)
     _apply_default_floor_guards(base, None, ontology=ontology)
-    errors = [error.message for error in Draft202012Validator(_checked_schema(PER_SCHEMA)).iter_errors(base)]
-    require(not errors, "NATIVE_FULL_WIRE_SCHEMA", f"PER 2.1.0 invalid: {errors[:2]}")
+    errors = [error.message for error in Draft202012Validator(_checked_schema(_schema_of(base))).iter_errors(base)]
+    require(not errors, "NATIVE_FULL_WIRE_SCHEMA", f"PER {base['header']['per_version']} invalid: {errors[:2]}")
     return base
 
 
@@ -313,7 +330,7 @@ def project_native_full_per(bundle, unscored_per, verification, *, ontology):
                            if row["limitation_id"] != NO_SCORING_PROFILE_ID]
     require(_score_basis_sha256(base) == block["score_basis_sha256"],
             "NATIVE_FULL_WIRE", "rc4 score basis changed during assembly")
-    schema_path = POLICY_PER_SCHEMA if base["header"]["per_version"] == POLICY_PER_VERSION else PER_SCHEMA
+    schema_path = _schema_of(base)
     errors = [error.message for error in Draft202012Validator(_checked_schema(schema_path)).iter_errors(base)]
     require(not errors, "NATIVE_FULL_WIRE_SCHEMA", f"rc4 PER invalid: {errors[:2]}")
     return base
