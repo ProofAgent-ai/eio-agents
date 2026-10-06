@@ -30,11 +30,11 @@ Framework-control links show evidence relevance; they do **not** establish legal
 
 ## Evaluation-platform agnostic
 
-[![Many producers, one portable record: ProofAgent Harness as a native producer, and Inspect AI, promptfoo, DeepEval, OpenTelemetry GenAI and your own report through export converters, all build the same EIO bundle, which EIO-Agents turns into one PER 2.1.0](https://raw.githubusercontent.com/ProofAgent-ai/eio-agents/main/docs/eio-agents-adapters.png)](https://www.proofagent.ai/eio-agents/per#adapters)
+[![Many producers, one portable record: ProofAgent Harness as a native producer, and Inspect AI, promptfoo, DeepEval, OpenTelemetry GenAI and your own report through export converters, all build the same EIO bundle, which EIO-Agents turns into one PER](https://raw.githubusercontent.com/ProofAgent-ai/eio-agents/main/docs/eio-agents-adapters.png)](https://www.proofagent.ai/eio-agents/per#adapters)
 
 A PER does not depend on who ran the evaluation. A **native producer** records EIO evidence during the run; an
 **export converter** maps a finished report through an explicit crosswalk. Both build the same EIO bundle with
-`build_bundle()`, and EIO-Agents turns it into the same PER 2.1.0. The repository has a converter for
+`build_bundle()`, and EIO-Agents turns it into the same PER. The repository has a converter for
 [Inspect AI](https://github.com/ProofAgent-ai/eio-agents/tree/main/examples/adapters/inspect_ai),
 [promptfoo](https://github.com/ProofAgent-ai/eio-agents/tree/main/examples/adapters/promptfoo),
 [DeepEval](https://github.com/ProofAgent-ai/eio-agents/tree/main/examples/adapters/deepeval),
@@ -153,11 +153,48 @@ Each check names an EIO predicate (`eio-agents predicates --search deadline` fin
 
 ## Versions and limits
 
-- **Package:** `0.8.3` · **ontology:** EIO `0.6.0` · **record:** PER `2.1.0` (every new record; release semantics `2.2`) · **bundle:** format `3.0.0` · **reference scoring profile:** `0.3.1`. Missing inputs leave affected values **WITHHELD**, never guessed. Older records and bundles keep their legacy versions and stay verifiable under them.
-- **Open format:** PER 2.1.0 uses [JSON Schema 2020-12](https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json) and EIO publishes a JSON-LD context (see [Schemas and reference files](#schemas-and-reference-files)). Every schema is also bundled in the package for offline validation. It is a versioned ProofAgent specification, **not** a W3C- or ISO-ratified standard or a compliance certification.
+- **Package:** `0.8.5` · **ontology:** EIO `0.6.0` · **record:** PER `2.1.0` (default; release semantics `2.2`), PER `2.1.1` when a record holds a jury-proven finding, PER `2.1.2` when it carries evaluator usage telemetry · **bundle:** format `3.0.0` · **reference scoring profile:** `0.3.1`. Missing inputs leave affected values **WITHHELD**, never guessed. Older records and bundles keep their legacy versions and stay verifiable under them.
+- **Open format:** PER 2.1.x uses [JSON Schema 2020-12](https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json) and EIO publishes a JSON-LD context (see [Schemas and reference files](#schemas-and-reference-files)). Every schema is also bundled in the package for offline validation. It is a versioned ProofAgent specification, **not** a W3C- or ISO-ratified standard or a compliance certification.
+- **Jury proof (0.8.4+):** a finding decided by an LLM jury is PROVEN only when at least 2 of 3 jurors state the failure, their quotes are located in the transcript and the evidence contract is met; a re-test that does not reproduce it withdraws the proof. A jury-proven CRITICAL triggers the critical-breach cap.
+- **Evaluator telemetry (0.8.5+):** optional measured LLM usage of the evaluator itself; see [Evaluator usage telemetry](#evaluator-usage-telemetry).
 - **Framework mappings:** provisional evidence-relevance links, not legal or regulatory compliance determinations. Historical ProofAgent report conversion requires the matching adapter and pinned EIO release.
 
 For local-text privacy boundaries, CLI targets, and your own bundle, see [the quick start](https://github.com/ProofAgent-ai/eio-agents/blob/main/docs/quickstart.md). For the complete record structure and dashboard-style example, see [the PER guide](https://www.proofagent.ai/eio-agents/per).
+
+## Evaluator usage telemetry
+
+From 0.8.5 a producer can record how much its **own** evaluation cost to run, alongside the agent's telemetry. The
+agent under test is a black box whose internal token use is usually unknown, so this block measures the evaluator
+(planner, jury, re-tests, assessors) instead. Fields follow the
+[OpenTelemetry GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) and carry no cost
+or price fields:
+
+```json
+"telemetry": {
+  "evaluator_usage": {
+    "conventions": "otel-gen-ai",
+    "provenance": "MEASURED",
+    "wall_clock_seconds": 388.4,
+    "llm_calls": 142,
+    "tokens": {"input": 410233, "output": 61877},
+    "duration_ms": {"p50": 1840, "p95": 6210, "max": 11902},
+    "errors": {"count": 1, "types": ["timeout"]},
+    "retries": 3,
+    "by_role": [
+      {"role": "jury", "model": "gpt-4.1-mini", "llm_calls": 84,
+       "tokens": {"input": 250112, "output": 40210},
+       "duration_ms": {"p50": 1720, "p95": 5100, "max": 9050}, "errors": 0}
+    ]
+  }
+}
+```
+
+- `provenance` is `MEASURED`, `PARTIAL` (some calls reported no token usage) or `UNAVAILABLE`.
+- Latencies are whole milliseconds, nearest-rank percentiles, with `p50 ≤ p95 ≤ max` enforced by the verifier.
+- Standard roles (`planner`, `conductor`, `jury`, `retest_jury`, `context_assessor`, `compliance`, `confirmation`,
+  `scoring_observer`, `other`) and error types (`timeout`, `rate_limit`, `provider_error`, `invalid_output`) stay
+  readable; any other label is fingerprinted by the privacy boundary.
+- The block is optional. A record that carries it is issued as PER 2.1.2; every other record keeps its exact bytes.
 
 ## Schemas and reference files
 
@@ -167,7 +204,9 @@ bundled in the package (`eio_agents.schemas`), so validation works offline. The 
 
 | File | URL | Where a record uses it |
 |---|---|---|
-| PER 2.1.0 JSON Schema | <https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json> | `header.schema_uri` of every new record |
+| PER 2.1.2 JSON Schema | <https://www.proofagent.ai/eio-agents/schema/per/2.1.2/per.schema.json> | `header.schema_uri` of records with evaluator usage telemetry |
+| PER 2.1.1 JSON Schema | <https://www.proofagent.ai/eio-agents/schema/per/2.1.1/per.schema.json> | `header.schema_uri` of records with a jury-proven finding |
+| PER 2.1.0 JSON Schema | <https://www.proofagent.ai/eio-agents/schema/per/2.1.0/per.schema.json> | `header.schema_uri` of every other new record |
 | PER 2.0.0 JSON Schema | <https://www.proofagent.ai/eio-agents/schema/per/2.0.0/per.schema.json> | `header.schema_uri` of earlier records |
 | EIO 0.6.0 JSON-LD context | <https://www.proofagent.ai/eio-agents/schema/eio/0.6.0/eio-context-0.6.0.jsonld> | maps record fields to EIO terms |
 | EIO 0.6.0 manifest | <https://www.proofagent.ai/eio-agents/schema/eio/0.6.0/ontology/data/manifest.yaml> | `header.eio.release` |
