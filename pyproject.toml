@@ -63,11 +63,11 @@ Security = "https://github.com/ProofAgent-ai/eio-agents/security/policy"
 # `test` runs the suite. `lint` pins the ruff version that CI uses; keep it equal to the ruff `rev` in
 # .pre-commit-config.yaml. `build` builds and checks the distributions. `dev` is all of them plus pre-commit.
 test = ["pytest>=7"]
-lint = ["ruff==0.16.9"]
+lint = ["ruff==0.16.10"]
 build = ["build>=1.2", "twine>=6.1"]
 dev = [
   "pytest>=7",
-  "ruff==0.16.9",
+  "ruff==0.16.10",
   "build>=1.2",
   "twine>=6.1",
   "pre-commit>=4",
