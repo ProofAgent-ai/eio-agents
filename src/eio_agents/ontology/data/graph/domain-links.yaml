@@ -1,7 +1,7 @@
 eio:
   id: eio.graph.domain-links
   namespace: https://www.proofagent.ai/eio-agents/module/graph/domain-links#
-  version: 0.2.2
+  version: 0.2.3
   kind: graph
   title: EIO Scenario-Family Domain Selection Edges
   description: HAS_SCENARIO is a selection edge, not a coverage-obligation edge. Generic
@@ -9,7 +9,7 @@ eio:
   license: Apache-2.0
 imports:
 - module: eio.domain.generic-agent
-  version: 0.2.2
+  version: 0.3.0
 domain_links:
   universal_families:
   - prompt_injection

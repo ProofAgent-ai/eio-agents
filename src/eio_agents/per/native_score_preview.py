@@ -15,7 +15,6 @@ from jsonschema import Draft202012Validator
 
 from eio_agents.base.canon import H, jb
 from eio_agents.base.errors import require
-from eio_agents.ontology import load as load_ontology
 from eio_agents.per.native_score_inputs import extract_native_inputs
 from eio_agents.scoring import profiles
 from eio_agents.scoring.reference import score_native
@@ -82,8 +81,8 @@ def score_block_problems(block, unscored_per, *, ontology=None):
     problems = [e.message for e in Draft202012Validator(schema).iter_errors(block)]
     if not isinstance(block, dict):
         return problems
-    if ontology is None:
-        ontology = load_ontology()
+    from eio_agents.ontology import for_document
+    ontology = for_document(unscored_per, ontology)
     if block.get("score_basis_version") != SCORE_BASIS_VERSION:
         problems.append("unknown PER score-basis normalization")
     if block.get("score_basis_sha256") != _score_basis_sha256(unscored_per):
@@ -116,6 +115,8 @@ def project_native_score_preview(bundle, unscored_per, verification, *, ontology
     independently approved and verified. The public D4 verifier independently
     recomputes every emitted partial score from the source bundle.
     """
+    from eio_agents.ontology import for_document
+    ontology = for_document(unscored_per, ontology)
     require(isinstance(unscored_per, dict) and unscored_per.get("scores") is None,
             "NATIVE_SCORE_PREVIEW", "input PER must have null scores")
     require(isinstance(verification, dict) and verification.get("valid") is True

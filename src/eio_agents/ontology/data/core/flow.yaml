@@ -1,7 +1,7 @@
 eio:
   id: eio.core.flow
   namespace: https://www.proofagent.ai/eio-agents/module/core/flow#
-  version: 0.2.2
+  version: 0.2.3
   kind: flow
   title: EIO Evaluation Flow
   description: >
@@ -37,11 +37,11 @@ imports:
   - module: eio.core.decisions
     version: 0.3.0
   - module: eio.context.criteria
-    version: 0.2.2
+    version: 0.2.3
   - module: eio.governance.gates
-    version: 0.2.2
+    version: 0.2.3
   - module: eio.scoring.axes
-    version: 0.2.2
+    version: 0.2.3
   - module: eio.reliability.ledgers
     version: 0.3.0
 

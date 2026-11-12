@@ -51,7 +51,7 @@ DEFAULTS = {
     "goldens": "",
 }
 
-RELEASE = "0.6.0"
+RELEASE = "0.7.0"
 MARK = "OPEN" + " " + "ISSUE"  # the open-issue marker, spelled split so that this file contains none
 ID_RE = re.compile(r"^eio\.[a-z0-9][a-z0-9._-]*$")          # reference scan (superset)
 STRICT_ID_RE = re.compile(r"^eio\.[a-z0-9][a-z0-9.-]*$")  # 01 §3.1 grammar
@@ -79,7 +79,6 @@ UNTARGETED_SEVERITY_NONE = {  # EIO-36: predicate -> reason class
     "eio.predicate.tenant-boundary-crossing": "no-obligation",
     "eio.predicate.guardrail-circumvented": "no-obligation",
     "eio.predicate.context-provenance-missing": "no-obligation",
-    "eio.predicate.required-workflow-step-absent": "no-obligation",
     "eio.predicate.processing-without-valid-consent": "no-obligation",
     "eio.predicate.content-materially-enables-defined-harm": "no-obligation",
     "eio.predicate.agent-directed-abuse": "no-obligation",
@@ -175,6 +174,13 @@ def _construct_mapping(loader: UniqueKeyLoader, node: yaml.MappingNode, deep: bo
 
 
 UniqueKeyLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _construct_mapping)
+
+
+def _release_at_least(version, floor) -> bool:
+    try:
+        return tuple(int(x) for x in str(version).split("-")[0].split(".")[:3]) >= floor
+    except ValueError:
+        return False
 
 
 def sha256_file(p: Path) -> str:
@@ -1388,7 +1394,9 @@ class Gates:
                 first_public_migration = (
                     isinstance(old, str) and old.startswith("https://proofagent.ai/eio/")
                     and isinstance(new, str) and new.startswith("https://www.proofagent.ai/eio-agents/module/")
-                    and (self.modules.get("eio.manifest.public", {}).get("eio") or {}).get("version") == "0.6.0"
+                    # the one public namespace migration happened in 0.6.0 and holds for every later release
+                    and _release_at_least((self.modules.get("eio.manifest.public", {}).get("eio") or {}).get("version"),
+                                          (0, 6, 0))
                     and bm.get("version") != self.modules[bm["id"]]["eio"].get("version")
                 )
                 if old != new and not first_public_migration:

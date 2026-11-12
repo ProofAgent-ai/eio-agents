@@ -1,0 +1,94 @@
+eio:
+  id: eio.manifest.public
+  namespace: https://www.proofagent.ai/eio-agents/module/manifest/public#
+  version: 0.6.0
+  kind: core
+  title: Evaluation Intelligence Ontology Public Manifest
+  description: Release manifest importing the complete offline EIO ontology.
+  license: Apache-2.0
+
+# Every module of the distribution is pinned at its exact version with its module_sha256
+# ("sha256:" + hex(sha256(raw module file bytes))). A loader rejects an absent module, a version
+# that differs from its pin, and a file whose bytes do not hash to its pin (EIO-2, EIO-3). The
+# manifest cannot carry its own hash: the release digests (every module_sha256 including the
+# manifest's, ontology_sha256 and ontology_digest) are published beside it in RELEASE-DIGESTS.json.
+imports:
+  - {module: eio.core.entities, version: 0.2.0, sha256: "sha256:86399f777b90517740ab7625ecc19b01c584e19852b78323aa34a5627c28d9a8"}
+  - {module: eio.core.relations, version: 0.2.0, sha256: "sha256:c86a4fd8dbad092275c82d30c75456f20f968a14122f7d7773db40a41da4add0"}
+  - {module: eio.core.decisions, version: 0.3.0, sha256: "sha256:45fb24fd5821ab8e0f0cf0b064d87add3bb1bda27c4de7de842f5f637f14c7f7"}
+  - {module: eio.core.evidence, version: 0.2.1, sha256: "sha256:753c4c036a25580a32691f47cee0238efb7a70c318eeedf09109df114bf25855"}
+  - {module: eio.core.taxonomies, version: 0.2.0, sha256: "sha256:a2dd7d41e5faaf2dbf412752bf1ced7c49e8ef5a01283fd758dd0875d0186457"}
+  - {module: eio.core.flow, version: 0.2.2, sha256: "sha256:8166f34973cfbd0e84e5f1e1a3866fc5df6f7f0edcbb19c38be805c7b5c15fc6"}
+  - {module: eio.risk.catalog, version: 0.2.0, sha256: "sha256:57d763edb5dfeda0629486084c6bb6d26d4dde7a84edb47a99075bc16164b554"}
+  - {module: eio.risk.data-handling, version: 0.2.1, sha256: "sha256:8458f11f6b7ad5d11a330e1f31905a3742ebbcfcaaf7d4496a182b310f2ff721"}
+  - {module: eio.risk.context-trust, version: 0.2.1, sha256: "sha256:7dfa1c9d8871009155107165189f0cc961a08b8363028d2fbcd18301ca6b504d"}
+  - {module: eio.risk.grounding, version: 0.2.1, sha256: "sha256:8c929931b8acabc652851a8003c2c749c6849ca7b7aa5e5ba73d965f446e541e"}
+  - {module: eio.risk.action-safety, version: 0.3.0, sha256: "sha256:068a8fb071b50bcb54f4298724d11a4f4934f8be0869e2fddea625f82701d3a3"}
+  - {module: eio.risk.fairness-rights, version: 0.2.1, sha256: "sha256:7688bfb79b41409617363f065ccc5aab4ea0d9cc95dc87f345daded49cdc2403"}
+  - {module: eio.risk.content-code-safety, version: 0.2.1, sha256: "sha256:a4c1e0403f5559ee7ca810ce13f416abae3c0bfe416f64baaf96a1e5c01582f0"}
+  - {module: eio.risk.safeguards, version: 0.2.1, sha256: "sha256:2cc33892c7be69490b81a3bcf9fc4a980571e49dfba7da344d582404bca34fcc"}
+  - {module: eio.risk.evaluator-reliability, version: 0.2.1, sha256: "sha256:c2fb404cacdcffdfff0da6ebfbc7857e77ae3a25de0df5e6d2c6e61b16492095"}
+  - {module: eio.domain.generic-agent, version: 0.2.2, sha256: "sha256:07462c9505729e482cab029f1e5c035eb4c7d14827c140a744fccf438452a179"}
+  - {module: eio.domain.customer-support, version: 0.2.2, sha256: "sha256:41bdc7486e8efb6eff8998ea6bbffc322a35b8e8ce623a4879da458cd6a14014"}
+  - {module: eio.domain.financial-services, version: 0.2.2, sha256: "sha256:5c2187d138a96e7cd04569ca6b2807e455deb2b4a644aea7add987396a555d83"}
+  - {module: eio.domain.healthcare-operations, version: 0.2.2, sha256: "sha256:2220e98fd164a4a8b3faf6a591874a8f4838a22d551951be22de5391139eb5b4"}
+  - {module: eio.domain.hr-employment, version: 0.2.2, sha256: "sha256:d1e9009df79216f3f1aa7ce706127cd5f8854ca87305329eb38ceeb9133cca75"}
+  - {module: eio.domain.software-agents, version: 0.2.2, sha256: "sha256:43fb4cb8734e4c976dbd676cd3e689acc6704ea7b6a71aaaf125adaaeb8d87e2"}
+  - {module: eio.domain.legal-public-sector, version: 0.2.2, sha256: "sha256:855022b77d9116560d4011af388c13c22f0225a435f1625739a2b722371c19d6"}
+  - {module: eio.domain.aviation-airline, version: 0.2.2, sha256: "sha256:6a3182c27e033181e885143695ff0d27203dfedccb092cb9a441f269f03b7614"}
+  - {module: eio.domain.energy-utilities, version: 0.2.2, sha256: "sha256:2fe6e863d6f5b4411d3394b954e4e62bd045ec946e85f2256b56087daa9683c3"}
+  - {module: eio.domain.medical-devices, version: 0.2.2, sha256: "sha256:0ecda6d90c87a7636e204a5b9d71c380ae77ef036fb7f9e320f4b0f0174c62c7"}
+  - {module: eio.domain.payments-cardholder, version: 0.2.2, sha256: "sha256:da84abb33505f0c6f6bcda86e1963857c0070e34988e4c6a185c7e24ed951b85"}
+  - {module: eio.graph.domain-links, version: 0.2.2, sha256: "sha256:63020aa72b216f26f73cb2abb89e316ed8296ce75e9a45c558fb600a9fe38e7f"}
+  - {module: eio.graph.context-links, version: 0.2.2, sha256: "sha256:e6694e318806d34ca7093d3cd64eae1e13c198a924696e2bab12e75749257290"}
+  - {module: eio.mapping.metrics, version: 0.2.2, sha256: "sha256:5b2f17168b0739654c502300cc64f3eac6c8694481e12a201f512419f6253a8c"}
+  - {module: eio.compliance.frameworks, version: 0.2.2, sha256: "sha256:6afcd9103949ddb120087fd7ef757381ce40ae369d9f587c0c85b549f3c53b0a"}
+  - {module: eio.mapping.frameworks, version: 0.3.2, sha256: "sha256:345eb8d04d2e6419dbaf5f3382b2a422439ed6b2b9d459fd9addcc2df608cf75"}
+  - {module: eio.context.criteria, version: 0.2.2, sha256: "sha256:1832a8dfcc32834fb4f919bfcbe20b8e8d13aede97847de8467b3ab0bc1464a1"}
+  - {module: eio.governance.gates, version: 0.2.2, sha256: "sha256:1fc0bb3527b17179d03c8c0404e3726a09c01c2654369c175a380bc267d9c067"}
+  - {module: eio.scoring.axes, version: 0.2.2, sha256: "sha256:0157eb884eead5d553cd2ef9495a87e95c397af86111ae25bfc8d3651e94ab7a"}
+  - {module: eio.reliability.ledgers, version: 0.3.0, sha256: "sha256:454e9806c7f8f0bc342103bbce25c3d54b2ff73511862b71714625f1b2226f71"}
+  - {module: eio.assurance.system-of-record, version: 0.2.2, sha256: "sha256:58d1cbb74439715f40da752ac76c14c66c297e0b89663b4f6307a6a23939947c"}
+  - {module: eio.template.core, version: 0.2.2, sha256: "sha256:4d08e626dcac393e8ffac38d0b31ec6849c128ee703fa8439ee1592757d62db4"}
+  - {module: eio.template.why, version: 0.1.0, sha256: "sha256:4c104e19a1aab08529b10ca768f3ec0604f359859b7eaef3455393bd488e2340"}
+
+profiles:
+  - id: eio.profile.public-release
+    description: Public release metadata and production-claim boundary.
+    release: 0.6.0
+    local_only: true
+    network_required: false
+    remote_data_transfer: false
+    authoring_format: YAML
+    interchange_formats: [JSON, JSON-LD]
+    normative_schemas: [module.schema.json, evidence-graph.schema.json, evaluation-claim.schema.json, reference-case.schema.json]
+    production_status: candidate
+    production_gate: Predicate reference cases must be independently reviewed and adjudicated before a module may claim production validation.
+    # EIO-1. Semantic versioning while the release major version is 0.
+    versioning:
+      - While the release major version is 0, a breaking change (a change of meaning) bumps the MINOR version of the module and of the release and is listed under BREAKING in CHANGELOG.md.
+      - An additive change bumps PATCH or MINOR; a text, title or comment change bumps PATCH.
+      - An import pin is exact; EIO has no version ranges.
+      - A predicate's version identifies its proposition (applicable_when, satisfied_when, violated_when, polarity, unknown_policy, evidence_contract, subsumes); the claim id includes it.
+  # EIO-3. The release digests; their values for this release are in RELEASE-DIGESTS.json.
+  - id: eio.profile.ontology-digest
+    description: How module and ontology digests are computed and where they are published.
+    module_sha256: '"sha256:" + hex(sha256(raw module file bytes))'
+    ontology_sha256: '"sha256:" + hex(sha256(JCS({module_id: module_sha256}))) over every module the manifest imports plus the manifest itself'
+    ontology_digest: the first 16 hex characters of ontology_sha256 (display value and the re-derivation trigger in per_semantics_version)
+    rationale: >
+      The hash is over raw file bytes, not over parsed YAML: YAML parsers disagree across languages,
+      so a parsed-form hash would not be portable. A comment or whitespace edit is therefore a new
+      patch release with new digests.
+    published_in: RELEASE-DIGESTS.json
+    per_header: 'header.eio carries release, ontology_digest, ontology_sha256 and modules {module_id: module_sha256}'
+  - id: eio.profile.required-capsule-fields
+    description: Minimum provenance captured for reproducible ontology-backed evaluation.
+    required:
+      - ontology release, every module id, version and module_sha256, and ontology_sha256
+      - agent manifest, policy, tool schema, and domain profile hashes
+      - test template, parameter binding, generator version, and seed
+      - evidence graph schema, source hashes, and extractor versions
+      - resolver code, model, prompt, sampling parameters, and cache identity
+      - canonical claim and metric-view versions
+      - tracked and untracked local repository state affecting execution

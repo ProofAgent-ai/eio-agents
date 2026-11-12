@@ -176,6 +176,21 @@ def load(root=None) -> Ontology:
     return Ontology(Path(root).resolve() if root is not None else DATA_DIR)
 
 
+HISTORICAL_DIR = Path(__file__).resolve().parent / "historical"
+
+
+def release_root(release) -> Path | None:
+    """Where the bundled EIO release a record names in `header.eio.release` lives, when it is not the current one: each
+    earlier release this library still verifies is kept byte-exact under `historical/<release>/`. None for the current
+    release, and for one this library does not carry (the caller then checks against the current release, which
+    reports the mismatch)."""
+    rel = str(release or "")
+    if not rel or rel == load().release:
+        return None
+    root = HISTORICAL_DIR / rel
+    return root if (root / "manifest.yaml").exists() else None
+
+
 def release_digests(root: Path = DATA_DIR) -> dict:
     """RELEASE-DIGESTS.json of the release: module digests, ontology_sha256, ontology_digest and the pinned files."""
     return json.loads((root / RELEASE_DIGESTS).read_text(encoding="utf-8"))
@@ -187,3 +202,19 @@ def release_file(rel: str, root: Path = DATA_DIR) -> Path:
     if rel.startswith("schemas/"):
         return EIO_SCHEMA_DIR / rel[len("schemas/"):]
     return root / rel
+
+
+def for_document(doc, ontology=None) -> Ontology:
+    """The release to project or check a bundle or record under: the one it names in `header.eio.release` when the
+    caller passed none, or passed the bundled default (`load()`), and that release is a historical one this library
+    carries; otherwise the caller's ontology (or the bundled release). An explicitly chosen other release is kept."""
+    if ontology is not None and Path(ontology.root).resolve() != DATA_DIR.resolve():
+        return ontology
+    try:
+        obj = doc if isinstance(doc, dict) else json.loads(bytes(doc) if isinstance(doc, (bytes, bytearray)) else doc)
+        root = release_root(((obj.get("header") or {}).get("eio") or {}).get("release"))
+    except Exception:
+        root = None
+    if root is not None:
+        return load(root)
+    return ontology if ontology is not None else load()

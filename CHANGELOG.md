@@ -10,6 +10,41 @@ The format is based on [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.
 Every entry states the bundled EIO release, the PER version, and whether record bytes change. The `.devN` versions
 below are development builds; `0.6.0rc1` was a release candidate. No version is a claim of certification.
 
+## [0.9.0]
+
+EIO-Agents 0.9.0 bundles **EIO `0.7.0`** (`ontology_digest` `461395d45f0abe9a`), release semantics `2.2`, reference scoring profile
+`0.3.1` (formulas unchanged; pinned once per EIO release) and bundle format `3.0.0`. It issues PER `2.1.x` as before.
+**Record bytes change: yes** for new records (the EIO release, its digests and the new obligations are in the header and
+coverage). Records issued by 0.8.x (EIO `0.6.0`) keep their bytes and stay valid: 0.9.0 carries EIO `0.6.0` as a
+historical release and checks every record and bundle against the release it names.
+
+### Added
+
+- **Baseline severities** (EIO `0.7.0`, `eio.domain.generic-agent` `0.3.0`): five coverage obligations give findings
+  that previously reached records with no severity (`severity_source` `NONE`) a severity on every tool-using or
+  knowledge agent, milder than the specialised domains, which still raise them: `required-workflow-step-absent` HIGH
+  (`tools`), `privilege-scope-exceeded` HIGH (`tools`), `authority-or-deadline-invented` HIGH (`knowledge_tasks`),
+  `nonexistent-entity-asserted` HIGH (`knowledge_tasks`), all `CONTRIBUTING_BLOCK`; `uncertainty-calibrated` MEDIUM
+  `WARN` (`knowledge_tasks`); `payment-instrument-exposure` HIGH `CONTRIBUTING_BLOCK` and `excessive-data-disclosure`
+  MEDIUM `WARN` (`handles_non_public_data`).
+- **Historical releases**: `eio_agents/ontology/historical/0.6.0/` (byte-exact copy of the 0.8.x release).
+  `validate`, `convert`, `verify` and the verifier's record checks use the release a record or bundle names when it is
+  a carried historical release and the caller passed none (or the bundled default). New: `ontology.release_root`,
+  `validation.reader.historical_release_root` and `eio_for`.
+
+### Fixed
+
+- **A record of a new EIO release was issued unscored and still validated.** The scored route
+  (`api.convert`), the score-block presence check and the full-score gate named release `0.6.0` literally; any other
+  release silently fell back to `scores: null`. They now use `SCORED_RELEASES`, and the reference profile is pinned per
+  EIO release (`PINNED_RELEASE_PROFILES`).
+- `tools/eio_gates.py`: the one-time public namespace migration of `0.6.0` is accepted for every later release.
+
+### Changed
+
+- `eio.risk.action-safety` `0.3.1`: `required-workflow-step-absent` no longer declares `severity_source: NONE`.
+  Importing modules bumped one patch version with their pins (24 modules); `RELEASE-DIGESTS.json` regenerated.
+
 ## [0.8.5]
 
 EIO-Agents 0.8.5 bundles the same EIO `0.6.0` (`ontology_digest` `a27cf1f3ab755446`), release semantics `2.2`,

@@ -1,7 +1,7 @@
 eio:
   id: eio.domain.legal-public-sector
   namespace: https://www.proofagent.ai/eio-agents/module/domain/legal-public-sector#
-  version: 0.2.2
+  version: 0.2.3
   kind: domain
   title: Legal and Public-Sector Agent Domain
   description: Semantics for benefits, government service, legal support, records, eligibility, regulatory, and public-administration agents.
@@ -9,11 +9,11 @@ eio:
 
 imports:
   - module: eio.domain.generic-agent
-    version: 0.2.2
+    version: 0.3.0
   - module: eio.risk.data-handling
     version: 0.2.1
   - module: eio.risk.action-safety
-    version: 0.3.0
+    version: 0.3.1
   - module: eio.risk.fairness-rights
     version: 0.2.1
   - module: eio.risk.grounding

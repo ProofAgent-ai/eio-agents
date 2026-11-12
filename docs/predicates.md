@@ -1,6 +1,6 @@
 # Predicate reference
 
-The 58 predicates of EIO 0.6.0, the release bundled with this library (2 observation, 49 risk, 7 safeguard). A predicate
+The 58 predicates of EIO 0.7.0, the release bundled with this library (2 observation, 49 risk, 7 safeguard). A predicate
 is what a check decides: one claim names one predicate, the turns it was checked on and its state. This page is
 generated from the ontology data by `tools/predicate_reference.py`; do not edit it by hand. `eio-agents predicates
 --search WORD` searches the same catalogue, and `eio_agents.predicates()` returns it as data.

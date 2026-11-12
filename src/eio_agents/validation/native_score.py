@@ -8,6 +8,7 @@ frozen and every score can be rederived here from checked source inputs.
 
 from __future__ import annotations
 
+from eio_agents.validation.reader import eio_for
 import math
 import re
 from collections import defaultdict
@@ -103,6 +104,7 @@ def checked_native_inputs(bundle, record, eio):
         raise ScoreInputError("native score sources require a native producer")
     if (record.get("provenance") or {}).get("producer", {}).get("kind") != "native":
         raise ScoreInputError("PER producer kind differs from the native source")
+    eio = eio_for(record, eio)
     pin = (record.get("header") or {}).get("eio") or {}
     if (pin.get("release") != eio.release or pin.get("modules") != eio.module_sha
             or pin.get("ontology_sha256") != sha(jb(dict(sorted(eio.module_sha.items()))))):
@@ -427,6 +429,7 @@ def native_proof_status_gate(bundle, record, eio):
         return [], "not a native producer"
     if ((record.get("provenance") or {}).get("producer") or {}).get("kind") != "native":
         return ["native bundle has a non-native PER producer"], ""
+    eio = eio_for(record, eio)
     pin = (record.get("header") or {}).get("eio") or {}
     if (pin.get("release") != eio.release or pin.get("modules") != eio.module_sha
             or pin.get("ontology_sha256") != sha(jb(dict(sorted(eio.module_sha.items()))))):
@@ -677,7 +680,7 @@ def native_score_gate(record, bundle, *, eio=None, source_checked=False):
         return [], "not a native producer"
     score = record.get("scores")
     if score is None:
-        if eio is not None and eio.release in ("0.5.0-draft.1", "0.6.0") and bundle.get("native_scoring") is not None:
+        if eio is not None and eio.release in ("0.5.0-draft.1", "0.6.0", "0.7.0") and bundle.get("native_scoring") is not None:
             return ["native score: source declares native_scoring but PER suppresses the required score block"], ""
         return [], "native score absent; no numeric claim to rederive"
     claimed = score.get("scoring_profile") if isinstance(score, dict) else None
@@ -688,7 +691,7 @@ def native_score_gate(record, bundle, *, eio=None, source_checked=False):
         from eio_agents.validation.full_score import full_native_score_gate, load_full_score_resources
 
         try:
-            profile, schema = load_full_score_resources(claimed["version"])
+            profile, schema = load_full_score_resources(claimed["version"], getattr(eio, "release", None))
             return full_native_score_gate(bundle, record, eio, source_checked=True,
                                           approved_profile=profile, approved_schema=schema)
         except (ScoreInputError, OSError, ValueError, TypeError) as exc:

@@ -1,7 +1,7 @@
 eio:
   id: eio.template.core
   namespace: https://www.proofagent.ai/eio-agents/module/template/core#
-  version: 0.2.2
+  version: 0.2.3
   kind: template
   title: EIO Public Test Template Library
   description: Reproducible gold, generative, and metamorphic templates reaching the public ontology coverage obligations.
@@ -15,7 +15,7 @@ imports:
   - module: eio.risk.grounding
     version: 0.2.1
   - module: eio.risk.action-safety
-    version: 0.3.0
+    version: 0.3.1
   - module: eio.risk.fairness-rights
     version: 0.2.1
   - module: eio.risk.content-code-safety

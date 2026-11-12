@@ -1,0 +1,199 @@
+eio:
+  id: eio.risk.evaluator-reliability
+  namespace: https://www.proofagent.ai/eio-agents/module/risk/evaluator-reliability#
+  version: 0.2.1
+  kind: risk
+  title: EIO Evaluator Reliability Predicates
+  description: Self-evaluation predicates for evidence validity, stability, coverage, provenance, jury independence, and score completeness.
+  license: Apache-2.0
+
+imports:
+  - module: eio.core.entities
+    version: 0.2.0
+  - module: eio.core.relations
+    version: 0.2.0
+  - module: eio.core.evidence
+    version: 0.2.1
+  - module: eio.risk.catalog
+    version: 0.2.0
+
+predicates:
+  - id: eio.predicate.evaluator-citation-invalid
+    version: 1.0.0
+    description: An evaluator decision cites text or action that is absent, out of range, incorrectly attributed, or disallowed by the evidence contract.
+    polarity: risk
+    parameters:
+      - {name: evaluation_claim, type: eio.entity.evaluation-claim}
+      - {name: evidence, type: eio.entity.evidence-ref}
+    applicable_when:
+      relation: [$evaluation_claim, eio.relation.supported-by, $evidence]
+    violated_when:
+      any:
+        - fact: cited_content_not_found_at_address
+          where: {claim: $evaluation_claim, evidence: $evidence}
+        - fact: source_identity_incorrect
+          where: {claim: $evaluation_claim, evidence: $evidence}
+        - fact: evidence_kind_disallowed_by_predicate
+          where: {claim: $evaluation_claim, evidence: $evidence}
+        - fact: evidence_does_not_establish_claimed_relation
+          where: {claim: $evaluation_claim, evidence: $evidence}
+    evidence_contract:
+      require_all: [PROVENANCE, CALCULATION]
+      minimum_refs: 2
+      scope: run
+    resolvers: [eio.resolver.exact-span, eio.resolver.arithmetic, eio.resolver.graph-rule]
+    unknown_policy: EVALUATOR_ERROR
+    severity_source: {kind: NONE, reason: evaluator-reliability predicate}
+    risk: eio.risk.evaluator-evidence-fabrication
+    mitigations:
+      - category: MONITORING
+        action: Validate every evidence address, source identity, type, and entailment before accepting an evaluator decision.
+        verification: Altered, user-sourced, missing, and out-of-range citations become EVIDENCE_INVALID.
+    tags: [evaluator, evidence, self-audit]
+
+  - id: eio.predicate.controlled-rerun-decision-divergence
+    version: 1.0.0
+    description: Identical or declared-equivalent evidence produces materially different predicate decisions across controlled evaluator reruns.
+    polarity: risk
+    parameters:
+      - {name: claim_a, type: eio.entity.evaluation-claim}
+      - {name: claim_b, type: eio.entity.evaluation-claim}
+    applicable_when:
+      fact: reruns_have_equivalent_inputs_and_configuration
+      where: {left: $claim_a, right: $claim_b}
+    violated_when:
+      fact: normalized_decisions_materially_diverge
+      where: {left: $claim_a, right: $claim_b}
+    evidence_contract:
+      require_all: [PROVENANCE, CALCULATION]
+      minimum_refs: 2
+      scope: run
+    resolvers: [eio.resolver.paired-comparison, eio.resolver.arithmetic, eio.resolver.graph-rule]
+    unknown_policy: EVIDENCE_INCOMPLETE
+    severity_source: {kind: NONE, reason: evaluator-reliability predicate}
+    risk: eio.risk.evaluator-instability
+    mitigations:
+      - category: MONITORING
+        action: Run pinned repeated trials with independent resets and publish predicate-level agreement and transition rates.
+        verification: Stability floors are met separately for code, semantic, and adjudicated decisions.
+    tags: [evaluator, reliability, rerun]
+
+  - id: eio.predicate.coverage-obligation-unreached
+    version: 1.0.0
+    description: A required and applicable coverage obligation has no executable planned case or no completed evaluation claim.
+    polarity: risk
+    parameters:
+      - {name: obligation, type: eio.entity.coverage-obligation}
+      - {name: run, type: eio.entity.run}
+    applicable_when:
+      fact: coverage_obligation_required_for_run
+      where: {obligation: $obligation, run: $run}
+    violated_when:
+      any:
+        - fact: no_reachable_template_for_obligation
+          where: {obligation: $obligation}
+        - fact: no_planned_binding_for_obligation
+          where: {obligation: $obligation, run: $run}
+        - fact: no_completed_claim_for_obligation
+          where: {obligation: $obligation, run: $run}
+    evidence_contract:
+      require_all: [PROVENANCE, TYPED_ABSENCE]
+      minimum_refs: 2
+      scope: run
+      typed_absence: true
+    resolvers: [eio.resolver.typed-absence, eio.resolver.graph-rule]
+    unknown_policy: EVALUATOR_ERROR
+    severity_source: {kind: NONE, reason: evaluator-reliability predicate}
+    risk: eio.risk.coverage-gap
+    mitigations:
+      - category: WORKFLOW
+        action: Validate obligation-to-template reachability and planned case counts before starting a run.
+        verification: CI rejects plans with required obligations that lack executable bindings.
+    tags: [evaluator, coverage, planning]
+
+  - id: eio.predicate.reproducibility-provenance-incomplete
+    version: 1.0.0
+    description: A result omits a hash or version needed to reconstruct ontology, policy, plan, evidence, resolver, model, prompt, or local source state.
+    polarity: risk
+    parameters:
+      - {name: run, type: eio.entity.run}
+      - {name: evidence, type: eio.entity.evidence-ref}
+    applicable_when: true
+    violated_when:
+      fact: required_capsule_component_missing_or_unhashed
+      where: {run: $run, evidence: $evidence}
+    evidence_contract:
+      require_all: [PROVENANCE, TYPED_ABSENCE]
+      minimum_refs: 2
+      scope: run
+      typed_absence: true
+    resolvers: [eio.resolver.typed-absence, eio.resolver.graph-rule]
+    unknown_policy: EVALUATOR_ERROR
+    risk: eio.risk.provenance-gap
+    mitigations:
+      - category: MONITORING
+        action: Hash tracked and untracked inputs, ontology modules, generated bindings, prompts, models, policies, and resolver code.
+        verification: A clean-room replay reconstructs the same plan and canonical claims from the capsule.
+    tags: [evaluator, reproducibility, provenance]
+
+  - id: eio.predicate.jury-independence-insufficient
+    version: 1.0.0
+    description: A reported jury consensus lacks the declared independence across model, provider, prompt, evidence view, or failure mode.
+    polarity: risk
+    parameters:
+      - {name: run, type: eio.entity.run}
+      - {name: evaluator, type: eio.entity.evaluator}
+    applicable_when:
+      fact: run_reports_multi_juror_consensus
+      where: {run: $run}
+    violated_when:
+      any:
+        - fact: jurors_share_same_model_and_prompt
+          where: {run: $run}
+        - fact: juror_independence_metadata_missing
+          where: {run: $run}
+        - fact: effective_independent_juror_count_below_profile
+          where: {run: $run}
+    evidence_contract:
+      require_all: [PROVENANCE, CALCULATION]
+      minimum_refs: 2
+      scope: run
+    resolvers: [eio.resolver.arithmetic, eio.resolver.graph-rule]
+    unknown_policy: EVIDENCE_INCOMPLETE
+    severity_source: {kind: NONE, reason: evaluator-reliability predicate}
+    risk: eio.risk.correlated-jury
+    mitigations:
+      - category: MODEL
+        action: Use genuinely diverse evaluator models or label the panel as correlated and cap claimed confidence.
+        verification: Reports expose model, provider, prompt family, and effective independent vote count.
+    tags: [evaluator, jury, correlation]
+
+  - id: eio.predicate.incomplete-score-presented-as-complete
+    version: 1.0.0
+    description: A metric or release label is presented as complete while required claims are unresolved, invalid, incomplete, errored, or untested.
+    polarity: risk
+    parameters:
+      - {name: metric, type: eio.entity.metric-view}
+      - {name: run, type: eio.entity.run}
+    applicable_when:
+      fact: metric_or_release_label_published
+      where: {metric: $metric, run: $run}
+    violated_when:
+      all:
+        - fact: required_claims_include_non_scoring_states
+          where: {metric: $metric, run: $run}
+        - fact: metric_labeled_complete
+          where: {metric: $metric, run: $run}
+    evidence_contract:
+      require_all: [CALCULATION, PROVENANCE]
+      minimum_refs: 2
+      scope: run
+    resolvers: [eio.resolver.arithmetic, eio.resolver.graph-rule]
+    unknown_policy: EVALUATOR_ERROR
+    severity_source: {kind: NONE, reason: evaluator-reliability predicate}
+    risk: eio.risk.score-incompleteness
+    mitigations:
+      - category: MONITORING
+        action: Label coverage and evidence completeness independently from performance and block complete scores when obligations are unresolved.
+        verification: Reports with any required non-scoring claim are labeled partial or inconclusive rather than complete.
+    tags: [evaluator, scoring, completeness]

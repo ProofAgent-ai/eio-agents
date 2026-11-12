@@ -1,7 +1,7 @@
 eio:
   id: eio.mapping.metrics
   namespace: https://www.proofagent.ai/eio-agents/module/mapping/metrics#
-  version: 0.2.2
+  version: 0.2.3
   kind: mapping
   title: EIO Metric Views
   description: Versioned metric definitions and predicate-to-metric views derived from canonical evaluation claims.
@@ -21,7 +21,7 @@ imports:
   - module: eio.risk.grounding
     version: 0.2.1
   - module: eio.risk.action-safety
-    version: 0.3.0
+    version: 0.3.1
   - module: eio.risk.fairness-rights
     version: 0.2.1
   - module: eio.risk.content-code-safety

@@ -1,7 +1,7 @@
 eio:
   id: eio.compliance.frameworks
   namespace: https://www.proofagent.ai/eio-agents/module/compliance/frameworks#
-  version: 0.2.2
+  version: 0.2.3
   kind: compliance
   title: EIO Compliance Framework and Control Registry
   description: >
@@ -18,7 +18,7 @@ imports:
   - {module: eio.risk.data-handling, version: 0.2.1}
   - {module: eio.risk.context-trust, version: 0.2.1}
   - {module: eio.risk.grounding, version: 0.2.1}
-  - {module: eio.risk.action-safety, version: 0.3.0}
+  - {module: eio.risk.action-safety, version: 0.3.1}
   - {module: eio.risk.fairness-rights, version: 0.2.1}
   - {module: eio.risk.content-code-safety, version: 0.2.1}
   - {module: eio.risk.safeguards, version: 0.2.1}

@@ -1,0 +1,123 @@
+eio:
+  id: eio.assurance.system-of-record
+  namespace: https://www.proofagent.ai/eio-agents/module/assurance/system-of-record#
+  version: 0.2.2
+  kind: assurance
+  title: EIO Assurance and System-of-Record Layer
+  description: Generic governance lifecycle, release decisions, and continuing assurance records.
+  license: Apache-2.0
+
+imports:
+  - {module: eio.core.entities, version: 0.2.0}
+  - {module: eio.core.relations, version: 0.2.0}
+  - {module: eio.core.flow, version: 0.2.2}
+  - {module: eio.compliance.frameworks, version: 0.2.2}
+  - {module: eio.governance.gates, version: 0.2.2}
+  - {module: eio.scoring.axes, version: 0.2.2}
+  - {module: eio.reliability.ledgers, version: 0.3.0}
+
+concepts:
+  - id: eio.entity.agent-registration
+    kind: entity
+    parent: eio.entity.thing
+    description: Versioned registration of agent identity, owner, intended use, deployment, and risk profile.
+    attributes: [registration_id, agent_id, owner, intended_use, environment, version, profile_hash]
+  - id: eio.entity.ai-bom
+    kind: entity
+    parent: eio.entity.thing
+    description: AI bill of materials recording models, tools, prompts, memory, data sources, and their versions.
+    attributes: [bom_id, agent_id, models, tools, prompts, memory, data_sources, versions, content_hash]
+  - id: eio.entity.release-decision
+    kind: event
+    parent: eio.entity.decision
+    description: Governed pass, review, or block decision with gates, approvals, evidence, and rationale.
+    attributes: [decision_id, state, gate_results, approvers, rationale, evidence_refs, decided_at]
+  - id: eio.entity.assurance-record
+    kind: entity
+    parent: eio.entity.thing
+    description: Time-bounded assurance statement linking an evaluated version to evidence, caveats, and freshness.
+    attributes: [record_id, subject_version, issued_at, valid_until, evidence_package, caveats, status]
+  - id: eio.entity.audit-event
+    kind: event
+    parent: eio.entity.thing
+    description: Immutable system-of-record event for a registration, evaluation, approval, release, or assurance change.
+    attributes: [event_id, event_type, actor, timestamp, artifact_hash, prior_event_hash]
+  - id: eio.entity.monitoring-signal
+    kind: event
+    parent: eio.entity.thing
+    description: Post-release signal that may require re-evaluation, gate review, or assurance withdrawal.
+    attributes: [signal_id, source, observed_at, severity, affected_version, evidence_refs]
+  - id: eio.entity.system-of-record
+    kind: entity
+    parent: eio.entity.thing
+    description: Append-only traceability boundary for registrations, evidence, approvals, decisions, and assurance history.
+    attributes: [record_system_id, retention_policy, integrity_method, access_policy]
+
+relations:
+  - id: eio.relation.recorded-in
+    description: A governed lifecycle artifact or event is retained in the system of record.
+    domain: [eio.entity.agent-registration, eio.entity.ai-bom, eio.entity.report, eio.entity.capsule, eio.entity.control-status, eio.entity.release-decision, eio.entity.assurance-record, eio.entity.audit-event, eio.entity.monitoring-signal]
+    range: [eio.entity.system-of-record]
+    characteristics: [functional]
+    cardinality: {subject: '0..n', object: '0..1'}
+  - id: eio.relation.release-decision-for
+    description: A release decision governs the evaluated report and corresponding agent version.
+    domain: [eio.entity.release-decision]
+    range: [eio.entity.report, eio.entity.agent]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.assures
+    description: An assurance record covers the named report or released agent version within its declared boundary and validity period.
+    domain: [eio.entity.assurance-record]
+    range: [eio.entity.report, eio.entity.agent]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.triggers-review-of
+    description: A monitoring signal triggers re-evaluation of a release decision or assurance record.
+    domain: [eio.entity.monitoring-signal]
+    range: [eio.entity.release-decision, eio.entity.assurance-record]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.documents-component-of
+    description: An AI bill of materials documents a versioned agent component.
+    domain: [eio.entity.ai-bom]
+    range: [eio.entity.agent, eio.entity.tool-invocation, eio.entity.content, eio.entity.resource]
+    cardinality: {subject: '0..n', object: '0..n'}
+
+profiles:
+  - id: eio.profile.governance-lifecycle
+    description: Registration-to-continuous-assurance lifecycle for an evaluated agent.
+    stages:
+      - {order: 1, id: eio.lifecycle.register, label: Register, produces: [eio.entity.agent-registration]}
+      - {order: 2, id: eio.lifecycle.ai-bom, label: AI-BOM, produces: [eio.entity.ai-bom]}
+      - {order: 3, id: eio.lifecycle.evaluate, label: Evaluate, delegates_to: [eio.flow.qualify, eio.flow.assess-context, eio.flow.calibrate, eio.flow.plan, eio.flow.conduct, eio.flow.resolve-deterministic, eio.flow.resolve-semantic, eio.flow.adjudicate, eio.flow.dispatch-census, eio.flow.score, eio.flow.assess-reliability]}
+      - {order: 4, id: eio.lifecycle.comply, label: Comply, delegates_to: [eio.flow.map-compliance]}
+      - {order: 5, id: eio.lifecycle.govern, label: Govern, consumes: [eio.entity.governance-profile, eio.entity.release-gate, eio.entity.control-status]}
+      - {order: 6, id: eio.lifecycle.release, label: Release, produces: [eio.entity.release-decision], states: [PASS, REVIEW, BLOCK]}
+      - {order: 7, id: eio.lifecycle.assure, label: Assure, produces: [eio.entity.assurance-record, eio.entity.monitoring-signal, eio.entity.audit-event]}
+    continuity_rule: A material change, stale evidence, failed gate, or monitoring signal re-enters evaluation before assurance is renewed.
+  - id: eio.profile.release-decision-principle
+    description: Readiness combines E, Q, C, and G as bounded views while critical governance failures remain non-compensable.
+    dimensions:
+      - {symbol: E, axis: eio.axis.behaviour, meaning: behavioural evaluation}
+      - {symbol: Q, axis: eio.axis.context, meaning: context engineering}
+      - {symbol: C, axis: eio.axis.compliance, meaning: framework evidence relevance}
+      - {symbol: G, axis: eio.axis.governance, meaning: governance effectiveness}
+    aggregation_source: eio.scoring.axes
+    decision_states: [PASS, REVIEW, BLOCK]
+    non_compensation_rule: A strong score in one dimension cannot average away a critical governance failure or blocking release gate.
+    truth_boundary: The index is a versioned decision aid over canonical claims; it is never evidence and never changes a claim.
+    release_decision_boundary: >
+      A PER carries the evaluation's release_recommendation; the release decision (eio.entity.release-decision)
+      is made by the system of record under the organisation's policy, and the evaluation's own blocking
+      conditions always apply.
+
+  # PER-209. Freshness is organisational policy, not a property of a record.
+  - id: eio.profile.assurance-freshness
+    description: How long evidence stays fresh enough to support an assurance record.
+    freshness:
+      kind: platform policy parameter
+      declared_by: the system of record (the organisation's policy)
+      default: null
+      unit: duration from the evaluation's completion
+    rules:
+      - An evaluation record (PER) carries no validity period; it is an immutable fact about one run.
+      - The system of record applies its declared freshness to decide whether an assurance record's evidence is stale; EIO declares no default value.
+      - Stale evidence re-enters evaluation before assurance is renewed (eio.profile.governance-lifecycle continuity_rule).

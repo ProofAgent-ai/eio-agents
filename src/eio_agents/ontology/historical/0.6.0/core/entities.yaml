@@ -1,0 +1,248 @@
+eio:
+  id: eio.core.entities
+  namespace: https://www.proofagent.ai/eio-agents/module/core/entities#
+  version: 0.2.0
+  kind: core
+  title: EIO Core Entities
+  description: Shared entities and events used to describe agents, interactions, policy, evidence, and evaluation.
+  license: Apache-2.0
+
+concepts:
+  - id: eio.entity.thing
+    kind: entity
+    description: Root type for an addressable object in an EIO evidence graph.
+  - id: eio.entity.agent
+    kind: entity
+    parent: eio.entity.thing
+    description: The agent system or composed agentic workflow under evaluation.
+    attributes: [agent_id, version, provider, model, autonomy_level]
+  - id: eio.entity.evaluator
+    kind: entity
+    parent: eio.entity.thing
+    description: A deterministic, model-based, or human component that establishes evaluation facts.
+    attributes: [evaluator_id, version, kind]
+  - id: eio.entity.run
+    kind: event
+    parent: eio.entity.thing
+    description: One pinned and reproducible execution of an evaluation plan.
+    attributes: [run_id, started_at, plan_hash, capsule_hash]
+  - id: eio.entity.episode
+    kind: event
+    parent: eio.entity.thing
+    description: >
+      One trap binding: all turns that share one scenario binding (trap) within one session. Its
+      identifier is episode_id = stable_digest({run_id, binding_id, or trap_name when no binding id
+      is recorded}, 20). An evidence contract of scope episode reads every turn of that binding. PER
+      2.0.0 records do not carry episode_id.
+    attributes: [episode_id, run_id, binding_id, trap_name, seed, start_state_hash]
+  - id: eio.entity.turn
+    kind: event
+    parent: eio.entity.thing
+    description: One ordered interaction step inside an episode.
+    attributes: [turn_index, timestamp]
+  - id: eio.entity.content
+    kind: entity
+    parent: eio.entity.thing
+    description: Information presented to or produced by an agent.
+    attributes: [source_type, trust_level, media_type]
+  - id: eio.entity.message
+    kind: event
+    parent: eio.entity.content
+    description: A role-attributed communication exchanged during an episode.
+    attributes: [role, timestamp, channel]
+  - id: eio.entity.content-span
+    kind: entity
+    parent: eio.entity.content
+    description: An addressable range within a message, policy, retrieval, artifact, or tool result.
+    attributes: [source_ref, char_start, char_end, text_hash]
+  - id: eio.entity.trusted-content
+    kind: entity
+    parent: eio.entity.content
+    description: Content authorized to provide instructions within its declared scope.
+  - id: eio.entity.untrusted-content
+    kind: entity
+    parent: eio.entity.content
+    description: Content that may provide data but is not authorized to control agent behaviour.
+  - id: eio.entity.retrieval
+    kind: event
+    parent: eio.entity.content
+    description: Content returned from a search, RAG, database, web, or knowledge source.
+    attributes: [source, score, tenant, retrieved_at]
+  - id: eio.entity.instruction
+    kind: entity
+    parent: eio.entity.content
+    description: A proposition requesting or directing an action or state change.
+    attributes: [issuer, priority, scope]
+  - id: eio.entity.claim
+    kind: entity
+    parent: eio.entity.content
+    description: A proposition asserted as factual, predictive, normative, or completed.
+    attributes: [claim_type, certainty, temporal_scope]
+  - id: eio.entity.action
+    kind: action
+    parent: eio.entity.thing
+    description: An attempted or completed operation attributable to an actor.
+    attributes: [action_type, status, timestamp, side_effect_level]
+  - id: eio.entity.protected-action
+    kind: action
+    parent: eio.entity.action
+    description: An action requiring authorization, verification, consent, oversight, or another policy precondition.
+    attributes: [protection_basis, impact_level]
+  - id: eio.entity.tool-invocation
+    kind: action
+    parent: eio.entity.action
+    description: A request by the agent to execute a named tool with typed arguments.
+    attributes: [tool_name, arguments_hash, call_id, status]
+  - id: eio.entity.tool-result
+    kind: event
+    parent: eio.entity.thing
+    description: A result or error returned by an invoked tool.
+    attributes: [call_id, status, result_hash]
+  - id: eio.entity.subject
+    kind: entity
+    parent: eio.entity.thing
+    description: A person, organization, account, or system affected by data or action.
+    attributes: [subject_id, subject_type]
+  - id: eio.entity.identity
+    kind: entity
+    parent: eio.entity.thing
+    description: A verified or asserted identity bound to an actor or subject.
+    attributes: [identity_id, assurance_level, verified_at, expires_at]
+  - id: eio.entity.authority
+    kind: entity
+    parent: eio.entity.thing
+    description: A role or grant capable of authorizing an instruction, action, or access within scope.
+    attributes: [role, scope, issuer, valid_from, valid_until]
+  - id: eio.entity.entitlement
+    kind: policy
+    parent: eio.entity.thing
+    description: A scoped permission binding an identity to data, resource, or action.
+    attributes: [scope, purpose, valid_from, valid_until]
+  - id: eio.entity.resource
+    kind: entity
+    parent: eio.entity.thing
+    description: A system, record, file, service, account, or asset acted upon by the agent.
+    attributes: [resource_id, resource_type, tenant]
+  - id: eio.entity.data-item
+    kind: entity
+    parent: eio.entity.resource
+    description: A typed item of information with ownership, classification, purpose, and provenance.
+    attributes: [data_id, classification, owner, subject, purpose, retention_until]
+  - id: eio.entity.data-class
+    kind: data-class
+    parent: eio.entity.thing
+    description: A semantic category governing handling requirements for data items.
+  - id: eio.entity.channel
+    kind: channel
+    parent: eio.entity.thing
+    description: A communication or egress path with a defined trust and authorization boundary.
+    attributes: [channel_type, trust_level, destination]
+  - id: eio.entity.policy-rule
+    kind: policy
+    parent: eio.entity.thing
+    description: A versioned normative rule applicable to an agent, subject, data item, resource, or action.
+    attributes: [policy_id, version, source_ref, jurisdiction, effective_at]
+  - id: eio.entity.obligation
+    kind: policy
+    parent: eio.entity.policy-rule
+    description: A policy rule requiring a fact, safeguard, action, or state.
+  - id: eio.entity.prohibition
+    kind: policy
+    parent: eio.entity.policy-rule
+    description: A policy rule forbidding a fact, action, disclosure, or state.
+  - id: eio.entity.state-fact
+    kind: state
+    parent: eio.entity.thing
+    description: A time-scoped proposition about the episode or external system state.
+    attributes: [valid_from, valid_until, source]
+  - id: eio.entity.state-transition
+    kind: event
+    parent: eio.entity.thing
+    description: A change from one state fact to another caused by an action or event.
+    attributes: [before_hash, after_hash, timestamp]
+  - id: eio.entity.verification-state
+    kind: state
+    parent: eio.entity.state-fact
+    description: A time-scoped record that a subject or actor passed a named verification method.
+    attributes: [method, assurance_level, status, subject_id, valid_until]
+  - id: eio.entity.consent-state
+    kind: state
+    parent: eio.entity.state-fact
+    description: A time-scoped record of consent for a defined purpose, data, actor, and action.
+    attributes: [purpose, scope, status, granted_at, withdrawn_at]
+  - id: eio.entity.decision
+    kind: event
+    parent: eio.entity.action
+    description: An outcome that allocates, denies, ranks, prices, recommends, or otherwise affects a subject.
+    attributes: [outcome, reason_codes, impact_level]
+  - id: eio.entity.evidence-ref
+    kind: entity
+    parent: eio.entity.thing
+    description: A typed and addressable reference supporting a graph fact or evaluation claim.
+  - id: eio.entity.evaluation-claim
+    kind: entity
+    parent: eio.entity.thing
+    description: >
+      A canonical decision for one versioned predicate with evidence, state, and provenance. It is an
+      evaluator's assertion about the agent, not agent content, so it is not a subclass of
+      eio.entity.claim.
+  - id: eio.entity.coverage-obligation
+    kind: policy
+    parent: eio.entity.obligation
+    description: A requirement that an evaluation exercise a predicate under declared conditions.
+  - id: eio.entity.test-template
+    kind: entity
+    parent: eio.entity.thing
+    description: Versioned interaction logic capable of exercising one or more coverage obligations.
+  - id: eio.entity.scenario-binding
+    kind: entity
+    parent: eio.entity.thing
+    description: A frozen and reproducible binding of a test template to domain entities, policy, and seed.
+  - id: eio.entity.metric-view
+    kind: metric
+    parent: eio.entity.thing
+    description: A versioned arithmetic projection over canonical evaluation claims.
+  - id: eio.entity.control
+    kind: control
+    parent: eio.entity.thing
+    description: An external governance, assurance, regulatory, or security control mapped to EIO risks.
+  - id: eio.entity.region
+    kind: entity
+    parent: eio.entity.thing
+    description: A jurisdiction whose framework set applies to the deployment.
+    attributes: [region_id, label]
+  - id: eio.entity.predicate
+    kind: entity
+    parent: eio.entity.thing
+    description: An evaluable proposition with an evidence contract and resolver order.
+    attributes: [predicate_id, version, polarity]
+  - id: eio.entity.reference-case
+    kind: entity
+    parent: eio.entity.thing
+    description: An adjudicated case fixing the expected decision for one predicate.
+    attributes: [case_id, predicate, expected_state, review_status]
+  - id: eio.entity.calibration-result
+    kind: entity
+    parent: eio.entity.thing
+    description: How the evaluator performed on reference cases, attributed to the evaluator.
+    attributes: [evaluator_id, accuracy, abstention_rate, cases_run]
+  - id: eio.entity.evaluation-plan
+    kind: entity
+    parent: eio.entity.thing
+    description: The frozen, hashed set of bindings and obligations for one run.
+    attributes: [plan_hash, obligation_ids, binding_ids, frozen_at]
+  - id: eio.entity.report
+    kind: entity
+    parent: eio.entity.thing
+    description: The published evaluation output.
+    attributes: [report_id, produced_at, release_recommendation]
+  - id: eio.entity.capsule
+    kind: entity
+    parent: eio.entity.thing
+    description: Everything needed to reconstruct the run.
+    attributes: [revision, patch_digest, seed, models, module_hashes, reproducible]
+  - id: eio.entity.control-status
+    kind: entity
+    parent: eio.entity.thing
+    description: A framework control's status for this run, pointing at its claims.
+    attributes: [control_ref, status, claim_ids, evidence_refs]

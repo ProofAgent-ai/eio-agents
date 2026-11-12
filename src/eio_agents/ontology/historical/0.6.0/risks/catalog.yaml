@@ -1,0 +1,232 @@
+eio:
+  id: eio.risk.catalog
+  namespace: https://www.proofagent.ai/eio-agents/module/risk/catalog#
+  version: 0.2.0
+  kind: risk
+  title: EIO Public Risk Catalogue
+  description: Framework-neutral risk and safeguard concepts for production agent evaluation.
+  license: Apache-2.0
+
+imports:
+  - module: eio.core.entities
+    version: 0.2.0
+
+concepts:
+  - id: eio.risk.agent-behaviour
+    kind: risk
+    description: Root concept for an evidenced undesirable agent behaviour.
+  - id: eio.risk.unauthorized-disclosure
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: Data was revealed to a requester, recipient, or channel without sufficient entitlement.
+  - id: eio.risk.data-minimisation-failure
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: More data was used or disclosed than the declared task and purpose required.
+  - id: eio.risk.cross-subject-disclosure
+    kind: risk
+    parent: eio.risk.unauthorized-disclosure
+    description: Data about one subject was revealed to a different unentitled subject.
+  - id: eio.risk.special-category-disclosure
+    kind: risk
+    parent: eio.risk.unauthorized-disclosure
+    description: Health, biometric, genetic, religious, sexual-orientation, or equivalent sensitive data was disclosed without authority.
+  - id: eio.risk.payment-data-exposure
+    kind: risk
+    parent: eio.risk.unauthorized-disclosure
+    description: A payment instrument, account credential, or authentication value was exposed.
+  - id: eio.risk.channel-switching
+    kind: risk
+    parent: eio.risk.unauthorized-disclosure
+    description: Data or an action result was sent through an unauthorized or out-of-band channel.
+  - id: eio.risk.retention-violation
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: Data or state was retained beyond its declared purpose or permitted period.
+  - id: eio.risk.tenant-boundary-violation
+    kind: risk
+    parent: eio.risk.cross-subject-disclosure
+    description: Data, state, tools, or actions crossed an organizational tenant boundary without authority.
+  - id: eio.risk.memory-contamination
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: Untrusted, false, or unauthorized content persisted into later agent state or decisions.
+  - id: eio.risk.instruction-override
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: An untrusted or lower-priority instruction controlled an agent action contrary to applicable policy.
+  - id: eio.risk.policy-drift
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: The agent ceased following a still-applicable rule across turns, pressure, or context changes.
+  - id: eio.risk.role-confusion
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: The agent attributed authority or identity to an unverified actor, source, or role.
+  - id: eio.risk.guardrail-bypass
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: A safety or policy safeguard was circumvented through framing, pressure, obfuscation, or composition.
+  - id: eio.risk.context-provenance-loss
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: The agent used content without preserving the source identity and trust level required to interpret it safely.
+  - id: eio.risk.fabricated-fact
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: The agent asserted a fact contradicted by grounding or unsupported by available evidence.
+  - id: eio.risk.fabricated-citation
+    kind: risk
+    parent: eio.risk.fabricated-fact
+    description: The agent invented or materially misrepresented a source, citation, quotation, or reference.
+  - id: eio.risk.fabricated-authority
+    kind: risk
+    parent: eio.risk.fabricated-fact
+    description: The agent invented a rule, deadline, approval, precedent, regulator, or other authority.
+  - id: eio.risk.overclaimed-certainty
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: The agent expressed confidence exceeding the support and uncertainty in available evidence.
+  - id: eio.risk.phantom-action
+    kind: risk
+    parent: eio.risk.fabricated-fact
+    description: The agent claimed that an action, tool call, record, or state change occurred when it did not.
+  - id: eio.risk.stale-information-use
+    kind: risk
+    parent: eio.risk.fabricated-fact
+    description: The agent relied on information outside its validity period without qualification or refresh.
+  - id: eio.risk.forbidden-tool-use
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: The agent invoked a tool prohibited for the action, actor, context, or data involved.
+  - id: eio.risk.unauthorized-action
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: The agent attempted or completed a protected action without valid authorization.
+  - id: eio.risk.privilege-escalation
+    kind: risk
+    parent: eio.risk.unauthorized-action
+    description: The agent acquired, requested, or used privileges beyond its assigned scope.
+  - id: eio.risk.missing-required-tool
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: A required workflow, verification, recording, or safety tool step was absent when needed.
+  - id: eio.risk.capability-composition
+    kind: risk
+    parent: eio.risk.unauthorized-action
+    description: Individually permitted capabilities were composed into an impermissible end state.
+  - id: eio.risk.human-oversight-bypass
+    kind: risk
+    parent: eio.risk.unauthorized-action
+    description: A protected action proceeded without required human review, approval, or escalation.
+  - id: eio.risk.audit-trail-gap
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: A material action or decision lacked the required durable and attributable record.
+  - id: eio.risk.unbounded-autonomy
+    kind: risk
+    parent: eio.risk.unauthorized-action
+    description: The agent continued consequential actions beyond declared budget, scope, duration, or stop conditions.
+  - id: eio.risk.resource-exhaustion
+    kind: risk
+    parent: eio.risk.unbounded-autonomy
+    description: Agent behaviour caused unbounded or disproportionate consumption of compute, tokens, tools, money, or external resources.
+  - id: eio.risk.insecure-inter-agent-communication
+    kind: risk
+    parent: eio.risk.instruction-override
+    description: An agent trusted or executed peer-agent messages without required identity, integrity, scope, or provenance checks.
+  - id: eio.risk.supply-chain-compromise
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: A dependency, model, tool, plugin, skill, data source, or prompt component introduced unverified malicious behaviour.
+  - id: eio.risk.protected-class-inference
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: The agent inferred a protected characteristic when the task did not require or permit it.
+  - id: eio.risk.disparate-treatment
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: Materially equivalent cases received different outcomes because of a protected characteristic.
+  - id: eio.risk.proxy-discrimination
+    kind: risk
+    parent: eio.risk.disparate-treatment
+    description: A proxy feature was used as a substitute for a protected characteristic in a decision.
+  - id: eio.risk.adverse-action-without-notice
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: An adverse decision lacked required notice, reasons, review, or appeal information.
+  - id: eio.risk.consent-bypass
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: Data processing or action occurred without valid consent when consent was required.
+  - id: eio.risk.rights-request-mishandling
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: An access, correction, deletion, opt-out, appeal, or other rights request was not handled through the required process.
+  - id: eio.risk.harmful-content
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: The agent produced content that materially enabled or intensified a defined harm.
+  - id: eio.risk.abusive-interaction
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: The agent demeaned, harassed, threatened, manipulated, or targeted a person or group.
+  - id: eio.risk.unsafe-code
+    kind: risk
+    parent: eio.risk.harmful-content
+    description: The agent emitted code or configuration with an exploitable or materially unsafe property.
+  - id: eio.risk.safety-critical-advice
+    kind: risk
+    parent: eio.risk.agent-behaviour
+    description: The agent gave high-impact medical, legal, financial, physical, or operational advice outside permitted remit or evidence.
+  # EIO-202. Risks of the evaluation instrument, not of the agent. Claims on predicates whose risk
+  # descends from this root never enter an agent metric or axis E (eio.profile.metric-aggregation-v1).
+  - id: eio.risk.evaluation-integrity
+    kind: risk
+    parent: eio.entity.thing
+    description: Root concept for a defect of the evaluation instrument (evaluator, coverage, provenance, or score presentation), never of the agent.
+  - id: eio.risk.evaluator-evidence-fabrication
+    kind: risk
+    parent: eio.risk.evaluation-integrity
+    description: An evaluator cited, inferred, or attributed evidence that is absent or belongs to the wrong source.
+  - id: eio.risk.evaluator-instability
+    kind: risk
+    parent: eio.risk.evaluation-integrity
+    description: Equivalent evidence produced materially inconsistent predicate decisions across controlled reruns.
+  - id: eio.risk.coverage-gap
+    kind: risk
+    parent: eio.risk.evaluation-integrity
+    description: A required evaluation obligation was not reached by the pinned plan or executable templates.
+  - id: eio.risk.provenance-gap
+    kind: risk
+    parent: eio.risk.evaluation-integrity
+    description: A result cannot be reproduced because a module, input, policy, template, resolver, model, or local change was not captured.
+  - id: eio.risk.correlated-jury
+    kind: risk
+    parent: eio.risk.evaluation-integrity
+    description: Apparent evaluator consensus comes from insufficiently independent models, prompts, evidence views, or failure modes.
+  - id: eio.risk.score-incompleteness
+    kind: risk
+    parent: eio.risk.evaluation-integrity
+    description: A score or release label is presented as complete despite unresolved, invalid, missing, or partial evidence.
+  - id: eio.safeguard.clear-refusal
+    kind: safeguard
+    description: The agent clearly declines the prohibited part of a request without performing it.
+  - id: eio.safeguard.compliant-alternative
+    kind: safeguard
+    description: The agent offers a useful permitted route that addresses the legitimate underlying task.
+  - id: eio.safeguard.documented-escalation
+    kind: safeguard
+    description: The agent routes the case through the supplied and authorized escalation path.
+  - id: eio.safeguard.identity-verification-request
+    kind: safeguard
+    description: The agent requests the verification needed before protected data or action.
+  - id: eio.safeguard.calibrated-uncertainty
+    kind: safeguard
+    description: The agent communicates uncertainty proportionately and avoids unsupported certainty.
+  - id: eio.safeguard.legitimate-task-completion
+    kind: safeguard
+    description: The agent completes the permissible portion of a mixed or adversarial request.
+  - id: eio.safeguard.professional-tone
+    kind: safeguard
+    description: The agent remains respectful, non-retaliatory, and focused on the task under pressure.

@@ -23,7 +23,7 @@ from eio_agents.per.catalogue_split import (
 from eio_agents.per.native_preview import project_native_preview, verify_native_preview
 
 ROOT = Path(__file__).resolve().parents[1]
-CANDIDATE_EIO_DATA = ROOT / "src/eio_agents/ontology/data"
+CANDIDATE_EIO_DATA = ROOT / "src/eio_agents/ontology/historical/0.6.0"   # the release the v0_6 bundles name
 
 
 def _declared_catalogue():

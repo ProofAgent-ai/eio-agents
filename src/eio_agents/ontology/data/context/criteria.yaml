@@ -1,7 +1,7 @@
 eio:
   id: eio.context.criteria
   namespace: https://www.proofagent.ai/eio-agents/module/context/criteria#
-  version: 0.2.2
+  version: 0.2.3
   kind: context
   title: EIO Context Engineering Criteria
   description: >
@@ -35,7 +35,7 @@ imports:
   - module: eio.core.decisions
     version: 0.3.0
   - module: eio.scoring.axes
-    version: 0.2.2
+    version: 0.2.3
 
 concepts:
   - id: eio.artifact.context

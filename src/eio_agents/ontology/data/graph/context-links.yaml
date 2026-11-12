@@ -1,7 +1,7 @@
 eio:
   id: eio.graph.context-links
   namespace: https://www.proofagent.ai/eio-agents/module/graph/context-links#
-  version: 0.2.2
+  version: 0.2.3
   kind: graph
   title: EIO Predicate-to-Context Stress Edges
   description: STRESSES_CONTEXT links canonical predicates to context-engineering
@@ -10,7 +10,7 @@ eio:
   license: Apache-2.0
 imports:
 - module: eio.context.criteria
-  version: 0.2.2
+  version: 0.2.3
 context_links:
   eio.predicate.adverse-decision-notice-incomplete:
   - criterion: eio.context.guardrail-coverage

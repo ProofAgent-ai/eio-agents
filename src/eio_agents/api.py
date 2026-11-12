@@ -193,7 +193,7 @@ def _native_scored_convert(source: bytes | dict, ontology: Ontology) -> dict[str
             f"null-score source PER failed D1/D2/D5 precheck: {failures[0][0] if failures else ''}")
     source_check = {"valid": True, "digest_match": True, "per_sha256": verifier_sha(verifier_jb(unscored))}
     if "proof_citations" not in (bundle.get("native_scoring") or {}):
-        require(ontology.release != "0.6.0", "NATIVE_SCORE_PREVIEW",
+        require(ontology.release not in ("0.6.0", "0.7.0"), "NATIVE_SCORE_PREVIEW",
                 "the new release has no versioned partial-score profile; proof_citations must be declared")
         # An absent citation declaration is unknown, not an asserted empty
         # proof set. Keep the pinned rc3 partial wire; it withholds G/readiness
@@ -220,13 +220,38 @@ def convert(archive: bytes | dict, *, ontology: Ontology | None = None) -> dict[
     many records loads one with `eio_agents.ontology.load()` and passes it).
     """
     source, native, scored = _route(archive)
+    if ontology is None or _is_bundled_default(ontology):
+        ontology = _ontology_of(archive) or ontology
     if native and scored:
         active = ontology if ontology is not None else load_ontology()
-        if active.release in ("0.5.0-draft.1", "0.6.0"):
+        if active.release in ("0.5.0-draft.1", "0.6.0", "0.7.0"):
             return cast("dict[str, Any]", _native_scored_convert(source, active))
     active = ontology if ontology is not None else load_ontology()
     return cast("dict[str, Any]", native_full_wire.project_unscored_per(
         project_neutral(source, ontology=active), ontology=active))
+
+
+def _is_bundled_default(ontology: Ontology) -> bool:
+    """The caller passed the library's own current release (`load()`), which means the same as passing none."""
+    from eio_agents.ontology import DATA_DIR
+    try:
+        return Path(ontology.root).resolve() == Path(DATA_DIR).resolve()
+    except Exception:
+        return False
+
+
+def _ontology_of(archive: Any) -> Ontology | None:
+    """The bundled EIO release a bundle (or record) names in `header.eio.release`, when this library carries it as a
+    historical release (`eio_agents.ontology.release_root`); None for the current release. Old evidence is re-derived
+    and verified under the ontology it was produced with, so upgrading the library keeps every issued record
+    reproducible byte for byte."""
+    from eio_agents.ontology import release_root
+    try:
+        obj = archive if isinstance(archive, dict) else json.loads(bytes(archive))
+        root = release_root(((obj.get("header") or {}).get("eio") or {}).get("release"))
+    except Exception:
+        return None
+    return load_ontology(root) if root is not None else None
 
 
 def _route(archive: bytes | dict) -> tuple[bytes | dict, bool, bool]:
@@ -253,7 +278,7 @@ def _legacy_convert(archive: bytes | dict, *, ontology: Ontology | None = None) 
     if native:
         if scored:
             active = ontology if ontology is not None else load_ontology()
-            if active.release in ("0.5.0-draft.1", "0.6.0"):
+            if active.release in ("0.5.0-draft.1", "0.6.0", "0.7.0"):
                 return cast("dict[str, Any]", _native_scored_convert(source, active))
         return cast("dict[str, Any]", project_native_preview(source, ontology=ontology))
     return cast("dict[str, Any]", project(source, ontology=ontology))
@@ -300,6 +325,8 @@ def verify(rec: dict[str, Any], bundle: bytes | dict, *, ontology: Ontology | No
                               "report into a bundle with its producer's adapter first", code="BUNDLE_INPUT")
     if isinstance(bundle, (bytes, bytearray)):
         b = per_bundle.loads(bundle)                  # bundle bytes are read as I-JSON (review R-2)
+    if ontology is None or _is_bundled_default(ontology):
+        ontology = _ontology_of(b) or ontology
     try:
         # a legacy rc3 record of a legacy bundle is re-derived under its own pinned identity (read-only legacy)
         rederived: Any = (_legacy_convert if _is_legacy(rec, b) else convert)(b, ontology=ontology)

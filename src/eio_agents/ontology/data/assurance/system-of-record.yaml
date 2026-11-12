@@ -1,7 +1,7 @@
 eio:
   id: eio.assurance.system-of-record
   namespace: https://www.proofagent.ai/eio-agents/module/assurance/system-of-record#
-  version: 0.2.2
+  version: 0.2.3
   kind: assurance
   title: EIO Assurance and System-of-Record Layer
   description: Generic governance lifecycle, release decisions, and continuing assurance records.
@@ -10,10 +10,10 @@ eio:
 imports:
   - {module: eio.core.entities, version: 0.2.0}
   - {module: eio.core.relations, version: 0.2.0}
-  - {module: eio.core.flow, version: 0.2.2}
-  - {module: eio.compliance.frameworks, version: 0.2.2}
-  - {module: eio.governance.gates, version: 0.2.2}
-  - {module: eio.scoring.axes, version: 0.2.2}
+  - {module: eio.core.flow, version: 0.2.3}
+  - {module: eio.compliance.frameworks, version: 0.2.3}
+  - {module: eio.governance.gates, version: 0.2.3}
+  - {module: eio.scoring.axes, version: 0.2.3}
   - {module: eio.reliability.ledgers, version: 0.3.0}
 
 concepts:

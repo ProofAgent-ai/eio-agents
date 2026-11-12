@@ -4,7 +4,7 @@ import copy
 
 import pytest
 
-from eio_agents.ontology import load
+from eio_agents.ontology import for_document
 from eio_agents.per.native_score_preview import candidate_scored_per
 from eio_agents.scoring.profiles import reference_document
 from eio_agents.validation.canon import jb, sha
@@ -46,7 +46,7 @@ def test_scored_per_basis_and_resealed_numeric_tamper_are_diagnosed():
     bundle, unscored, block = _preview()
     scored = candidate_scored_per(unscored, block)
     # Test oracle may use producer profile; verifier code never imports it.
-    approved = reference_document(load())
+    approved = reference_document(for_document(scored))   # the release the record names (0.6.0, historical)
     source_check = {"valid": True, "digest_match": True, "per_sha256": sha(jb(scored))}
     diagnostic = diagnose_draft_score_block(bundle, scored, block, EIO(EIO_DIR),
                                             approved_profile=approved, verification=source_check)

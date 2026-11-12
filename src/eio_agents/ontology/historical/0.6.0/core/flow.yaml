@@ -1,0 +1,287 @@
+eio:
+  id: eio.core.flow
+  namespace: https://www.proofagent.ai/eio-agents/module/core/flow#
+  version: 0.2.2
+  kind: flow
+  title: EIO Evaluation Flow
+  description: >
+    The ordered stages of an evaluation, what each stage may consume and produce, and the
+    invariants it must not break. This is the contract every harness agent runs under.
+  license: Apache-2.0
+
+# WHY THIS MODULE EXISTS
+# Predicates say what a breach IS. They do not say who may decide one, when, or from what.
+# Without that, meaning leaks back into code: a stage can quietly score on evidence it was
+# never supposed to see, or emit a number for something nobody evaluated.
+#
+# Two invariants carry most of the weight, and both are drawn from measured defects:
+#
+#   `may_write_claims` — only four stages may create an EvaluationClaim (assess-context,
+#   resolve-deterministic, resolve-semantic, adjudicate). A planner that can write claims can
+#   decide the answer before the agent has spoken.
+#
+#   Every stage declares `produces`. A stage that produces nothing observable cannot be
+#   audited, and a capability wired to nothing looks exactly like a clean result. One
+#   check scored 15/15 on fixtures and 0/57 across ten live runs for precisely that
+#   reason; `eio.flow.dispatch-census` exists so that can never again be invisible.
+
+# The stage contract sits above the modules whose concepts it consumes and produces (EIO-6), so
+# it imports them; eio.governance.gates binds each gate to a stage by a release-scoped reference.
+imports:
+  - module: eio.core.entities
+    version: 0.2.0
+  - module: eio.core.relations
+    version: 0.2.0
+  - module: eio.core.evidence
+    version: 0.2.1
+  - module: eio.core.decisions
+    version: 0.3.0
+  - module: eio.context.criteria
+    version: 0.2.2
+  - module: eio.governance.gates
+    version: 0.2.2
+  - module: eio.scoring.axes
+    version: 0.2.2
+  - module: eio.reliability.ledgers
+    version: 0.3.0
+
+flow:
+  - id: eio.flow.qualify
+    order: 0
+    description: >
+      Classify the agent under evaluation: use case, autonomy, data sensitivity, region,
+      oversight and whether it takes consequential actions. Deterministic, no model call.
+    consumes: [eio.entity.agent, eio.artifact.agent-manifest, eio.artifact.policy]
+    produces: [eio.entity.governance-profile, eio.entity.risk-tier]
+    resolvers_allowed: [eio.resolver.policy-lookup, eio.resolver.arithmetic]
+    may_write_claims: false
+    invariants:
+      - The profile is derived from declared inputs only; it never reads the transcript.
+      - The profile hash enters the capsule before any question is asked.
+    gate: A missing profile yields the generic-agent domain and a recorded caveat, never a default of low risk.
+
+  - id: eio.flow.assess-context
+    order: 1
+    description: >
+      Score the agent's own engineering — its prompt, tools and grounding — against the
+      context criteria. This is the Q axis and it evaluates a static artifact, not an episode.
+    consumes: [eio.artifact.system-prompt, eio.artifact.tool-schema, eio.artifact.policy, eio.artifact.knowledge-source]
+    produces: [eio.entity.evaluation-claim, eio.entity.metric-view]
+    resolvers_allowed: [eio.resolver.exact-span, eio.resolver.typed-absence, eio.resolver.semantic-classification]
+    may_write_claims: true
+    invariants:
+      - A criterion whose score rises as the artifact empties must be `non_scoring`.
+      - Checklist criteria are decided by control presence, never by an assessor rating.
+    gate: Findings may come from an assessor; the number for a checklist criterion may not.
+
+  - id: eio.flow.calibrate
+    order: 2
+    description: >
+      Put the evaluator through reference cases whose adjudicated answer is known, before
+      it is trusted with the agent. Measures the instrument, not the subject.
+    consumes: [eio.entity.reference-case, eio.entity.evaluator]
+    produces: [eio.entity.calibration-result]
+    resolvers_allowed: [eio.resolver.semantic-relation, eio.resolver.semantic-classification]
+    may_write_claims: false
+    invariants:
+      - Calibration results are attributed to the evaluator and never to the agent.
+      - Failing calibration caveats the whole run rather than lowering the agent's score.
+    gate: Below the declared accuracy or abstention floor, the run may not publish a release score.
+
+  - id: eio.flow.plan
+    order: 3
+    description: >
+      Derive the applicable coverage obligations from the profile and domain, select
+      templates that exercise them, and bind them into pinned scenarios.
+    consumes: [eio.entity.governance-profile, eio.entity.coverage-obligation, eio.entity.test-template]
+    produces: [eio.entity.scenario-binding, eio.entity.evaluation-plan]
+    resolvers_allowed: [eio.resolver.graph-rule, eio.resolver.arithmetic]
+    may_write_claims: false
+    invariants:
+      - The obligation set is frozen and hashed before execution begins.
+      - A binding may pin an explicit predicate set; nothing may widen it later.
+      - Every obligation is either bound to a scenario or recorded as unreached.
+    gate: An obligation with release_impact HARD_BLOCK and no binding blocks the run at plan time, not at report time.
+
+  - id: eio.flow.conduct
+    order: 4
+    description: >
+      Execute the bound scenarios against the agent, planting the declared fixtures, and
+      record everything observed as a typed evidence graph.
+    consumes: [eio.entity.scenario-binding, eio.entity.agent]
+    produces: [eio.entity.episode, eio.entity.turn, eio.entity.evidence-ref]
+    resolvers_allowed: []
+    may_write_claims: false
+    invariants:
+      - Fixture values derive from the seed, so the same plan plants the same values elsewhere.
+      - Every span records its source type; agent output and untrusted input never merge.
+      - No verdict is formed here. Execution and judgement are separate stages.
+    gate: A turn whose source attribution is unknown is unusable as behavioural evidence.
+
+  - id: eio.flow.resolve-deterministic
+    order: 5
+    description: >
+      Establish every fact that can be decided exactly — span matches, tool receipts,
+      state windows, arithmetic. Runs before any model is asked anything.
+    consumes: [eio.entity.evidence-ref, eio.entity.state-fact]
+    produces: [eio.entity.evaluation-claim]
+    resolvers_allowed:
+      - eio.resolver.exact-span
+      - eio.resolver.typed-absence
+      - eio.resolver.tool-receipt
+      - eio.resolver.state-transition
+      - eio.resolver.policy-lookup
+      - eio.resolver.arithmetic
+      - eio.resolver.paired-comparison
+      - eio.resolver.graph-rule
+    may_write_claims: true
+    invariants:
+      - Byte-identical inputs give byte-identical claims; no set iteration, no clock, no sampling.
+      - A claim decided here is never re-opened by a later stage.
+      - Temporal predicates read the whole episode, not the current turn.
+    gate: This stage must run to completion before eio.flow.resolve-semantic is entered.
+
+  - id: eio.flow.resolve-semantic
+    order: 6
+    description: >
+      Ask a model only the relations code could not establish, one bounded question at a
+      time, each answered with a citation.
+    consumes: [eio.entity.evidence-ref, eio.entity.evaluation-claim]
+    produces: [eio.entity.evaluation-claim]
+    resolvers_allowed: [eio.resolver.semantic-relation, eio.resolver.semantic-classification]
+    may_write_claims: true
+    invariants:
+      - Only relations left unresolved by the deterministic stage may be asked.
+      - The answer surface is a typed relation plus evidence; never a score or a severity.
+      - Abstention is recorded as UNRESOLVED and never converted to a pass.
+      - Severity, applicability and policy are not decidable here.
+    gate: A resolution without supporting evidence becomes EVIDENCE_INVALID.
+
+  - id: eio.flow.adjudicate
+    order: 7
+    description: >
+      Pool votes, enforce each predicate's evidence contract, and assign one typed
+      terminal state per claim.
+    consumes: [eio.entity.evaluation-claim, eio.entity.evidence-ref]
+    produces: [eio.entity.evaluation-claim, eio.entity.dispatch-record]
+    resolvers_allowed: [eio.resolver.graph-rule, eio.resolver.arithmetic, eio.resolver.human-adjudication]
+    may_write_claims: true
+    invariants:
+      - A behavioural claim may not rest on evidence forbidden as agent proof.
+      - Pooling is arithmetic; no model participates in this stage.
+      - Every dispatched predicate emits a record, including when it declined.
+    gate: Predicates whose evidence base is below the release floor are diagnostic only.
+
+  - id: eio.flow.dispatch-census
+    order: 8
+    description: >
+      Record, for every predicate in scope, how many times it was dispatched and which
+      states resulted — so silence has a stated cause.
+    consumes: [eio.entity.dispatch-record, eio.entity.coverage-obligation]
+    produces: [eio.entity.coverage-report]
+    resolvers_allowed: [eio.resolver.arithmetic]
+    may_write_claims: false
+    invariants:
+      - "Five causes of silence are distinguished, evaluated in this order: UNREACHABLE, NOT_IMPLEMENTED, NEVER_SELECTED, PRECONDITION_ABSENT, INCOMPLETE_COVERAGE (eio.profile.coverage-census)."
+      - A predicate that produced no claim may never render as a clean result.
+    gate: An obligation below its minimum_cases is reported as unreached with its release_impact applied.
+
+  - id: eio.flow.score
+    order: 9
+    description: >
+      Derive metric views, axes and the readiness index. A view, never a source of truth:
+      metric views and axes from claims and declared profile inputs. Missing inputs withhold
+      numerical views rather than inventing a score.
+    consumes: [eio.entity.evaluation-claim, eio.entity.coverage-report]
+    produces: [eio.entity.metric-view, eio.entity.axis-score, eio.entity.readiness-index]
+    resolvers_allowed: [eio.resolver.arithmetic]
+    may_write_claims: false
+    invariants:
+      - Only APPLICABLE_PASS and APPLICABLE_FAIL enter a denominator.
+      - Aggregation is limited-compensation; one genuine zero is not averaged away.
+      - A claim cap is applied after the factual claim and names the claim that caused it; a gate cap (eio.cap.blocked-run, 3@) names its unmet gate.
+    gate: An axis with no evaluated sub-metric is NOT_EVALUATED and is excluded, not zeroed.
+
+  - id: eio.flow.assess-reliability
+    order: 10
+    description: >
+      Re-run the pinned plan and its metamorphic variants to separate reproducible
+      findings from flukes.
+    consumes: [eio.entity.evaluation-plan, eio.entity.evaluation-claim]
+    produces: [eio.entity.trial, eio.entity.reliability-ledger]
+    resolvers_allowed: [eio.resolver.arithmetic]
+    may_write_claims: false
+    invariants:
+      - Non-recurrence never withdraws an occurrence; a breach that happened, happened.
+      - A rate is suppressed when the sample cannot carry it; named lists are published instead.
+      - A metamorphic variant that changes the decision indicts the evaluator, not the agent.
+    gate: Below the declared task floor, no headline rate may be published.
+
+  - id: eio.flow.map-compliance
+    order: 11
+    description: >
+      Project claims onto framework controls for the regions and tier the profile selected.
+    consumes: [eio.entity.evaluation-claim, eio.entity.governance-profile, eio.entity.control]
+    produces: [eio.entity.control-status]
+    resolvers_allowed: [eio.resolver.graph-rule, eio.resolver.arithmetic]
+    may_write_claims: false
+    invariants:
+      - A control status points at the claims and evidence that produced it.
+      - Relevance is asserted; certification is not.
+      - A control with no evidence is not_tested — neither a pass nor a failure.
+    gate: A substantive control status without an evidence reference is invalid.
+
+  - id: eio.flow.report
+    order: 12
+    description: >
+      Emit the report, the coverage contract, the remediation graph and the reproducibility
+      capsule.
+    consumes: [eio.entity.evaluation-claim, eio.entity.axis-score, eio.entity.control-status, eio.entity.reliability-ledger, eio.entity.coverage-report]
+    produces: [eio.entity.report, eio.entity.capsule]
+    resolvers_allowed: [eio.resolver.arithmetic]
+    may_write_claims: false
+    invariants:
+      - What the run did not establish is stated as a finding, not left as an absence.
+      - The capsule records every module, template, binding, resolver, model and seed used.
+      - Evaluator-fault states are reported separately from agent performance.
+    gate: A run whose code cannot be reconstructed is marked not reproducible and its findings are caveated.
+
+profiles:
+  - id: eio.profile.flow-invariants
+    description: Cross-stage rules a conforming harness must not break.
+    claim_writing_stages:
+      - eio.flow.assess-context
+      - eio.flow.resolve-deterministic
+      - eio.flow.resolve-semantic
+      - eio.flow.adjudicate
+    rules:
+      - Stage order is total; a stage may not consume what a later stage produces.
+      - Deterministic resolution always precedes semantic resolution.
+      - No stage other than the claim-writing stages may create or mutate a claim.
+      - Every stage produces at least one observable entity.
+      - Severity and release impact are applied after the factual claim, never inside it.
+    stage_records: >
+      A producer emits, for every stage, one record {stage, status (ran, skipped or failed),
+      outputs (ids or counts), reason_if_not_ran}, instrumented at the stage itself. A trail
+      reconstructed from state is never reported as ran, and a hash chain over stage events is
+      published only if it covers the digests of the stages' actual outputs.
+
+  # EIO-238 / EIO-26 / PER-428 / PER-29. The cause of every silence, evaluated in order; the first
+  # cause that holds is the cause. It applies to an unmet coverage obligation and to a predicate in
+  # scope that produced no scored claim.
+  - id: eio.profile.coverage-census
+    description: The census cause vocabulary and its evaluation order.
+    causes:
+      - id: UNREACHABLE
+        when: "No declared producer resolver path reaches the predicate."
+      - id: NOT_IMPLEMENTED
+        when: "Every declared resolver path for the predicate is marked unimplemented; its remediation is reported."
+      - id: NEVER_SELECTED
+        when: "The predicate is reachable and implemented, and the run produced no claim on it."
+      - id: PRECONDITION_ABSENT
+        when: "Claims on the predicate exist and all are NOT_APPLICABLE."
+      - id: INCOMPLETE_COVERAGE
+        when: "0 < scored cases < minimum_cases, or the claims are only UNRESOLVED, evaluator-fault or NOT_APPLICABLE with at least one UNRESOLVED or evaluator-fault claim (the same token as the unmet_state of eio.floor.obligation-cases)."
+    not_causes: [BY_DESIGN, DECLARED_NOT_DISPATCHED]
+    registry_source: the producer-declared resolver registry pinned with the evaluation profile; a missing registry yields unknown rather than an inferred implementation
+    test_vectors:

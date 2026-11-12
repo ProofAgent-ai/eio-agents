@@ -17,7 +17,6 @@ from jsonschema import Draft202012Validator, FormatChecker
 from eio_agents.base.version import VERSION
 from eio_agents.base.canon import H, jb, sd
 from eio_agents.base.errors import ConversionError, require
-from eio_agents.ontology import load as load_ontology
 from eio_agents.per import bundle as B, evaluator_usage
 from eio_agents.per.catalogue_split import (
     RC1_TO_CORE_ID,
@@ -192,8 +191,8 @@ def _project_neutral(b, *, ontology):
     # native finalization also renders release explanations.  Both stages
     # must see the *same* verified release object, including through the
     # public convert(bundle) default path.
-    if ontology is None:
-        ontology = load_ontology()
+    from eio_agents.ontology import for_document
+    ontology = for_document(b, ontology)
     old = project(b, ontology=ontology, bridge_native_rc2=True)
     rec = _neutralize(old, b, ontology)
     schema_path = PREVIEW_SCHEMA if rec["header"]["schema_uri"] == SCHEMA_URI else PUBLIC_RC3_SCHEMA

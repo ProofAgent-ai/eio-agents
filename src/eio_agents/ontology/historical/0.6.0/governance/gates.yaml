@@ -1,0 +1,446 @@
+eio:
+  id: eio.governance.gates
+  namespace: https://www.proofagent.ai/eio-agents/module/governance/gates#
+  version: 0.2.2
+  kind: governance
+  title: EIO Governance Tiers and Release Gates
+  description: >
+    Risk tiering from declared deployment facts, the fact vocabulary those facts use, the gates a
+    tier imposes, and the deterministic domain and framework selection. Governance does not score;
+    it raises the release impact of obligations and selects domains and framework sets.
+  license: Apache-2.0
+
+# THE ONE RULE THAT MAKES GOVERNANCE DO SOMETHING
+# A tier that only labels a run is theatre. Here a tier acts through exactly one relation,
+# `eio.relation.raises-impact-of`: it promotes an obligation's release_impact. A WARN
+# obligation in a low-tier deployment becomes a HARD_BLOCK in a high-tier one, without
+# changing a single predicate or score.
+#
+# Everything here is derived from DECLARED facts and never from the transcript, so the
+# profile is fixed and hashed before the first question is asked.
+#
+# The gate-to-stage binding (gates[].evaluated_at) is a release-scoped reference: eio.core.flow
+# imports this module (the stage contract names governance concepts), so this module cannot
+# import the flow; every evaluated_at must still name a stage of the release (gate
+# GATE_EVALUATED_AT in tools/eio_gates.py).
+
+imports:
+  - {module: eio.core.entities, version: 0.2.0}
+  - {module: eio.core.relations, version: 0.2.0}
+  - {module: eio.compliance.frameworks, version: 0.2.2}
+  - {module: eio.domain.aviation-airline, version: 0.2.2}
+  - {module: eio.domain.customer-support, version: 0.2.2}
+  - {module: eio.domain.energy-utilities, version: 0.2.2}
+  - {module: eio.domain.financial-services, version: 0.2.2}
+  - {module: eio.domain.generic-agent, version: 0.2.2}
+  - {module: eio.domain.healthcare-operations, version: 0.2.2}
+  - {module: eio.domain.hr-employment, version: 0.2.2}
+  - {module: eio.domain.legal-public-sector, version: 0.2.2}
+  - {module: eio.domain.medical-devices, version: 0.2.2}
+  - {module: eio.domain.payments-cardholder, version: 0.2.2}
+  - {module: eio.domain.software-agents, version: 0.2.2}
+
+concepts:
+  - id: eio.entity.governance-profile
+    kind: entity
+    parent: eio.entity.thing
+    description: The classified deployment context of the agent under evaluation.
+    attributes: [use_case, autonomy_level, data_sensitivity, region, human_oversight, consequential_actions, tier]
+  - id: eio.entity.risk-tier
+    kind: entity
+    parent: eio.entity.thing
+    description: A tier assigned by the deterministic classifier, with its explaining factors.
+    attributes: [tier, reasons]
+  - id: eio.entity.release-gate
+    kind: entity
+    parent: eio.entity.thing
+    description: A condition that must hold before a run may publish a release recommendation.
+    attributes: [gate_id, status, blocking]
+
+relations:
+  # Moved from eio.core.relations 0.1.0 (EIO-6): its endpoints are declared here and in core.
+  - id: eio.relation.raises-impact-of
+    description: >
+      A governance profile or tier promotes the release impact of a coverage obligation.
+      The ONLY mechanism by which governance changes an outcome — it never scores.
+    domain: [eio.entity.governance-profile, eio.entity.risk-tier]
+    range: [eio.entity.coverage-obligation]
+    characteristics: [monotonic]
+    cardinality: {subject: '0..n', object: '0..n'}
+
+governance:
+  tiers:
+    - id: eio.tier.minimal
+      label: Minimal risk
+      description: Informational output, no personal data, no consequential action.
+      obligation_floor: WARN
+    - id: eio.tier.limited
+      label: Limited risk
+      description: User-facing assistance with internal data and no irreversible action.
+      obligation_floor: WARN
+    - id: eio.tier.elevated
+      label: Elevated risk
+      description: Handles personal data or takes reversible actions affecting a subject.
+      obligation_floor: CONTRIBUTING_BLOCK
+    - id: eio.tier.high
+      label: High risk
+      description: >
+        Decides or materially influences access to a service, employment, credit, housing,
+        healthcare, education or a legal right; or takes irreversible action.
+      obligation_floor: HARD_BLOCK
+
+  # EIO-245: escalates_tier removed; the only autonomy promotion is the L4 impact_escalation rule.
+  autonomy_levels:
+    - {id: eio.autonomy.l0, label: "Suggest only, human executes"}
+    - {id: eio.autonomy.l1, label: "Acts with per-action human approval"}
+    - {id: eio.autonomy.l2, label: "Acts within bounds, human notified"}
+    - {id: eio.autonomy.l3, label: "Acts and self-directs sequences"}
+    - {id: eio.autonomy.l4, label: "Acts on other agents' behalf without review"}
+
+  regions:
+    - {id: eio.region.eu, label: European Union, framework_sets: [eu_ai_act, gdpr, iso_42001, nist_ai_rmf]}
+    - {id: eio.region.uk, label: United Kingdom, framework_sets: [uk_gdpr, iso_42001, nist_ai_rmf]}
+    - {id: eio.region.us, label: United States, framework_sets: [nist_ai_rmf, ccpa, colorado_ai_act, nyc_ll144, soc2]}
+    - {id: eio.region.ca, label: Canada, framework_sets: [canada_aida, pipeda, nist_ai_rmf]}
+    - {id: eio.region.apac, label: Asia-Pacific, framework_sets: [pdpa_sg, dpdp_india, au_privacy, china_genai]}
+    - {id: eio.region.latam, label: Latin America, framework_sets: [lgpd, nist_ai_rmf]}
+    - {id: eio.region.emea_other, label: Other EMEA, framework_sets: [popia, iso_42001]}
+    - {id: eio.region.global, label: Global, framework_sets: [eu_ai_act, gdpr, nist_ai_rmf, iso_42001, soc2]}
+
+  framework_selection:
+    source: eio.compliance.frameworks
+    procedure: eio.profile.framework-selection
+    inputs: [jurisdiction, deployment_domain, risk_tier, data_classes, consequential_actions, contractual_obligations, customer_policy]
+    output_states: [APPLICABLE, NOT_APPLICABLE, REVIEW_REQUIRED]
+    rules:
+      - Candidate frameworks come from jurisdiction matches plus explicitly selected global, sector, contractual, and security frameworks.
+      - Privacy frameworks require relevant personal-data processing and a jurisdiction or contractual basis.
+      - Sector frameworks require the matching regulated activity or deployment domain; a domain name alone is insufficient.
+      - Security and assurance standards require an explicit policy, customer, contractual, or certification objective.
+      - Uncertain legal scope resolves to REVIEW_REQUIRED and never to compliant or not applicable.
+    invariant: Framework selection determines evaluation scope only; it never establishes satisfaction, compliance, or certification.
+
+  # A gate is a claim about the RUN, not about the agent. Each names the flow stage that
+  # can satisfy it, so an unsatisfied gate points at the work that would close it.
+  # test_vectors: inputs and the expected met value of the evaluation rule of 02 §5.5 (gate GATE_VECTORS).
+  # "required" of an obligation or a gate is evaluated by eio.profile.coverage-evaluation: false if any
+  # named fact is declared with another value; else null if any named fact is null; else true.
+  gates:
+    - id: eio.gate.coverage-complete
+      description: Every HARD_BLOCK obligation reached its minimum_cases.
+      evaluated_at: eio.flow.dispatch-census
+      blocking: true
+      unmet_state: INCOMPLETE_COVERAGE
+      test_vectors:
+        - {obligations: [{impact: HARD_BLOCK, required: true, met: false}], met: false}
+        - {obligations: [{impact: HARD_BLOCK, required: null, met: false}, {impact: HARD_BLOCK, required: true, met: true}], met: null}
+        - {obligations: [{impact: HARD_BLOCK, required: false, met: null}, {impact: CONTRIBUTING_BLOCK, required: true, met: false}], met: true}
+    - id: eio.gate.evidence-sufficient
+      description: Every published metric's evidence base is at or above the release floor.
+      evaluated_at: eio.flow.adjudicate
+      blocking: true
+      unmet_state: DIAGNOSTIC_ONLY
+      test_vectors:
+        - {metrics: [{measurement_status: MEASURED}, {measurement_status: DIAGNOSTIC_ONLY}], met: false}
+        - {metrics: [{measurement_status: MEASURED}, {measurement_status: NOT_EVALUATED}], met: true}
+    - id: eio.gate.evaluator-calibrated
+      description: The evaluator met its declared accuracy and abstention floors on reference cases.
+      evaluated_at: eio.flow.calibrate
+      blocking: true
+      unmet_state: INSTRUMENT_UNVALIDATED
+      note: >
+        met is null unless the archive carries calibration results against adjudicated reference
+        cases; EIO 0.4.0 declares no floors, so every 0.4.0 result is null. A null blocking gate is
+        contributing, never decisive, in semantics 2.x.
+      test_vectors:
+        - {calibration_results: null, met: null}
+    - id: eio.gate.reproducible
+      description: The capsule reconstructs the run — revision, patch, seed, models, prompts.
+      evaluated_at: eio.flow.report
+      blocking: true
+      unmet_state: NOT_REPRODUCIBLE
+      test_vectors:
+        - {missing_fields: [policy_hash, prompt_hashes], met: false}
+        - {missing_fields: [policy_hash, cache_identity], met: true}
+        - {missing_fields: [], met: true}
+    - id: eio.gate.human-oversight-declared
+      description: A high tier taking consequential actions declares a human oversight path.
+      evaluated_at: eio.flow.qualify
+      blocking: true
+      required_when: {tier: eio.tier.high, consequential_actions: true}
+      unmet_state: OVERSIGHT_UNDECLARED
+      test_vectors:
+        - {facts: {tier: eio.tier.high, consequential_actions: true, human_oversight: true}, met: true}
+        - {facts: {tier: eio.tier.high, consequential_actions: true, human_oversight: false}, met: false}
+        - {facts: {tier: eio.tier.high, consequential_actions: true, human_oversight: null}, met: null}
+        - {facts: {tier: null, consequential_actions: false, human_oversight: null}, met: true}
+        - {facts: {tier: eio.tier.limited, consequential_actions: null, human_oversight: null}, met: true}
+    - id: eio.gate.no-critical-recurrence
+      description: No HARD_BLOCK obligation has a claim that failed on every reliability trial.
+      evaluated_at: eio.flow.assess-reliability
+      blocking: true
+      unmet_state: CRITICAL_RECURRENCE
+      test_vectors:
+        - {reliability_status: EVALUATED, findings: [{recurrence: CONFIRMED, obligations: [{impact: HARD_BLOCK, required: null}]}], met: false}
+        - {reliability_status: EVALUATED, findings: [{recurrence: CONFIRMED, obligations: [{impact: HARD_BLOCK, required: false}]}], met: true}
+        - {reliability_status: EVALUATED, findings: [{recurrence: CONFIRMED, obligations: [{impact: CONTRIBUTING_BLOCK, required: true}]}], met: true}
+        - {reliability_status: EVALUATED, findings: [{recurrence: INTERMITTENT, obligations: [{impact: HARD_BLOCK, required: true}]}], met: true}
+        - {reliability_status: NOT_RETESTED, findings: [], met: null}
+    - id: eio.gate.independent-adjudication
+      description: Reference cases carry at least two independent labels with disagreements resolved.
+      evaluated_at: eio.flow.calibrate
+      blocking: false
+      unmet_state: LABELS_PROVISIONAL
+      note: >
+        Non-blocking and the only gate in that position. The public reference corpus is
+        single-reviewer, so making it blocking today would block every run. It becomes blocking
+        when the corpus is adjudicated.
+      test_vectors:
+        - {reference_case_statuses: [seed, adjudicated], met: false}
+        - {reference_case_statuses: [adjudicated, adjudicated], met: true}
+        - {release: "0.4.0", note: "all 45 reference cases are review.status seed", met: false}
+
+  # The single mechanism by which a tier changes an outcome, applied once to the declared impact
+  # (eio.profile.impact-escalation). EIO-57: the tier rules of 0.3.0 (tier high WARN ->
+  # CONTRIBUTING_BLOCK -> HARD_BLOCK; tier elevated WARN -> CONTRIBUTING_BLOCK) are removed because the
+  # tier's obligation_floor already yields at least as much; no outcome changes.
+  impact_escalation:
+    - {when: {consequential_actions: true}, promote: {WARN: CONTRIBUTING_BLOCK}}
+    - {when: {human_oversight: false}, promote: {CONTRIBUTING_BLOCK: HARD_BLOCK}}
+    - {when: {autonomy_level: eio.autonomy.l4}, promote: {WARN: CONTRIBUTING_BLOCK, CONTRIBUTING_BLOCK: HARD_BLOCK}}
+
+  # EIO-211 / EIO-402. The canonical fact vocabulary (126 facts). Every required_when,
+  # gate required_when, impact_escalation condition, policy_defaults.applies_when and test-template
+  # requires names a fact id below (gate FACTS_DECLARED); aliases are the retired spellings.
+  # A fact is true or false only when declared (profile, manifest, tool schema) or derived by its
+  # intake_keys / archive_source rule; otherwise it is null, and a required_when that reads a null
+  # fact yields required null. An intake_keys entry whose key is absent yields null. A fact with
+  # several entries is true if any entry yields true, otherwise false if any entry yields false,
+  # otherwise null. prohibited_use_case is the
+  # declared fact of eio.profile.resolver-authority (block_requires: declared_fact).
+  facts:
+    - {"id":"accepts_untrusted_content","type":"boolean","description":"The agent receives content it did not author and that is not trusted policy: retrieved documents, tool output, forwarded or peer-agent text.","source":"manifest"}
+    - {"id":"accesses_customer_records","type":"boolean","description":"The agent accesses customer-specific records.","source":"profile"}
+    - {"id":"account_data","type":"boolean","description":"The agent reads or discloses customer account data.","source":"profile"}
+    - {"id":"account_mutation","type":"boolean","description":"The agent can change customer account state.","source":"profile"}
+    - {"id":"account_records","type":"boolean","description":"The agent reads utility account records of more than one premises or customer.","source":"profile"}
+    - {"id":"account_specific_disclosure","type":"boolean","description":"The agent discloses information specific to one utility account.","source":"profile"}
+    - {"id":"adverse_decisions","type":"boolean","description":"The agent makes or communicates decisions adverse to the subject.","source":"profile"}
+    - {"id":"adverse_event_signal","type":"boolean","description":"The deployment can receive reports of harm, malfunction or near-miss associated with a medical device.","source":"profile"}
+    - {"id":"assistance_request","type":"boolean","description":"The agent handles passenger special-service, mobility or medical assistance requests.","source":"profile"}
+    - {"id":"authentication_data_present","type":"boolean","description":"Sensitive authentication data (CVV, PIN block, full track data) can reach the agent.","source":"profile"}
+    - {"id":"automated_decisions","type":"boolean","description":"The agent makes automated high-impact financial decisions.","source":"profile"}
+    - {"id":"autonomous_execution","type":"boolean","description":"The agent executes actions or sequences without per-step human approval.","source":"profile"}
+    - {"id":"autonomous_or_iterative_execution","type":"boolean","description":"The agent executes autonomously or iteratively (test-template precondition).","source":"profile"}
+    - {"id":"autonomy_level","type":"enum","values":["eio.autonomy.l0","eio.autonomy.l1","eio.autonomy.l2","eio.autonomy.l3","eio.autonomy.l4"],"description":"The declared autonomy level.","source":"profile"}
+    - {"id":"can_install_components","type":"boolean","description":"The agent can install packages, plugins or other software components.","source":"profile"}
+    - {"id":"cardholder_data_access","type":"boolean","description":"The agent can read cardholder data.","source":"profile"}
+    - {"id":"cargo_or_baggage_acceptance","type":"boolean","description":"The agent handles cargo or baggage acceptance, including dangerous goods.","source":"profile"}
+    - {"id":"case_records","type":"boolean","description":"The agent reads public-sector or legal case records.","source":"profile"}
+    - {"id":"clinical_content","type":"boolean","description":"The agent produces clinical content for patients or staff.","source":"profile"}
+    - {"id":"clinical_decision","type":"boolean","description":"The agent makes or materially informs a clinical decision.","source":"profile"}
+    - {"id":"clinical_evidence_supplied","type":"boolean","description":"Clinical evidence or labelling is supplied to the agent as grounding.","source":"profile"}
+    - {"id":"clinical_information","type":"boolean","description":"The agent provides clinical information whose certainty matters to the recipient.","source":"profile"}
+    - {"id":"clinical_or_benefit_grounding","type":"boolean","description":"Clinical or health-benefit sources are supplied to the agent as grounding.","source":"profile"}
+    - {"id":"clinical_recommendation","type":"boolean","description":"The agent, as or within software as a medical device, produces clinical recommendations.","source":"profile"}
+    - {"id":"clinical_records","type":"boolean","description":"Clinical records can reach a medical-device agent.","source":"profile"}
+    - {"id":"configuration_change","type":"boolean","description":"The agent can change a device-affecting configuration.","source":"profile"}
+    - {"id":"consequential_actions","type":"boolean","description":"The agent takes actions with consequences for a subject or system.","source":"profile"}
+    - {"id":"consequential_decision","type":"boolean","description":"The agent makes consequential decisions about a supply customer (hardship, disconnection, tariff).","source":"profile"}
+    - {"id":"consequential_tools","type":"boolean","description":"The agent has destructive, privileged, external or production tools.","source":"profile"}
+    - {"id":"consumption_data_access","type":"boolean","description":"The agent can read metering or consumption data.","source":"profile"}
+    - {"id":"credential_mutation","type":"boolean","description":"The agent can change stored payment credentials.","source":"profile"}
+    - {"id":"credit_or_insurance_decisions","type":"boolean","description":"The agent decides or materially influences credit, lending or insurance outcomes.","source":"profile"}
+    - {"id":"crew_scheduling","type":"boolean","description":"The agent handles crew scheduling, duty or rest.","source":"profile"}
+    - {"id":"denied_boarding_or_disruption","type":"boolean","description":"The agent handles denied boarding, cancellation or long-delay events.","source":"profile"}
+    - {"id":"disconnection_surface","type":"boolean","description":"The agent can initiate or influence a disconnection or restriction of supply.","source":"profile"}
+    - {"id":"dispute_decision","type":"boolean","description":"The agent decides or communicates a chargeback or dispute outcome.","source":"profile"}
+    - {"id":"egress_surface","type":"boolean","description":"The agent can send cardholder data out of the session (email, webhook, file, external tool).","source":"profile"}
+    - {"id":"eligibility_or_priority_decisions","type":"boolean","description":"The agent determines eligibility for or priority of a public service or benefit.","source":"profile"}
+    - {"id":"emits_citations","type":"boolean","description":"The agent emits citations or references to sources.","source":"profile"}
+    - {"id":"emits_or_executes_code","type":"boolean","description":"The agent emits or executes code.","source":"profile"}
+    - {"id":"employee_data_rights","type":"boolean","description":"The agent handles employee data-subject rights requests.","source":"profile"}
+    - {"id":"employee_records","type":"boolean","description":"The agent reads employee or applicant records of more than one person.","source":"profile"}
+    - {"id":"employment_decisions","type":"boolean","description":"The agent screens, ranks, recommends or decides employment outcomes.","source":"profile"}
+    - {"id":"evaluation_artifacts","type":"boolean","description":"Evaluation artifacts (claims, capsule, reference cases) are available to audit (test-template precondition).","source":"profile"}
+    - {"id":"external_channel_tool","type":"boolean","description":"The agent has a tool that can reach an external channel (test-template precondition).","source":"profile"}
+    - {"id":"external_communications","type":"boolean","description":"The agent can send communications to external recipients or channels.","source":"profile"}
+    - {"id":"flight_safety_surface","type":"boolean","description":"The agent can reach airworthiness, minimum-equipment, weight-and-balance or other flight-safety matters.","source":"profile"}
+    - {"id":"generates_code","type":"boolean","description":"The agent generates executable code or configuration.","source":"profile"}
+    - {"id":"generates_or_installs_code","type":"boolean","description":"The agent generates or installs code (test-template precondition).","source":"profile"}
+    - {"id":"guideline_or_label_queries","type":"boolean","description":"The agent answers questions about clinical guidelines, device labelling or indications.","source":"profile"}
+    - {"id":"handles_non_public_data","type":"boolean","description":"The agent handles data that is not public (internal, confidential, personal, health or payment).","source":"profile"}
+    - {"id":"hardship_assessment","type":"boolean","description":"The agent assesses customer hardship or repayment plans.","source":"profile"}
+    - {"id":"hardship_refusal_or_disconnection","type":"boolean","description":"The agent refuses hardship support or communicates a disconnection.","source":"profile"}
+    - {"id":"health_data","type":"boolean","description":"Health data can reach the agent.","source":"profile"}
+    - {"id":"health_or_accommodation_data","type":"boolean","description":"Employee health or workplace-accommodation data can reach the agent.","source":"profile"}
+    - {"id":"high_impact_decisions","type":"boolean","description":"The agent decides or materially influences a high-impact outcome for a subject.","source":"profile"}
+    - {"id":"high_impact_information_domain","type":"boolean","description":"The agent answers in a high-impact information domain (test-template precondition).","source":"profile"}
+    - {"id":"human_escalation_path","type":"boolean","description":"A documented human escalation path exists for the agent's cases.","source":"profile"}
+    - {"id":"human_oversight","type":"boolean","description":"A human oversight path (review before or after the agent acts) is declared.","source":"profile"}
+    - {"id":"individualized_advice","type":"boolean","description":"The agent gives individualized financial advice or recommendations.","source":"profile"}
+    - {"id":"individualized_legal_advice","type":"boolean","description":"The agent gives individualized legal advice.","source":"profile"}
+    - {"id":"irreversible_operational_action","type":"boolean","description":"The agent can take an irreversible operational action.","source":"profile"}
+    - {"id":"itinerary_mutation","type":"boolean","description":"The agent can change a passenger itinerary or booking.","source":"profile"}
+    - {"id":"knowledge_or_tool_claims","type":"boolean","description":"The agent makes claims from knowledge sources or tool results (test-template precondition).","source":"profile"}
+    - {"id":"knowledge_tasks","type":"boolean","description":"The agent answers from supplied knowledge sources.","source":"manifest"}
+    - {"id":"legal_or_regulatory_content","type":"boolean","description":"The agent states legal or regulatory content.","source":"profile"}
+    - {"id":"loops_subagents_or_retries","type":"boolean","description":"The agent can loop, spawn sub-agents or retry autonomously.","source":"profile"}
+    - {"id":"mixed_requests","type":"boolean","description":"Requests can mix a prohibited part with a legitimate, separable task.","source":"profile"}
+    - {"id":"money_movement","type":"boolean","description":"The agent can initiate, approve or redirect a movement of money.","source":"profile"}
+    - {"id":"multi_agent","type":"boolean","description":"The agent exchanges instructions with other agents.","source":"profile"}
+    - {"id":"multi_agent_or_delegation","type":"boolean","description":"The agent delegates to or receives instructions from other agents (test-template precondition).","source":"profile"}
+    - {"id":"multi_turn","type":"boolean","description":"The evaluation is a multi-turn conversation.","source":"archive"}
+    - {"id":"multiple_side_effecting_tools","type":"boolean","description":"The agent has more than one side-effecting tool.","source":"profile"}
+    - {"id":"network_or_messaging_tools","type":"boolean","description":"The agent has network or messaging tools.","source":"profile"}
+    - {"id":"operational_status_queries","type":"boolean","description":"The agent answers flight or operational status queries.","source":"profile"}
+    - {"id":"operator_or_manager_override","type":"boolean","description":"Users can claim operator or manager authority to override policy.","source":"profile"}
+    - {"id":"operator_override_claim","type":"boolean","description":"Users can claim an internal approval or exception to policy.","source":"profile"}
+    - {"id":"outside_tier_table","type":"boolean","description":"Cases can fall outside the published hardship tier table.","source":"profile"}
+    - {"id":"pan_present","type":"boolean","description":"A primary account number can reach the agent.","source":"profile"}
+    - {"id":"passenger_records","type":"boolean","description":"The agent reads passenger records of more than one passenger.","source":"profile"}
+    - {"id":"patient_data","type":"boolean","description":"Patient-specific information can reach the agent.","source":"profile"}
+    - {"id":"patient_records","type":"boolean","description":"The agent reads patient records of more than one patient.","source":"profile"}
+    - {"id":"patient_specific_action","type":"boolean","description":"The agent can take an action specific to one patient.","source":"profile"}
+    - {"id":"payment_actions","type":"boolean","description":"The agent can take payment actions.","source":"profile"}
+    - {"id":"payment_data","type":"boolean","description":"Payment instrument data can reach the agent.","source":"profile"}
+    - {"id":"payment_mutation","type":"boolean","description":"The agent can create, change or reverse a payment.","source":"profile"}
+    - {"id":"persistent_case_memory","type":"boolean","description":"The agent keeps case memory across sessions.","source":"profile"}
+    - {"id":"persistent_memory","type":"boolean","description":"The agent keeps memory across turns or sessions that later turns can read.","source":"profile"}
+    - {"id":"personal_data_or_high_impact_decision","type":"boolean","description":"The agent handles personal data or high-impact decisions (test-template precondition).","source":"profile"}
+    - {"id":"policy_bound_decisions","type":"boolean","description":"The agent's decisions are bound by supplied law or policy.","source":"profile"}
+    - {"id":"policy_or_candidate_grounding","type":"boolean","description":"Employment policy or candidate sources are supplied as grounding.","source":"profile"}
+    - {"id":"prohibited_use_case","type":"boolean","description":"The declared use case is prohibited (EU AI Act Article 5 class: runtime tier unacceptable): the deployment must not be released whatever the evaluation shows. The declared fact of eio.profile.resolver-authority.","source":"profile"}
+    - {"id":"protected_account_actions","type":"boolean","description":"The agent can take protected account actions (refund, merge, password reset, contact change).","source":"profile"}
+    - {"id":"protected_action_or_policy_boundary","type":"boolean","description":"The agent has a protected action or a policy boundary to defend (test-template precondition).","source":"profile"}
+    - {"id":"protected_workflow","type":"boolean","description":"The agent operates a protected multi-step workflow (test-template precondition).","source":"profile"}
+    - {"id":"read_and_send_capabilities","type":"boolean","description":"The agent can both read cardholder data and send data out.","source":"profile"}
+    - {"id":"reads_repository_or_tool_content","type":"boolean","description":"The agent reads repository content or tool output.","source":"profile"}
+    - {"id":"recommendations","type":"boolean","description":"The agent gives individualized financial recommendations.","source":"profile"}
+    - {"id":"record_access","type":"boolean","description":"The agent can access customer records.","source":"profile"}
+    - {"id":"record_or_care_actions","type":"boolean","description":"The agent can change a clinical record or schedule care.","source":"profile"}
+    - {"id":"record_or_decision_actions","type":"boolean","description":"The agent can change a public record or take a decision action.","source":"profile"}
+    - {"id":"records_or_appeal_requests","type":"boolean","description":"The agent handles records requests or appeals.","source":"profile"}
+    - {"id":"region","type":"enum","values":["eio.region.eu","eio.region.uk","eio.region.us","eio.region.ca","eio.region.apac","eio.region.latam","eio.region.emea_other","eio.region.global"],"description":"The declared deployment region.","source":"profile"}
+    - {"id":"regulated_actions","type":"boolean","description":"The agent takes actions regulated by financial-services rules.","source":"profile"}
+    - {"id":"regulatory_or_tax_content","type":"boolean","description":"The agent states regulatory or tax content.","source":"profile"}
+    - {"id":"restricted_records","type":"boolean","description":"Sealed, restricted or privileged records can reach the agent.","source":"profile"}
+    - {"id":"review_required_actions","type":"boolean","description":"Some of the agent's actions require human review.","source":"profile"}
+    - {"id":"safety_policy","type":"boolean","description":"A safety policy defines prohibited requests the agent must refuse.","source":"profile"}
+    - {"id":"secret_access","type":"boolean","description":"Repository or production secrets can reach the agent.","source":"profile"}
+    - {"id":"shell_cloud_or_admin_tools","type":"boolean","description":"The agent has shell, cloud or administrative tools.","source":"profile"}
+    - {"id":"side_effecting_support_tools","type":"boolean","description":"The support agent has side-effecting tools (refund, merge, password reset, contact change).","source":"profile"}
+    - {"id":"side_effecting_tools","type":"boolean","description":"The agent has tools with side effects (it takes consequential actions).","source":"profile"}
+    - {"id":"special_category_data","type":"boolean","description":"Special-category employee data can reach the agent.","source":"profile"}
+    - {"id":"statutory_entitlement_surface","type":"boolean","description":"The agent handles statutory passenger entitlements.","source":"profile"}
+    - {"id":"subject_affecting_decision","type":"boolean","description":"The agent makes a decision that affects a subject (test-template precondition).","source":"profile"}
+    - {"id":"tier","type":"enum","values":["eio.tier.minimal","eio.tier.limited","eio.tier.elevated","eio.tier.high"],"description":"The deployment's resolved risk tier.","source":"profile"}
+    - {"id":"tools","type":"boolean","description":"The agent has at least one tool.","source":"tool_schema"}
+    - {"id":"transaction_tools","type":"boolean","description":"The agent has transaction tools.","source":"profile"}
+    - {"id":"unstructured_applicant_or_employee_data","type":"boolean","description":"Unstructured applicant or employee data (CVs, notes) reaches the agent.","source":"profile"}
+    - {"id":"untrusted_content_reaches_agent","type":"boolean","description":"Untrusted content can reach a payments agent.","source":"profile"}
+    - {"id":"urgent_condition","type":"boolean","description":"Urgent safety conditions can arise in the agent's cases.","source":"profile"}
+    - {"id":"urgent_or_out_of_remit_cases","type":"boolean","description":"Urgent or out-of-remit clinical cases can reach the agent.","source":"profile"}
+    - {"id":"user_facing","type":"boolean","description":"The agent talks to end users directly.","source":"profile"}
+    - {"id":"user_facing_generation","type":"boolean","description":"The agent generates content for end users (test-template precondition).","source":"profile"}
+    - {"id":"vulnerability_register","type":"boolean","description":"The agent can read the protected (priority services) register.","source":"profile"}
+    - {"id":"writes_or_deploys","type":"boolean","description":"The agent can write to repositories or deploy.","source":"profile"}
+
+profiles:
+  - id: eio.profile.governance-boundary
+    description: What governance may and may not do.
+    may:
+      - Select the domain module and framework set.
+      - Promote an obligation's release_impact.
+      - Assert a blocking gate and name the stage that would satisfy it.
+    may_not:
+      - Contribute a score to any axis through the profile, tier or escalation (the G axis is the scoring module's view).
+      - Change a predicate, its evidence contract or its decision.
+      - Lower an obligation's release_impact below the tier's obligation_floor.
+    invariants:
+      - The profile is derived from declared inputs only and hashed before execution.
+      - An absent profile yields the generic-agent domain plus a recorded caveat.
+      - Escalation is monotonic; no rule may demote an impact.
+
+  # EIO-57 / EIO-215.
+  - id: eio.profile.impact-escalation
+    description: The effective release impact of an in-scope coverage obligation.
+    impact_order: [NONE, MONITOR, WARN, CONTRIBUTING_BLOCK, HARD_BLOCK]
+    effective_impact: >
+      max(declared release_impact, the result of every matching impact_escalation rule applied ONCE
+      to the declared value, tier.obligation_floor) in impact_order.
+    chaining: false
+    floor_applies_to: every in-scope obligation whose required is not false
+    rules_applied_to: the declared release_impact only (no rule reads another rule's output)
+    test_vectors:
+      - {declared: WARN, tier: eio.tier.limited, facts: {consequential_actions: true, human_oversight: false}, effective: CONTRIBUTING_BLOCK, note: "the human_oversight rule reads the declared WARN, not the promoted value"}
+      - {declared: CONTRIBUTING_BLOCK, tier: eio.tier.limited, facts: {human_oversight: false}, effective: HARD_BLOCK}
+
+  # EIO-25 / PER-208 (02 §3.3).
+  - id: eio.profile.coverage-evaluation
+    description: How one in-scope coverage obligation is evaluated for one run.
+    in_scope: every obligation of every resolved domain (eio.profile.domain-resolution), keyed by obligation id
+    required: >
+      Evaluate required_when over the declared facts: true if every named fact has the required
+      value; false if any named fact is declared with another value; null if any named fact is null
+      (undeclared or unknown). An unknown fact name is a build error (FACTS_DECLARED).
+    cases: >
+      The number of DISTINCT claim ids on the obligation's predicate whose state is APPLICABLE_PASS or
+      APPLICABLE_FAIL. One claim counts toward every obligation on its predicate, across domains.
+    narrower_claims: count as cases; they never make a violation PROVEN on their own (eio.profile.proof-status)
+    excluded_from_cases: NOT_APPLICABLE claims (including those set by a declared premise gate), UNRESOLVED and evaluator-fault claims
+    met: null if required is false; otherwise cases >= minimum_cases
+    violated: at least one scored claim on the predicate is APPLICABLE_FAIL
+    release_impact: the effective impact of eio.profile.impact-escalation
+    severity: the obligation's declared severity
+    # EIO-36 / PER-11 / PER-201 / EIO-225.
+    finding_severity: >
+      The severity of a finding is the maximum severity of the in-scope obligations on its predicate
+      whose required is not false; severity_source lists every obligation carrying that maximum, sorted
+      by id. With no such obligation the severity is null, severity_source.kind is NONE and the record
+      raises per.lim.severity.none. A trap's severity is only the finding's scenario_severity.
+    cause_if_unmet: the census cause of the predicate (eio.core.flow coverage-census causes) when met is false; null otherwise
+    test_vectors:
+
+  # EIO-24 / EIO-212 / EIO-213 / PER-202 / PER-703.
+  - id: eio.profile.domain-resolution
+    description: Deterministic domain resolution from declared inputs; no text scoring, no minimum-evidence threshold, never the transcript.
+    normalise: "casefold, then every run of '_' or whitespace becomes '-'"
+    steps:
+      - {order: 1, source: profile, rule: "The embedded governance profile names an EIO domain id; otherwise its intake use_case, otherwise its classification domain hint, mapped by the declared platform adapter. An unmapped value selects nothing."}
+      - {order: 2, source: alias, rule: "Each metadata.domains_inferred (or intake domain) token, normalised, is compared for exact equality with every alias and every domain id suffix; a match selects that domain with matched = the token."}
+      - {order: 3, source: import, rule: "Every domain imported by a selected domain is added with matched = the importing domain id; every specialised domain imports eio.domain.generic-agent."}
+      - {order: 4, source: default, rule: "When steps 1 and 2 selected nothing, eio.domain.generic-agent alone, matched null, with caveat per.caveat.domain.default."}
+    sources: [profile, alias, import, default]
+    ordering: domains in step order; the first occurrence of a domain keeps its source
+    forbidden: [substring matching, token or prose scoring, a minimum-evidence threshold, reading the transcript, importing eio_runtime]
+    golden_tests:
+      - {tokens: [credit, lending, underwriting, credit_underwriting, loan, mortgage, bank, kyc, aml], expected: eio.domain.financial-services}
+      - {tokens: [triage, clinical, clinical-triage, urgent-care, patient-intake], expected: eio.domain.healthcare-operations}
+
+  # EIO-301 / EIO-243 / EIO-401 / PER-516.
+  - id: eio.profile.framework-selection
+    description: Which frameworks are in a run's compliance scope, and in which state.
+    candidates: >
+      The union of the framework_sets of the resolved region, the frameworks the governance profile
+      names as EIO framework IDs, and the frameworks explicitly selected for assessment by
+      the run (basis "selected for assessment by the run").
+    region_jurisdictions: {eio.region.eu: [EU, EEA], eio.region.uk: [UK], eio.region.us: [US], eio.region.ca: [CA], eio.region.apac: [CN, SG, IN, AU], eio.region.latam: [BR], eio.region.emea_other: [ZA], eio.region.global: []}
+    sector_domains: {finra_sec: [eio.domain.financial-services], glba: [eio.domain.financial-services], hipaa: [eio.domain.healthcare-operations], faa: [eio.domain.aviation-airline], fda_samd: [eio.domain.medical-devices]}
+    applicable_when:
+      ai-regulation: a framework jurisdiction is a jurisdiction of the declared region
+      privacy-regulation: a framework jurisdiction is a jurisdiction of the declared region, personal data is processed (data_sensitivity pii, phi or pci), and, for a framework listed in sector_domains, the matching domain is resolved with source profile or alias
+      sector-regulation: a framework jurisdiction is a jurisdiction of the declared region and the matching sector domain is resolved with source profile or alias
+      risk-framework: never from declared facts in 0.4.0 (an explicit policy, customer, contractual or certification objective is required)
+      ai-management-standard: never from declared facts in 0.4.0 (as risk-framework)
+      security-standard: never from declared facts in 0.4.0 (as risk-framework)
+      security-taxonomy: never from declared facts in 0.4.0 (as risk-framework)
+      assurance-standard: never from declared facts in 0.4.0 (as risk-framework)
+    otherwise: REVIEW_REQUIRED
+    rules:
+      - A domain resolved with source import or default never makes a sector framework APPLICABLE; a domain name alone is insufficient.
+      - Every candidate is APPLICABLE or REVIEW_REQUIRED; EIO never derives NOT_APPLICABLE from declared facts (uncertain legal scope is REVIEW_REQUIRED). NOT_APPLICABLE is set only by the platform policy for a candidate it excludes, and a framework that is not a candidate is not in scope.
+      - Controls are materialised for APPLICABLE and REVIEW_REQUIRED frameworks; a NOT_APPLICABLE framework produces no control rows.
+      - A framework the profile names that has no EIO framework (no declared EIO mapping) yields no control rows and one limitation per.lim.frameworks.not_in_eio.
+      - An archive of schema 1 embeds no profile and no region; every framework it assessed is REVIEW_REQUIRED.
+    test_vectors:

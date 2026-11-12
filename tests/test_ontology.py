@@ -33,9 +33,9 @@ def test_release_digests_reproduce(eio):
         o.release, o.modules, o.ontology_sha256, o.ontology_digest)
     # Exact current-release pin: re-review independently before publication.
     assert o.ontology_sha256 == d["ontology_sha256"] == (
-        "sha256:a27cf1f3ab755446c639da6b0e6d3b2c4363c205e6ffa4b44e48876cce72ecc9"
+        "sha256:461395d45f0abe9abc9b6991ae388138196b9b3d4dca9f74f65e0c3c75565ab8"
     )
-    assert o.ontology_digest == d["ontology_digest"] == "a27cf1f3ab755446"
+    assert o.ontology_digest == d["ontology_digest"] == "461395d45f0abe9a"
     for rel, pin in d["files"].items():
         assert "sha256:" + hashlib.sha256(ontology.release_file(rel).read_bytes()).hexdigest() == pin, rel
 

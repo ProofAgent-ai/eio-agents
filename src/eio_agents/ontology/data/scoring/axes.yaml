@@ -1,7 +1,7 @@
 eio:
   id: eio.scoring.axes
   namespace: https://www.proofagent.ai/eio-agents/module/scoring/axes#
-  version: 0.2.2
+  version: 0.2.3
   kind: scoring
   title: EIO Axes, Aggregation, Caps and Floors
   description: >
@@ -28,9 +28,9 @@ imports:
   - module: eio.core.decisions
     version: 0.3.0
   - module: eio.mapping.metrics
-    version: 0.2.2
+    version: 0.2.3
   - module: eio.governance.gates
-    version: 0.2.2
+    version: 0.2.3
 
 concepts:
   - id: eio.entity.axis-score

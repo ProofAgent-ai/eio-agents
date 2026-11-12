@@ -17,6 +17,21 @@ from eio_agents.validation.canon import sha
 __all__ = ["EIO", "EIO_DIR", "load_catalogue"]
 
 EIO_DIR = Path(__file__).resolve().parent.parent / "ontology" / "data"   # the bundled release, located without the converter
+HISTORICAL_DIR = EIO_DIR.parent / "historical"   # earlier releases this library still verifies, byte-exact
+
+
+def historical_release_root(release):
+    """The directory of an earlier bundled EIO release named by a record, located without the converter; None for the
+    current release or one this library does not carry."""
+    rel = str(release or "")
+    if not rel or "/" in rel or rel.startswith("."):
+        return None
+    root = HISTORICAL_DIR / rel
+    if not (root / "manifest.yaml").exists():
+        return None
+    import yaml
+    current = (yaml.safe_load((EIO_DIR / "manifest.yaml").read_text(encoding="utf-8")).get("eio") or {}).get("version")
+    return None if rel == str(current) else root
 
 
 class EIO:
@@ -24,6 +39,7 @@ class EIO:
     types, states, domains and obligations, governance, scoring, compliance, criteria, templates and reference cases."""
 
     def __init__(self, root):
+        self.root = Path(root)
         man_raw = (root / "manifest.yaml").read_bytes()
         self.man = yaml.safe_load(man_raw)
         self.files = {}
@@ -112,3 +128,19 @@ def load_catalogue():
     doc = json.loads(LIMITATION_CATALOGUE.read_text(encoding="utf-8"))
     return {r["id"]: {"status": r["status"], "paths": list(r["paths"]), "reason": r["reason"], "impact": r["impact"],
                       "next_step": r["next_step"]} for r in doc["limitations"]}
+
+
+def eio_for(record, eio):
+    """The release to check `record` against: the earlier bundled release it names in `header.eio.release` when this
+    library carries it, else `eio` (whose mismatch the caller then reports). A record is always held to the rules of
+    the release it was issued under; upgrading the library never re-judges it."""
+    try:
+        rel = ((record.get("header") or {}).get("eio") or {}).get("release")
+        if eio is not None and rel == eio.release:
+            return eio
+        if eio is not None and Path(getattr(eio, "root", EIO_DIR)).resolve() != EIO_DIR.resolve():
+            return eio      # an explicitly chosen release (not the bundled default) is used as given
+        root = historical_release_root(rel)
+        return EIO(root) if root is not None else eio
+    except Exception:
+        return eio

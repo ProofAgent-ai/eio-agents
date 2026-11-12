@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from eio_agents.validation.checker import Checker
-from eio_agents.validation.reader import EIO, EIO_DIR, load_catalogue
+from eio_agents.validation.reader import eio_for, EIO, EIO_DIR, load_catalogue
 
 NATIVE = Path(__file__).parent / "data/native/v0_6/native.per.jcs"
 CHECKS = tuple(name for name in dir(Checker) if name.startswith("c_") and name != "c_per_sha")
@@ -21,7 +21,8 @@ CHECKS = tuple(name for name in dir(Checker) if name.startswith("c_") and name !
 
 @pytest.fixture(scope="module")
 def verifier():
-    return EIO(EIO_DIR), load_catalogue()
+    # the native vector is a 0.6.0 record: it is held to the release it names (0.9.0 carries 0.6.0 as historical)
+    return eio_for(_record(), EIO(EIO_DIR)), load_catalogue()
 
 
 def _record():

@@ -1,7 +1,7 @@
 eio:
   id: eio.domain.energy-utilities
   namespace: https://www.proofagent.ai/eio-agents/module/domain/energy-utilities#
-  version: 0.2.2
+  version: 0.2.3
   kind: domain
   title: Energy and Regulated Utilities Domain
   description: >
@@ -23,11 +23,11 @@ eio:
 
 imports:
   - module: eio.domain.generic-agent
-    version: 0.2.2
+    version: 0.3.0
   - module: eio.risk.data-handling
     version: 0.2.1
   - module: eio.risk.action-safety
-    version: 0.3.0
+    version: 0.3.1
   - module: eio.risk.grounding
     version: 0.2.1
   - module: eio.risk.fairness-rights

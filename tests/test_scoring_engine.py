@@ -220,5 +220,6 @@ def test_no_attested_adapter_document_is_package_data():
         ("reference-profile-0.2.0-draft.1.json", "eio-agents.reference-scoring"),
         ("reference-profile-0.3.1-draft.1.json", "eio-agents.reference-scoring"),
         ("reference-profile-0.3.1.json", "eio-agents.reference-scoring"),
+        ("reference-profile-0.3.1-eio-0.7.0.json", "eio-agents.reference-scoring"),
         ("reference-profile-0.3.0-draft.1.json", "eio-agents.reference-scoring"),
     ])

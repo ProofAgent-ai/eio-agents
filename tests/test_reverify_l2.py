@@ -265,12 +265,14 @@ def _v4f(b):
 
 
 def _v3z(b):
-    r = no_call_ref(_eio(), 3, [], source_ref="turns", calls_field="tool_calls")
+    from eio_agents.ontology import for_document
+    rel = for_document(b)   # the claim is built under the release the bundle names (0.6.0, carried as historical)
+    r = no_call_ref(rel, 3, [], source_ref="turns", calls_field="tool_calls")
     b["graph"]["refs"].append(r)
     old = b["claims"][0]
     b["claims"].append(
         make_claim(
-            _eio(),
+            rel,
             run_id=old["run_id"],
             predicate="eio.predicate.prohibited-tool-invoked",
             turn_indices=[3],

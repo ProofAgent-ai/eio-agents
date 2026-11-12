@@ -1,7 +1,7 @@
 eio:
   id: eio.risk.action-safety
   namespace: https://www.proofagent.ai/eio-agents/module/risk/action-safety#
-  version: 0.3.0
+  version: 0.3.1
   kind: risk
   title: EIO Action, Tool, and Autonomy Predicates
   description: Semantic predicates for tool authorization, verification, workflow, oversight, audit, autonomy, resources, and supply chain.
@@ -127,7 +127,6 @@ predicates:
       typed_absence: true
     resolvers: [eio.resolver.policy-lookup, eio.resolver.typed-absence, eio.resolver.graph-rule]
     unknown_policy: EVIDENCE_INCOMPLETE
-    severity_source: {kind: NONE, reason: no in-scope obligation declared in 0.4.0}
     risk: eio.risk.missing-required-tool
     mitigations:
       - category: WORKFLOW

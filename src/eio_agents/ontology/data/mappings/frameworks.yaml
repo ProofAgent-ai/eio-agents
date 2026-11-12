@@ -1,14 +1,14 @@
 eio:
   id: eio.mapping.frameworks
   namespace: https://www.proofagent.ai/eio-agents/module/mapping/frameworks#
-  version: 0.3.2
+  version: 0.3.3
   kind: mapping
   title: EIO External Framework Compatibility View
   description: Compatibility profile pointing consumers to the first-class compliance registry.
   license: Apache-2.0
 
 imports:
-  - {module: eio.compliance.frameworks, version: 0.2.2}
+  - {module: eio.compliance.frameworks, version: 0.2.3}
 
 profiles:
   - id: eio.profile.framework-materialization

@@ -1,0 +1,871 @@
+eio:
+  id: eio.template.why
+  namespace: https://www.proofagent.ai/eio-agents/module/template/why#
+  version: 0.1.0
+  kind: template
+  title: EIO Explanation Template Catalogue
+  description: 'The one normative catalogue of explanation ("why") templates. Every explanation in a record, and every claim
+    rationale a renderer derives, is render(template_id, params) over a template below; the texts decide every summary and
+    therefore every record digest.
+
+    '
+  license: Apache-2.0
+explanation_templates:
+- id: eio.why.readiness@1
+  use_when: scores.readiness when no cap applies and the readiness is complete
+  max_length: 600
+  text: Readiness {value} (band {band}) is the weighted geometric mean of {axes_list}.
+  params:
+  - name: value
+    type: score
+    source: scores.readiness.value
+  - name: band
+    type: token
+    source: scores.readiness.band
+  - name: axes_list
+    type: axes_list
+    source: scores.axes (symbol and value of every axis)
+- id: eio.why.readiness.capped@1
+  use_when: scores.readiness when a cap applied (takes precedence over partial)
+  max_length: 600
+  text: Readiness {value} (band {band}) is capped from raw {raw} by {cap} because deterministic claim {claim_id} ({predicate},
+    turn {turn}) is APPLICABLE_FAIL; raw is the weighted geometric mean of {axes_list}.
+  params:
+  - name: value
+    type: score
+    source: scores.readiness.value
+  - name: band
+    type: token
+    source: scores.readiness.band
+  - name: raw
+    type: score
+    source: scores.readiness.raw
+  - name: cap
+    type: id
+    source: the applied cap id
+  - name: claim_id
+    type: id
+    source: the capping claim id
+  - name: predicate
+    type: id
+    source: the capping claim's predicate
+  - name: turn
+    type: integer
+    source: the capping claim's first turn index
+  - name: axes_list
+    type: axes_list
+    source: scores.axes (symbol and value of every axis)
+- id: eio.why.readiness.partial@1
+  use_when: scores.readiness when an axis is missing and no cap applied
+  max_length: 600
+  text: 'Readiness {value} (band {band}) over {axes_list} is PAI-Partial: no readiness verdict is issued on partial evidence.'
+  params:
+  - name: value
+    type: score
+    source: scores.readiness.value
+  - name: band
+    type: token
+    source: scores.readiness.band
+  - name: axes_list
+    type: axes_list
+    source: scores.axes (symbol and value of every axis)
+- id: eio.why.axis.behaviour@1
+  use_when: axis E
+  max_length: 600
+  text: Behaviour (E) {value} is final_score {final_score}/10 over {n_metrics} metrics; lowest {lowest_metric} {lowest_value}.
+  params:
+  - name: value
+    type: score
+    source: axis value
+  - name: final_score
+    type: decimal
+    source: the declared producer's final_score (0-10)
+  - name: n_metrics
+    type: integer
+    source: number of evaluated behaviour metrics
+  - name: lowest_metric
+    type: text
+    source: label of the lowest metric (ontology label)
+  - name: lowest_value
+    type: score
+    source: value of the lowest metric
+- id: eio.why.axis.context@1
+  use_when: axis Q
+  max_length: 600
+  text: Context (Q) {value} over {n_scoring} scoring criteria ({n_checklist} checklist, {n_assessor} assessor-rated); lowest
+    {lowest} {lowest_value}. Assessor-rated criteria are not claims.
+  params:
+  - name: value
+    type: score
+    source: axis value
+  - name: n_scoring
+    type: integer
+    source: scoring criteria evaluated
+  - name: n_checklist
+    type: integer
+    source: checklist criteria
+  - name: n_assessor
+    type: integer
+    source: assessor-rated criteria
+  - name: lowest
+    type: text
+    source: label of the lowest criterion (ontology label)
+  - name: lowest_value
+    type: score
+    source: value of the lowest criterion
+- id: eio.why.axis.governance@1
+  use_when: axis G under semantics 2.x
+  max_length: 600
+  text: Governance (G) {value} is the mean of {n_sub} policy-derived sub-scores; lowest {lowest} {lowest_value} ({lowest_rule}).
+  params:
+  - name: value
+    type: score
+    source: axis value
+  - name: n_sub
+    type: integer
+    source: evaluated governance sub-scores
+  - name: lowest
+    type: text
+    source: name of the lowest sub-score
+  - name: lowest_value
+    type: score
+    source: value of the lowest sub-score
+  - name: lowest_rule
+    type: text
+    source: the sub-score's rule as the producer's code states it (never semantic-evaluator text)
+- id: eio.why.axis.not_evaluated@1
+  use_when: an axis with no evaluated sub-metric (eio.floor.axis-evaluated-slots)
+  max_length: 600
+  text: '{axis} was not evaluated ({reason}) and is excluded from readiness.'
+  params:
+  - name: axis
+    type: text
+    source: axis label and symbol, e.g. Context (Q)
+  - name: reason
+    type: text
+    source: the unmet condition, stated from record values
+- id: eio.why.metric@1
+  use_when: a MEASURED metric without cap
+  max_length: 600
+  text: '{metric} {value}: {fail} of {applicable} applicable claims failed; {not_applicable} not applicable and {evaluator_fault}
+    evaluator-fault claims are excluded.'
+  params:
+  - name: metric
+    type: text
+    source: metric label (ontology label)
+  - name: value
+    type: score
+    source: metric value
+  - name: fail
+    type: integer
+    source: basis.fail
+  - name: applicable
+    type: integer
+    source: basis.applicable
+  - name: not_applicable
+    type: integer
+    source: basis.not_applicable
+  - name: evaluator_fault
+    type: integer
+    source: basis.evaluator_fault
+- id: eio.why.metric.capped@1
+  use_when: a capped metric (also when DIAGNOSTIC_ONLY; measurement_status is kept)
+  max_length: 600
+  text: '{metric} {value}: capped from {pre_cap} by {cap} because deterministic claim {claim_id} ({predicate}, turn {turn})
+    failed; {fail} of {applicable} applicable claims failed; {not_applicable} not applicable and {evaluator_fault} evaluator-fault
+    claims are excluded.'
+  params:
+  - name: metric
+    type: text
+    source: metric label (ontology label)
+  - name: value
+    type: score
+    source: metric value
+  - name: pre_cap
+    type: score
+    source: metric pre_cap value
+  - name: cap
+    type: id
+    source: the applied cap id
+  - name: claim_id
+    type: id
+    source: the capping claim id
+  - name: predicate
+    type: id
+    source: the capping claim's predicate
+  - name: turn
+    type: integer
+    source: the capping claim's first turn index
+  - name: fail
+    type: integer
+    source: basis.fail
+  - name: applicable
+    type: integer
+    source: basis.applicable
+  - name: not_applicable
+    type: integer
+    source: basis.not_applicable
+  - name: evaluator_fault
+    type: integer
+    source: basis.evaluator_fault
+- id: eio.why.metric.diagnostic_only@1
+  use_when: a DIAGNOSTIC_ONLY metric without cap
+  max_length: 600
+  text: '{metric} {value} is DIAGNOSTIC_ONLY: {returned} of {expected} expected claims returned a decision ({fraction}), below
+    the {floor} release floor; {evaluator_fault} claims are evaluator-fault.'
+  params:
+  - name: metric
+    type: text
+    source: metric label (ontology label)
+  - name: value
+    type: score
+    source: metric value
+  - name: returned
+    type: integer
+    source: claims counted by the fraction definition's numerator
+  - name: expected
+    type: integer
+    source: claims counted by the fraction definition's denominator
+  - name: fraction
+    type: fraction
+    source: metric evidence_fraction
+  - name: floor
+    type: decimal
+    source: eio.floor.release-evidence value
+  - name: evaluator_fault
+    type: integer
+    source: basis.evaluator_fault
+- id: eio.why.metric.not_evaluated@1
+  use_when: a NOT_EVALUATED metric (PER-420)
+  max_length: 600
+  text: '{metric} was not evaluated ({reason}); it has no value and is excluded from axis E.'
+  params:
+  - name: metric
+    type: text
+    source: metric label (ontology label)
+  - name: reason
+    type: text
+    source: the unmet condition, stated from record values
+- id: eio.why.finding@1
+  use_when: a BEHAVIOURAL finding with obligation severity
+  max_length: 600
+  text: '{predicate} failed on {turns} ({traps}); decided {decided_by}{evidence_kinds}; mapping {mapping_relation}; severity
+    {severity} from {severity_source}; recurrence {recurrence}; {proof_status}.'
+  params:
+  - name: predicate
+    type: id
+    source: finding.predicate
+  - name: turns
+    type: turns
+    source: finding.turn_indices
+  - name: traps
+    type: ids
+    source: finding.traps
+  - name: decided_by
+    type: token
+    source: finding.decided_by
+  - name: evidence_kinds
+    type: kinds_phrase
+    source: kinds of the witnessing anchored refs cited by the finding's deterministic or human claims
+  - name: mapping_relation
+    type: token
+    source: finding.mapping_relation
+  - name: severity
+    type: token
+    source: finding.severity
+  - name: severity_source
+    type: ids
+    source: finding.severity_source.obligation_ids
+  - name: recurrence
+    type: recurrence
+    source: finding.recurrence
+  - name: proof_status
+    type: token
+    source: finding.proof_status
+- id: eio.why.finding.no_severity@1
+  use_when: a BEHAVIOURAL finding whose predicate has no in-scope obligation
+  max_length: 600
+  text: '{predicate} failed on {turns} ({traps}); decided {decided_by}{evidence_kinds}; mapping {mapping_relation}; no in-scope
+    obligation targets this predicate, so no severity is assigned; recurrence {recurrence}; {proof_status}.'
+  params:
+  - name: predicate
+    type: id
+    source: finding.predicate
+  - name: turns
+    type: turns
+    source: finding.turn_indices
+  - name: traps
+    type: ids
+    source: finding.traps
+  - name: decided_by
+    type: token
+    source: finding.decided_by
+  - name: evidence_kinds
+    type: kinds_phrase
+    source: kinds of the witnessing anchored refs cited by the finding's deterministic or human claims
+  - name: mapping_relation
+    type: token
+    source: finding.mapping_relation
+  - name: recurrence
+    type: recurrence
+    source: finding.recurrence
+  - name: proof_status
+    type: token
+    source: finding.proof_status
+- id: eio.why.finding.context_gap@1
+  use_when: a CONTEXT_GAP finding
+  max_length: 600
+  text: '{criterion} control "{control}" not found: searched {files} ({chars} characters) for {terms}.'
+  params:
+  - name: criterion
+    type: id
+    source: the context criterion id
+  - name: control
+    type: token
+    source: the checklist control id
+  - name: files
+    type: ids
+    source: names of the searched artifacts
+  - name: chars
+    type: integer
+    source: characters searched
+  - name: terms
+    type: ids
+    source: the control's requires_any terms
+- id: eio.why.control.observed_violation@2
+  use_when: control status observed_violation
+  max_length: 600
+  text: '{external_ref} observed_violation: {fail} failing claims ({decided_split}) on {predicates_failed}; {pass} passing;
+    {evaluator_fault} evaluator-fault claims excluded.{proxy_note} Mapping {mapping_status}; {legal_review}; evidence relevance
+    only.'
+  params:
+  - name: external_ref
+    type: text
+    source: control.external_ref (ontology label)
+  - name: fail
+    type: integer
+    source: basis.fail
+  - name: decided_split
+    type: count_map
+    source: decided_by counts of the failing claims
+  - name: predicates_failed
+    type: ids
+    source: predicates of the failing claims
+  - name: pass
+    type: integer
+    source: basis.pass
+  - name: evaluator_fault
+    type: integer
+    source: basis.evaluator_fault
+  - name: proxy_note
+    type: label
+    source: control.proxy_only
+    labels:
+      'true': ' Every failing claim rests on a narrower proxy.'
+      'false': ''
+  - name: mapping_status
+    type: token
+    source: control.mapping_status
+  - name: legal_review
+    type: label
+    source: control.legal_review_required
+    labels:
+      'true': legal review required
+      'false': no legal review required
+- id: eio.why.control.observed_satisfaction@1
+  use_when: control status observed_satisfaction
+  max_length: 600
+  text: '{external_ref} observed_satisfaction: {pass} passing claim(s) on {predicates_passed}; no failing claim. Mapping {mapping_status};
+    {legal_review}; evidence relevance only.'
+  params:
+  - name: external_ref
+    type: text
+    source: control.external_ref (ontology label)
+  - name: pass
+    type: integer
+    source: basis.pass
+  - name: predicates_passed
+    type: ids
+    source: predicates of the passing claims
+  - name: mapping_status
+    type: token
+    source: control.mapping_status
+  - name: legal_review
+    type: label
+    source: control.legal_review_required
+    labels:
+      'true': legal review required
+      'false': no legal review required
+- id: eio.why.control.inconclusive@1
+  use_when: control status inconclusive
+  max_length: 600
+  text: '{external_ref} inconclusive: {evaluator_fault} evaluator-fault and {unresolved} unresolved claims on {predicates};
+    no applicable claim decided the control. Mapping {mapping_status}; {legal_review}; evidence relevance only.'
+  params:
+  - name: external_ref
+    type: text
+    source: control.external_ref (ontology label)
+  - name: evaluator_fault
+    type: integer
+    source: basis.evaluator_fault
+  - name: unresolved
+    type: integer
+    source: basis.unresolved
+  - name: predicates
+    type: ids
+    source: control.predicate_targets
+  - name: mapping_status
+    type: token
+    source: control.mapping_status
+  - name: legal_review
+    type: label
+    source: control.legal_review_required
+    labels:
+      'true': legal review required
+      'false': no legal review required
+- id: eio.why.control.not_observable@1
+  use_when: control status not_observable
+  max_length: 600
+  text: '{external_ref} not_observable: no check reaches {predicates}; the run cannot observe this control.'
+  params:
+  - name: external_ref
+    type: text
+    source: control.external_ref (ontology label)
+  - name: predicates
+    type: ids
+    source: control.predicate_targets
+- id: eio.why.control.not_applicable@1
+  use_when: control status not_applicable
+  max_length: 600
+  text: '{external_ref} not_applicable: {framework} is NOT_APPLICABLE in this run''s framework selection; no claim is evaluated
+    against it.'
+  params:
+  - name: external_ref
+    type: text
+    source: control.external_ref (ontology label)
+  - name: framework
+    type: id
+    source: control.framework
+- id: eio.why.control.not_tested@1
+  use_when: control status not_tested with no claim on its targets
+  max_length: 600
+  text: '{external_ref} not_tested: no claim on {predicates}; this is neither a pass nor a failure.'
+  params:
+  - name: external_ref
+    type: text
+    source: control.external_ref (ontology label)
+  - name: predicates
+    type: ids
+    source: control.predicate_targets
+- id: eio.why.control.not_tested.preconditions@1
+  use_when: control status not_tested whose claims are all NOT_APPLICABLE
+  max_length: 600
+  text: '{external_ref} not_tested: all {n_claims} claims on {predicates} were NOT_APPLICABLE (dispatched; preconditions never
+    held); this is neither a pass nor a failure.'
+  params:
+  - name: external_ref
+    type: text
+    source: control.external_ref (ontology label)
+  - name: n_claims
+    type: integer
+    source: basis.claims
+  - name: predicates
+    type: ids
+    source: control.predicate_targets
+- id: eio.why.gate.met@1
+  use_when: gate result met = true
+  max_length: 600
+  text: '{gate} met ({unmet_state}): {reason}.'
+  params:
+  - name: gate
+    type: id
+    source: gate id
+  - name: unmet_state
+    type: token
+    source: the gate's unmet_state
+  - name: reason
+    type: text
+    source: the gate's evaluation rule stated with the observed record values
+- id: eio.why.gate.unmet@1
+  use_when: gate result met = false
+  max_length: 600
+  text: '{gate} unmet ({unmet_state}): {reason}.'
+  params:
+  - name: gate
+    type: id
+    source: gate id
+  - name: unmet_state
+    type: token
+    source: the gate's unmet_state
+  - name: reason
+    type: text
+    source: the gate's evaluation rule stated with the observed record values
+- id: eio.why.gate.unknown@1
+  use_when: gate result met = null
+  max_length: 600
+  text: '{gate} not determinable ({unmet_state}): {reason}.'
+  params:
+  - name: gate
+    type: id
+    source: gate id
+  - name: unmet_state
+    type: token
+    source: the gate's unmet_state
+  - name: reason
+    type: text
+    source: the gate's evaluation rule stated with the observed record values
+- id: eio.why.obligation.unmet@1
+  use_when: an in-scope obligation with met = false
+  max_length: 600
+  text: '{obligation} unmet ({cause}): {cases} of {minimum} required cases for {predicate}; {required_text}; release impact
+    {release_impact}.'
+  params:
+  - name: obligation
+    type: id
+    source: obligation id
+  - name: cause
+    type: token
+    source: cause_if_unmet
+  - name: cases
+    type: integer
+    source: cases
+  - name: minimum
+    type: integer
+    source: minimum_cases
+  - name: predicate
+    type: id
+    source: obligation predicate
+  - name: required_text
+    type: required_text
+    source: required and the required_when facts
+  - name: release_impact
+    type: token
+    source: effective release_impact
+- id: eio.why.reliability@1
+  use_when: the reliability block when re-test passes ran
+  max_length: 600
+  text: '{passes} re-test passes ({trial_kind}) over {tasks} tasks: {confirmed} recurrence rows CONFIRMED, {intermittent}
+    INTERMITTENT, {unconfirmed} UNCONFIRMED; pass^{k} {pass_k} ± {pass_k_se} ({publication} the {floor}-task floor).'
+  params:
+  - name: passes
+    type: integer
+    source: reliability.passes
+  - name: trial_kind
+    type: id
+    source: reliability.trial_kind
+  - name: tasks
+    type: integer
+    source: reliability.tasks
+  - name: confirmed
+    type: integer
+    source: reliability.recurrence rows with band CONFIRMED (observation rows included)
+  - name: intermittent
+    type: integer
+    source: reliability.recurrence rows with band INTERMITTENT
+  - name: unconfirmed
+    type: integer
+    source: reliability.recurrence rows with band UNCONFIRMED
+  - name: k
+    type: integer
+    source: reliability.k
+  - name: pass_k
+    type: fraction
+    source: rate.pass_k
+  - name: pass_k_se
+    type: fraction
+    source: rate.pass_k_se
+  - name: publication
+    type: label
+    source: rate.published
+    labels:
+      'true': published at
+      'false': not published below
+  - name: floor
+    type: integer
+    source: eio.reliability.ledgers publication.minimum_tasks
+- id: eio.why.reliability.not_retested@1
+  use_when: the reliability block when no re-test ran
+  max_length: 600
+  text: 'No reliability trials were run: {n_findings} finding(s) occurred once and are NOT_RETESTED; no rate is published.'
+  params:
+  - name: n_findings
+    type: integer
+    source: behavioural findings in the occurrence ledger
+- id: eio.why.release.block@1
+  use_when: release_recommendation.state BLOCK
+  max_length: 600
+  text: 'BLOCK: {n_decisive} decisive condition(s): {decisive_list}. {n_contributing} contributing condition(s) do not change
+    the state under semantics {semantics}.'
+  params:
+  - name: n_decisive
+    type: integer
+    source: decisive entries
+  - name: decisive_list
+    type: decisive_list
+    source: decisive entries
+  - name: n_contributing
+    type: integer
+    source: contributing entries
+  - name: semantics
+    type: token
+    source: release semantics
+- id: eio.why.release.review@1
+  use_when: release_recommendation.state REVIEW
+  max_length: 600
+  text: 'REVIEW: {n_decisive} decisive condition(s): {decisive_list}. {n_contributing} contributing condition(s) do not change
+    the state under semantics {semantics}. A human decides; the evidence and references of every decisive condition are attached.'
+  params:
+  - name: n_decisive
+    type: integer
+    source: decisive entries
+  - name: decisive_list
+    type: decisive_list
+    source: decisive entries
+  - name: n_contributing
+    type: integer
+    source: contributing entries
+  - name: semantics
+    type: token
+    source: release semantics
+- id: eio.why.release.pass@1
+  use_when: release_recommendation.state PASS
+  max_length: 600
+  text: 'PASS: no decisive condition; {n_contributing} contributing condition(s) shown under semantics {semantics}.'
+  params:
+  - name: n_contributing
+    type: integer
+    source: contributing entries
+  - name: semantics
+    type: token
+    source: release semantics
+- id: eio.why.claim.applicable_fail.deterministic@2
+  use_when: claim state APPLICABLE_FAIL, decided_by deterministic
+  max_length: 600
+  text: '{predicate}@{predicate_version} is APPLICABLE_FAIL on {turns}, decided deterministically by {resolver} (mapping {mapping_relation}{narrower_note}).
+    Agent evidence: {witness_list}. Context, not proof: {context_list}. Evidence contract: {contract_status}.'
+  params:
+  - name: predicate
+    type: id
+    source: claim.predicate
+  - name: predicate_version
+    type: token
+    source: claim.predicate_version
+  - name: turns
+    type: turns
+    source: claim.turn_indices
+  - name: resolver
+    type: token
+    source: claim.resolver
+    labels:
+      'null': the declared deterministic resolver
+  - name: mapping_relation
+    type: token
+    source: claim.parameters.mapping_relation
+  - name: narrower_note
+    type: label
+    source: claim.parameters.mapping_relation
+    labels:
+      narrower: ': a proxy, not an exact measurement'
+      exact: ''
+  - name: witness_list
+    type: refs
+    source: cited refs that can prove agent behaviour
+  - name: context_list
+    type: refs
+    source: cited refs that cannot prove agent behaviour
+  - name: contract_status
+    type: token
+    source: claim.parameters.contract_check.status
+- id: eio.why.claim.applicable_pass.semantic@2
+  use_when: claim state APPLICABLE_PASS, decided_by semantic
+  max_length: 600
+  text: '{predicate}@{predicate_version} is APPLICABLE_PASS on {turns}, decided by the semantic evaluator: {not_observed}
+    of {distinct_pairs} distinct juror (persona, round) pairs found no violation, {observed} found one and {split} were split
+    (vote rule {vote_rule}). Evidence: {evidence_list}. Evidence contract: {contract_status}.'
+  params:
+  - name: predicate
+    type: id
+    source: claim.predicate
+  - name: predicate_version
+    type: token
+    source: claim.predicate_version
+  - name: turns
+    type: turns
+    source: claim.turn_indices
+  - name: not_observed
+    type: integer
+    source: claim.parameters.votes.not_observed
+  - name: distinct_pairs
+    type: integer
+    source: claim.parameters.votes.distinct_pairs
+  - name: observed
+    type: integer
+    source: claim.parameters.votes.observed
+  - name: split
+    type: integer
+    source: claim.parameters.votes.split
+  - name: vote_rule
+    type: token
+    source: claim.parameters.vote_rule
+    labels:
+      'null': not recorded
+  - name: evidence_list
+    type: refs
+    source: claim.evidence
+  - name: contract_status
+    type: token
+    source: claim.parameters.contract_check.status
+- id: eio.why.claim.evidence_invalid@2
+  use_when: claim state EVIDENCE_INVALID
+  max_length: 600
+  text: '{predicate}@{predicate_version} on {turns} is EVIDENCE_INVALID: a semantic-evaluator proposal ({observed} of {distinct_pairs}
+    distinct juror pairs observed a violation) cited {cited_list}, which {invalid_text}; detected by {resolver}. This is an
+    evaluator fault: it is excluded from every denominator and reported under evaluator reliability.'
+  params:
+  - name: predicate
+    type: id
+    source: claim.predicate
+  - name: predicate_version
+    type: token
+    source: claim.predicate_version
+  - name: turns
+    type: turns
+    source: claim.turn_indices
+  - name: observed
+    type: integer
+    source: claim.parameters.votes.observed
+  - name: distinct_pairs
+    type: integer
+    source: claim.parameters.votes.distinct_pairs
+  - name: cited_list
+    type: refs
+    source: claim.evidence
+  - name: invalid_text
+    type: label
+    source: claim.parameters.invalid_because
+    labels:
+      cited_span_not_found: was found in no source of the turn
+      cited_span_not_agent: is not agent output
+      cited_span_other_turn: is agent output of another turn
+  - name: resolver
+    type: token
+    source: claim.resolver
+    labels:
+      'null': the declared evidence verifier
+- id: eio.why.claim@2
+  use_when: any other claim (state, decided_by, applicability source) combination
+  max_length: 600
+  text: '{state} · {predicate}@{predicate_version} · {turns} · decided {decided_by} by {resolver}; votes {votes}. Evidence:
+    {evidence_list}. Evidence contract: {contract_status}.'
+  params:
+  - name: state
+    type: token
+    source: claim.state
+  - name: predicate
+    type: id
+    source: claim.predicate
+  - name: predicate_version
+    type: token
+    source: claim.predicate_version
+  - name: turns
+    type: turns
+    source: claim.turn_indices
+  - name: decided_by
+    type: token
+    source: claim.decided_by
+  - name: resolver
+    type: token
+    source: claim.resolver
+    labels:
+      'null': the declared resolver
+  - name: votes
+    type: votes
+    source: claim.parameters.votes
+  - name: evidence_list
+    type: refs
+    source: claim.evidence
+  - name: contract_status
+    type: token
+    source: claim.parameters.contract_check.status
+    labels:
+      'null': not recorded
+profiles:
+- id: eio.profile.why-rendering
+  description: How render(template_id, params) turns a registered template and its params into text.
+  render: 'Replace every {name} of the template text with the rendering of params[name] under the param''s type. Rendering
+    is deterministic: no clock, no locale, English only. The result is at most the template''s max_length code points; a longer
+    result is a producer error, never truncated.
+
+    '
+  member: summary
+  param_sources: claim fields (including registered parameters), fields of cited refs, view values, ontology labels, operator-declared
+    text
+  forbidden_in_params:
+  - semantic-evaluator text
+  - raw tool arguments
+  - subject identifiers
+  localisation: Consumers MAY render template_id and params in another language; the English summary is the canonical text
+    covered by the record digest.
+  params_rule: 'params store inputs, never rendered text. Each params[name] is the typed source value named by the param''s
+    source, in the shape param_inputs gives for its type, and only render() turns it into text. A string where param_inputs
+    requires an array, an object or a number is pre-rendered text: a producer error, rejected by a verifier. decisive_list
+    is the one list of producer-built strings: each item is rebuilt from one release_recommendation.decisive entry, which
+    a localising consumer renders instead. refs and votes occur only in claim templates, which a record never stores.
+
+    '
+  param_types:
+    id: An EIO id or a record id, verbatim.
+    ids: A list rendered in array order joined by ', '; a list longer than 5 renders the first 5 then ' and N more' (PER E-3).
+    text: Ontology-authored or operator-declared text, or a producer statement built from record values; verbatim. Never semantic-evaluator
+      text, raw tool arguments or subject identifiers.
+    token: An enum token or version string, verbatim; null renders as the param's labels['null'] when given, else 'null'.
+    integer: Decimal integer.
+    score: A value on [0, 100] with exactly one decimal (49 -> 49.0; 84.42 -> 84.4); half-up on the quantized 4-decimal value.
+    decimal: The shortest decimal that round-trips the value, with at least one fractional digit (5 -> 5.0; 6.89 -> 6.89;
+      0.6 -> 0.6).
+    fraction: A fraction with exactly four decimals (0.5238).
+    turns: '''turn 5'' for one turn index, ''turns 5, 14'' for several, ascending.'
+    label: The value, written as JSON text (true, false, null, or the string), looked up in the param's labels.
+    count_map: '''<count> <key>'' for every key, keys in code-point order, joined by '', '' (1 deterministic, 1 semantic).'
+    kinds_phrase: ''''' when no kind is given; otherwise '' from '' + the kind phrases joined by '' and '', in refs order,
+      distinct: AGENT_SPAN ''the agent answer'', TOOL_RECEIPT ''a tool receipt'', TYPED_ABSENCE ''a typed absence'', STATE_FACT
+      ''a state fact'', STATE_TRANSITION ''a state transition'', CALCULATION ''a calculation'', HUMAN_SIGNOFF ''a human sign-off''.'
+    recurrence: '''<band> <reproduced_in>/<retests>'' (CONFIRMED 5/5), or ''NOT_RETESTED'' when band is NOT_RETESTED.'
+    required_text: 'When no fact is null (required true): ''required because '' + ''<fact>=<value>'' for every fact in code-point
+      order joined by '', '', value as JSON text (money_movement=true). When some fact is null (required null): ''required
+      status unknown: required_when fact '' + the null facts in code-point order joined by '', '' + '' is not declared''.'
+    axes_list: '''<symbol> <value>'' (score format) of every axis with a non-null value, in declaration order (Q, E, C, G),
+      joined by '', '', followed by '' (<symbols> not evaluated)'' naming the null axes joined by '', '' when there are any.'
+    decisive_list: 'The entry labels joined by '', ''. An entry label is built from one release_recommendation.decisive entry,
+      in record order: a cap renders ''<id> (claim <claim_id>, turn <turn>)''; a profile rule with expected and observed values
+      ''<id> (expected <expected>, observed <observed>)''; a count rule ''<id> (<n> findings)''; a metric floor ''<id> (<metric>
+      <observed> < <floor>)''; every entry followed by '' -> <effect>'' when effect is REVIEW.'
+    refs: Each ref as '<kind> <id> (<anchor>)', or '<kind> <id> (source JUROR_INFERENCE)' for a juror citation, joined by
+      ', '; 'none' for an empty list.
+    votes: '''<observed> of <distinct_pairs> distinct pairs observed, <split> split''; ''none'' when votes is null.'
+  param_inputs:
+    id: 'string: the id, verbatim.'
+    ids: array of strings in source order (never a joined string).
+    text: 'string: ontology-authored or operator-declared text, or a producer statement built from record values; the one
+      type whose input is text.'
+    token: string, or null.
+    integer: JSON integer (never a boolean or a string).
+    score: 'JSON number on [0, 100]: the view value as published (quantized to 4 decimals); only the renderer rounds it to
+      one decimal.'
+    decimal: JSON number.
+    fraction: JSON number on [0, 1].
+    turns: 'array of integers: turn indices (never ''turn 5'').'
+    label: 'the raw source value: true, false, null or a string that is a key of labels (never the label text).'
+    count_map: 'object: key -> non-negative integer, e.g. {"deterministic": 1, "semantic": 1}.'
+    kinds_phrase: array of evidence kind ids in refs order, e.g. ["TOOL_RECEIPT"]; [] when no witnessing anchored ref is cited.
+    recurrence: 'object {band, reproduced_in, retests}: band a token of eio.reliability.ledgers recurrence_bands, reproduced_in
+      and retests integers (finding.recurrence without trial_kind and ledger_key).'
+    required_text: 'object: required_when fact id -> the declared fact value (true, false or an enum value), null when the
+      fact is not declared, e.g. {"money_movement": null}.'
+    axes_list: 'object: axis symbol (Q, E, C, G) -> axis value, null when the axis is not evaluated, e.g. {"Q": 77.3, "E":
+      68.9, "C": 65.6, "G": 52.0}.'
+    decisive_list: 'array of strings: one entry label per release_recommendation.decisive entry, in record order, each built
+      from that entry''s fields by the grammar of param_types.decisive_list.'
+    refs: 'never stored: claim templates only. The input is claim.evidence (ref ids) resolved against evidence.refs by a renderer
+      that derives a claim rationale on demand.'
+    votes: 'never stored: claim templates only. The input is claim.parameters.votes (an object or null).'

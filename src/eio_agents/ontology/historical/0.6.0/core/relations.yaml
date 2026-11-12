@@ -1,0 +1,211 @@
+eio:
+  id: eio.core.relations
+  namespace: https://www.proofagent.ai/eio-agents/module/core/relations#
+  version: 0.2.0
+  kind: core
+  title: EIO Core Relations
+  description: Typed relations used to build the local evidence graph and evaluate semantic rules.
+  license: Apache-2.0
+
+imports:
+  - module: eio.core.entities
+    version: 0.2.0
+
+relations:
+  - id: eio.relation.part-of
+    description: The subject is structurally contained in the object.
+    domain: [eio.entity.thing]
+    range: [eio.entity.thing]
+    characteristics: [transitive]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.precedes
+    description: The subject event occurred before the object event.
+    domain: [eio.entity.turn, eio.entity.action, eio.entity.message, eio.entity.state-transition]
+    range: [eio.entity.turn, eio.entity.action, eio.entity.message, eio.entity.state-transition]
+    characteristics: [transitive, temporal, irreflexive]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.issued-by
+    description: An instruction, claim, policy, message, or authority originated with the object.
+    domain: [eio.entity.instruction, eio.entity.claim, eio.entity.policy-rule, eio.entity.message, eio.entity.authority]
+    range: [eio.entity.agent, eio.entity.subject, eio.entity.identity, eio.entity.authority]
+    characteristics: [functional]
+    cardinality: {subject: '0..n', object: '0..1'}
+  - id: eio.relation.targets
+    description: An instruction, action, or decision is directed at the object.
+    domain: [eio.entity.instruction, eio.entity.action, eio.entity.decision]
+    range: [eio.entity.subject, eio.entity.resource, eio.entity.data-item]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.affects
+    description: An action or decision materially affects the object.
+    domain: [eio.entity.action, eio.entity.decision, eio.entity.state-transition]
+    range: [eio.entity.subject, eio.entity.resource, eio.entity.data-item]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.requests
+    description: An instruction requests the action represented by the object.
+    domain: [eio.entity.instruction]
+    range: [eio.entity.action]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.performs
+    description: An actor performs or attempts the action represented by the object.
+    domain: [eio.entity.agent, eio.entity.subject, eio.entity.identity]
+    range: [eio.entity.action]
+    characteristics: [inverse-functional]
+    cardinality: {subject: '0..1', object: '0..n'}
+  - id: eio.relation.implements
+    description: An action semantically carries out the instruction represented by the object.
+    domain: [eio.entity.action]
+    range: [eio.entity.instruction]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.mentions
+    description: Content refers to an entity or proposition without necessarily implementing or endorsing it.
+    domain: [eio.entity.content]
+    range: [eio.entity.thing]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.asserts
+    description: Content presents the claim represented by the object as true.
+    domain: [eio.entity.content]
+    range: [eio.entity.claim]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.contradicts
+    description: The subject proposition is logically inconsistent with the object proposition or source.
+    domain: [eio.entity.claim, eio.entity.policy-rule, eio.entity.content]
+    range: [eio.entity.claim, eio.entity.policy-rule, eio.entity.content]
+    characteristics: [symmetric]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.derived-from
+    description: A claim, content item, fact, or action input was derived from the object.
+    domain: [eio.entity.claim, eio.entity.content, eio.entity.state-fact, eio.entity.action]
+    range: [eio.entity.content, eio.entity.tool-result, eio.entity.policy-rule]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.authorized-by
+    description: An action, instruction, disclosure, or access is permitted by the object within scope.
+    domain: [eio.entity.action, eio.entity.instruction, eio.entity.entitlement]
+    range: [eio.entity.authority, eio.entity.entitlement, eio.entity.policy-rule]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.verified-by
+    description: A subject or identity has verification state established by the object.
+    domain: [eio.entity.subject, eio.entity.identity]
+    range: [eio.entity.verification-state]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.entitled-to
+    description: An identity or subject is entitled to access or act upon the object.
+    domain: [eio.entity.identity, eio.entity.subject]
+    range: [eio.entity.data-item, eio.entity.resource, eio.entity.action]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.owned-by
+    description: A data item, identity, account, or resource belongs to the object.
+    domain: [eio.entity.data-item, eio.entity.identity, eio.entity.resource]
+    range: [eio.entity.subject]
+    characteristics: [functional]
+    cardinality: {subject: '0..n', object: '0..1'}
+  - id: eio.relation.classified-as
+    description: A data item or resource is assigned the semantic class represented by the object.
+    domain: [eio.entity.data-item, eio.entity.resource]
+    range: [eio.entity.data-class]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.discloses
+    description: Content or an action makes a data item available to a recipient or channel.
+    domain: [eio.entity.content, eio.entity.action]
+    range: [eio.entity.data-item]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.sent-to
+    description: Content, data, or an action result is transmitted to the channel or subject represented by the object.
+    domain: [eio.entity.content, eio.entity.data-item, eio.entity.action]
+    range: [eio.entity.channel, eio.entity.subject]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.has-purpose
+    description: Data processing, consent, entitlement, or action is limited to the purpose stated by the object policy rule.
+    domain: [eio.entity.action, eio.entity.data-item, eio.entity.consent-state, eio.entity.entitlement]
+    range: [eio.entity.policy-rule]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.requires
+    description: A policy, action, or obligation requires the object to hold.
+    domain: [eio.entity.policy-rule, eio.entity.action, eio.entity.obligation]
+    range: [eio.entity.action, eio.entity.state-fact, eio.entity.evaluation-claim]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.satisfies
+    description: A fact, state, action, or claim satisfies the object requirement.
+    domain: [eio.entity.state-fact, eio.entity.action, eio.entity.evaluation-claim]
+    range: [eio.entity.policy-rule, eio.entity.obligation, eio.entity.coverage-obligation]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.violates
+    description: An action, state, content item, or claim violates the object rule.
+    domain: [eio.entity.action, eio.entity.state-fact, eio.entity.content, eio.entity.evaluation-claim]
+    range: [eio.entity.policy-rule, eio.entity.prohibition]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.caused-by
+    description: A state transition, action, or claim is causally attributable to the object.
+    domain: [eio.entity.state-transition, eio.entity.action, eio.entity.claim]
+    range: [eio.entity.action, eio.entity.instruction, eio.entity.content]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.persists-from
+    description: A state fact or content influence persists from an earlier turn or episode.
+    domain: [eio.entity.state-fact, eio.entity.content]
+    range: [eio.entity.turn, eio.entity.episode, eio.entity.content]
+    characteristics: [temporal]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.changes
+    description: A state transition changes the state fact represented by the object.
+    domain: [eio.entity.state-transition]
+    range: [eio.entity.state-fact]
+    characteristics: [functional]
+    cardinality: {subject: '0..n', object: '0..1'}
+  - id: eio.relation.produced
+    description: A tool invocation, action, or message produced the object result, content, or transition.
+    domain: [eio.entity.tool-invocation, eio.entity.action, eio.entity.message]
+    range: [eio.entity.tool-result, eio.entity.content, eio.entity.state-transition]
+    characteristics: [inverse-functional]
+    cardinality: {subject: '0..1', object: '0..n'}
+  - id: eio.relation.supported-by
+    description: A claim, relation, or evaluation claim is supported by the evidence reference represented by the object.
+    domain: [eio.entity.claim, eio.entity.evaluation-claim]
+    range: [eio.entity.evidence-ref]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.resolved-by
+    description: An evidence-graph fact or evaluation claim was established by the evaluator represented by the object.
+    domain: [eio.entity.claim, eio.entity.evaluation-claim, eio.entity.state-fact]
+    range: [eio.entity.evaluator]
+    characteristics: [functional]
+    cardinality: {subject: '0..n', object: '0..1'}
+  - id: eio.relation.maps-to
+    description: A canonical EIO concept or claim has a declared external or derived mapping to the object.
+    domain: [eio.entity.evaluation-claim, eio.entity.policy-rule, eio.entity.metric-view]
+    range: [eio.entity.metric-view, eio.entity.control]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.equivalent-except-for
+    description: Two scenarios or subjects are equivalent except for the declared comparison attribute.
+    domain: [eio.entity.episode, eio.entity.scenario-binding, eio.entity.subject]
+    range: [eio.entity.episode, eio.entity.scenario-binding, eio.entity.subject]
+    characteristics: [symmetric]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.applies-in-region
+    description: A framework or control is in scope for a region.
+    domain: [eio.entity.control]
+    range: [eio.entity.region]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.exercises
+    description: A test template or scenario binding exercises a coverage obligation.
+    domain: [eio.entity.test-template, eio.entity.scenario-binding]
+    range: [eio.entity.coverage-obligation, eio.entity.predicate]
+    cardinality: {subject: '0..n', object: '0..n'}
+  - id: eio.relation.dispatched-to
+    description: A predicate was dispatched against a turn or episode, whatever the outcome.
+    domain: [eio.entity.predicate]
+    range: [eio.entity.turn, eio.entity.episode]
+    cardinality: {subject: '0..n', object: '0..n'}
+
+profiles:
+  - id: eio.profile.mapping-relations
+    description: Normative meaning of each mapping relation and mapping status.
+    relations:
+      exact: Source and target denote the same proposition; a source observation decides the target.
+      narrower: The source is a lexical, marker, same-turn or tool-name proxy observation of the target; it establishes the target only under conditions the source does not check and never makes a claim PROVEN on its own (eio.profile.proof-status).
+      broader: The source concept is more general than the target.
+      relevant: The source supports evaluation of the target (a fixture) and carries no decision semantics.
+      derived-view: The target is an arithmetic projection of claims on the source.
+      deprecated-alias: The source is a retired name for the target.
+      instance-of: The source is an instance of the target's class.
+    statuses:
+      normative: Binding; a consumer MUST apply the mapping as stated.
+      provisional: Candidate pending qualified review; MUST be labelled provisional wherever shown.
+      informative: Explanatory only; no decision or scoring effect.

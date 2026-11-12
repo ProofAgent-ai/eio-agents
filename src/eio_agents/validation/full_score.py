@@ -50,7 +50,11 @@ PER_VERSION_USAGE = "2.1.2"   # PER 2.1.1 plus optional evaluator usage telemetr
 PER_SCHEMA_URI_USAGE = "https://www.proofagent.ai/eio-agents/schema/per/2.1.2/per.schema.json"
 POLICY_PER_VERSION = PER_VERSION
 POLICY_PER_SCHEMA_URI = PER_SCHEMA_URI
-EIO_RELEASE = "0.6.0"
+EIO_RELEASE = "0.7.0"
+# The EIO releases a full native score is issued and verified under. 0.7.0 (library 0.9.0) only adds coverage
+# obligations to the generic-agent domain: the scoring formulas and the 0.3.1 profile are unchanged, so the profile is
+# pinned once per release (its document differs only in `ontology_sha256`).
+SCORED_RELEASES = ("0.6.0", "0.7.0")
 # Updated only when the verifier-owned 0.3 resources have been frozen: per profile version, the pinned profile
 # document and score-block schema files and their digests.
 PINNED_RESOURCES = {
@@ -62,6 +66,11 @@ PINNED_RESOURCES = {
                                  "sha256:39907fe651d844cce4b7f893e1a5092deef91ff4168993da4635c9e9bfad45c6",
                                  "sha256:1739d7a9fca8a269a59f408666651243f56b79ef829ae59bf9e90fbb81401703"),
 }
+# Release-specific pins of a profile version, used when the record's EIO release is not 0.6.0 (the entries above).
+PINNED_RELEASE_PROFILES = {
+    (PROFILE_VERSION, "0.7.0"): ("data/reference-profile-0.3.1-eio-0.7.0.json",
+                                 "sha256:4c32164c6a574d7c9483c806143430c34fb6bfad8159fb93ce84c8857275faec"),
+}
 PINNED_PROFILE_SHA256 = PINNED_RESOURCES[PROFILE_VERSION][2]
 PINNED_SCORE_SCHEMA_SHA256 = PINNED_RESOURCES[PROFILE_VERSION][3]
 # the score identities each pinned full-score PER version binds: (profile version, score basis version, score kind)
@@ -72,12 +81,15 @@ PER_SCORE_IDENTITY = {PER_VERSION: (PROFILE_VERSION, SCORE_BASIS_VERSION, SCORE_
 _PACKAGE = Path(__file__).resolve().parents[1]
 
 
-def load_full_score_resources(profile_version=PROFILE_VERSION):
+def load_full_score_resources(profile_version=PROFILE_VERSION, release=None):
     """Load independently pinned score resources, never producer registry data: the released 0.3.1 profile of PER
     2.1.0 by default, or the historical 0.3.1-draft.1 profile of a published PER 2.0.0 record."""
     if profile_version not in PINNED_RESOURCES:
         raise ScoreInputError(f"no verifier-owned full-score resources for profile {profile_version}")
     profile_rel, schema_rel, profile_pin, schema_pin = PINNED_RESOURCES[profile_version]
+    release = release or EIO_RELEASE   # default: the release this library issues records under
+    if (profile_version, release) in PINNED_RELEASE_PROFILES:
+        profile_rel, profile_pin = PINNED_RELEASE_PROFILES[(profile_version, release)]
     profile = json.loads((Path(__file__).resolve().parent / profile_rel).read_text(encoding="utf-8"))
     schema_raw = (_PACKAGE / schema_rel).read_bytes()
     if sha(jb(profile)) != profile_pin or sha(schema_raw) != schema_pin:
@@ -381,8 +393,10 @@ def full_native_score_gate(bundle, record, eio, *, source_checked,
     """Public D4 acceptance path for the source-derived rc4 native score."""
     if source_checked is not True:
         return ["D1/D2/D5 source checks are not independently passed"], ""
-    if eio.release != EIO_RELEASE:
-        return ["full native score requires pinned EIO 0.5 draft release"], ""
+    from eio_agents.validation.reader import eio_for
+    eio = eio_for(record, eio)
+    if eio.release not in SCORED_RELEASES:
+        return [f"full native score requires a pinned EIO release ({', '.join(SCORED_RELEASES)})"], ""
     if (eio.profiles.get("eio.profile.proof-status") or {}).get("native_claim_proves") is not False:
         return ["full native score requires the strict pinned proof rule"], ""
     if not isinstance(approved_profile, dict) or not isinstance(approved_schema, dict):
@@ -394,7 +408,7 @@ def full_native_score_gate(bundle, record, eio, *, source_checked,
         identity = PER_SCORE_IDENTITY.get((record.get("header") or {}).get("per_version"))
         if identity is None:
             return ["full native score requires a pinned PER 2.0.0 or 2.1.0 record"], ""
-        pinned_profile, pinned_schema = load_full_score_resources(identity[0])
+        pinned_profile, pinned_schema = load_full_score_resources(identity[0], eio.release)
         if approved_profile != pinned_profile or approved_schema != pinned_schema:
             return ["provided full-score profile or schema differs from verifier-owned pinned resources"], ""
         Draft202012Validator.check_schema(approved_schema)

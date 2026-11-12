@@ -17,6 +17,12 @@ _STAMPING = ("eio_agents.base.version", "eio_agents.api", "eio_agents.per.bundle
              "eio_agents.per.native_preview")
 
 
+# the EIO release each earlier library line bundled, and the verifier modules that read the bundled release's path
+_RELEASE_OF_LINE = {"0.8": "0.6.0"}
+_EIO_DIR_READERS = ("eio_agents.validation.reader", "eio_agents.validation.validate", "eio_agents.validation.verify",
+                    "eio_agents.validation.explain")
+
+
 @contextlib.contextmanager
 def library_version(version: str):
     with contextlib.ExitStack() as stack:
@@ -24,4 +30,16 @@ def library_version(version: str):
             module = importlib.import_module(name)
             assert hasattr(module, "VERSION"), name
             stack.enter_context(mock.patch.object(module, "VERSION", version))
+        # a library line bundles one EIO release: every 0.8.x library issued records under EIO 0.6.0, which 0.9.0
+        # carries as a historical release. Re-deriving a 0.8 vector pins that release as the bundled default too.
+        release = _RELEASE_OF_LINE.get(".".join(version.split(".")[:2]))
+        if release is not None:
+            ontology = importlib.import_module("eio_agents.ontology")
+            root = ontology.HISTORICAL_DIR / release
+            if root.exists():
+                stack.enter_context(mock.patch.object(ontology, "DATA_DIR", root))
+                for name in _EIO_DIR_READERS:
+                    module = importlib.import_module(name)
+                    if hasattr(module, "EIO_DIR"):
+                        stack.enter_context(mock.patch.object(module, "EIO_DIR", root))
         yield

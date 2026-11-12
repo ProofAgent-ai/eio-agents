@@ -13,7 +13,7 @@ from eio_agents.schemas import current_native_per_schema, per_schema
 from eio_agents.validation.reader import EIO
 
 
-FROZEN = Path(os.environ.get("L5A_FROZEN_EIO_DATA", str(Path(__file__).resolve().parents[1] / "src/eio_agents/ontology/data")))
+FROZEN = Path(os.environ.get("L5A_FROZEN_EIO_DATA", str(Path(__file__).resolve().parents[1] / "src/eio_agents/ontology/historical/0.6.0")))  # the release of the v0_6 bundle
 BUNDLE = Path(__file__).parent / "data/native/v0_6/native.bundle.json"
 
 

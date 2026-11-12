@@ -30,7 +30,6 @@ from eio_agents.base.errors import require
 from eio_agents.evidence import context_refs as ev_context
 from eio_agents.evidence import contract as ev_contract
 from eio_agents.evidence.refs import RefStore
-from eio_agents.ontology import load
 from eio_agents.per import bundle as B
 from eio_agents.per import privacy
 from eio_agents.per.capsule import CAPSULE_FIELDS
@@ -473,8 +472,9 @@ class Projection:
 def project(bundle, *, ontology=None, bridge_native_rc2=False):
     """Bundle (bytes, JSON text or dict) -> PER dict. `ontology` is the EIO release to project under (default: the
     bundled release, loaded and verified for this call). Fails closed with a typed `ConversionError`."""
-    eio = ontology if ontology is not None else load()
     b = B.read(bundle)
+    from eio_agents.ontology import for_document
+    eio = for_document(b, ontology)
     B.validate_sections(b)
     B.check_names(b)
     B.accept_producer_declared(b)

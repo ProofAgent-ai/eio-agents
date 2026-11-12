@@ -1,5 +1,15 @@
 # EIO changelog
 
+## 0.7.0 — 2026-11-12
+
+Release `0.7.0` (manifest `eio.manifest.public` 0.7.0, `ontology_digest` `461395d45f0abe9a`). Additive: five baseline coverage
+obligations in `eio.domain.generic-agent` 0.3.0 (required workflow step, privilege scope, invented authority or
+deadline, nonexistent entity, payment-instrument exposure: HIGH / CONTRIBUTING_BLOCK; calibrated uncertainty and
+excessive data disclosure: MEDIUM / WARN), so these predicates
+carry a severity on every tool-using or knowledge agent. `eio.risk.action-safety` 0.3.1 drops the `severity_source:
+NONE` declaration of `required-workflow-step-absent`. Importing modules are bumped one patch version with their pins.
+No predicate proposition changes, so claim and finding ids are stable.
+
 ## 0.5.0-draft.1 — unpublished candidate
 
 The bundled manifest identifies this draft release as `0.5.0-draft.1`. Its

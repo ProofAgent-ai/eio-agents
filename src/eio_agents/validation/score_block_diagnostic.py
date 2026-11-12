@@ -47,6 +47,8 @@ def diagnose_draft_score_block(bundle, unscored_per, block, eio, *, approved_pro
     """
     if not isinstance(block, dict) or not isinstance(unscored_per, dict):
         raise ScoreInputError("draft diagnostic needs a score block and PER")
+    from eio_agents.validation.reader import eio_for
+    eio = eio_for(unscored_per, eio)          # a record is diagnosed under the release it names
     scored = unscored_per.get("scores") is not None
     if scored and unscored_per["scores"] != block:
         raise ScoreInputError("draft diagnostic block differs from the received scored PER")

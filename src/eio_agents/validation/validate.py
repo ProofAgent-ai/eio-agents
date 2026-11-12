@@ -13,6 +13,7 @@ stage record native) and the closed vocabularies of the loaded release. It share
 P3). It does not recompute: ids, refs, computed statements, pointers, episodes, stage digests and the projected record
 are checked by `convert` (and, from the record, by `verify`), so a bundle can pass here and still fail to convert.
 """
+import contextlib
 import hashlib
 import json
 import math
@@ -29,7 +30,7 @@ from eio_agents.schemas import bundle_schema, scoring_profile_schema
 from eio_agents.validation.canon import jb as _jb, sha as _sha
 from eio_agents.validation.checker import Checker
 from eio_agents.validation.privacy import MODEL_ID_PATTERN, safe_model_identifier
-from eio_agents.validation.reader import EIO, EIO_DIR, LIMITATION_CATALOGUE, load_catalogue
+from eio_agents.validation.reader import eio_for, historical_release_root, EIO, EIO_DIR, LIMITATION_CATALOGUE, load_catalogue
 from eio_agents.validation.redaction import REDACTION_CLASSES, class_matches
 
 # (row label, VER id, Checker method, skipped for an abridged example) in the rc1 report order
@@ -73,7 +74,7 @@ def check_one(rec, eio=None, cat=None, label=None):
     """Run every record-level check on `rec` (a PER dict) and return the `Checker` with its rows. `eio` is the
     verifier's reader of the release (default: the bundled release, read for this call) and `cat` the limitation
     catalogue."""
-    eio = eio if eio is not None else EIO(EIO_DIR)
+    eio = eio_for(rec, eio if eio is not None else EIO(EIO_DIR)) if isinstance(rec, dict) else (eio or EIO(EIO_DIR))
     cat = cat if cat is not None else load_catalogue()
     try:
         k = Checker(rec, eio, cat, label or "record")
@@ -98,7 +99,14 @@ class Unreadable:
 
 def validate(rec, *, eio=None):
     """Schema and semantic (EIO alignment) validation of a PER record, in process. Returns the failing checks as
-    `{check, ver, status, detail}`; [] when valid. An input that is not a record gives one failing S1 row."""
+    `{check, ver, status, detail}`; [] when valid. An input that is not a record gives one failing S1 row.
+    A record made under an earlier EIO release this library still carries (`header.eio.release`) is checked against
+    that release, so upgrading the library never invalidates a record that was valid when it was issued."""
+    if eio is None and isinstance(rec, dict):
+        with contextlib.suppress(Exception):
+            root = historical_release_root(((rec.get("header") or {}).get("eio") or {}).get("release"))
+            if root is not None:
+                eio = EIO(root)
     return rows_as_problems(r for r in check_one(rec, eio).rows if r[2] == "FAIL")
 
 

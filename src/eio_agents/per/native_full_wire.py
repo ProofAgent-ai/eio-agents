@@ -232,6 +232,8 @@ def project_unscored_per(record, *, ontology):
     apply unchanged: the HIGH-review guard (every HIGH or CRITICAL finding, none being proven reportable) and, with no
     declared policy, the default readiness floor (readiness withheld) and unmet HARD_BLOCK obligations are REVIEW; only
     a proven failure BLOCKs."""
+    from eio_agents.ontology import for_document
+    ontology = for_document(record, ontology)
     require(isinstance(record, dict) and record.get("scores") is None, "NATIVE_FULL_WIRE",
             "an unscored PER 2.1.0 needs a null-score projection")
     require(any(row["limitation_id"] == NO_SCORING_PROFILE_ID and row["field_path"] == "/scores"
@@ -246,6 +248,8 @@ def project_unscored_per(record, *, ontology):
 
 def full_score_block_problems(block, versioned_unscored, *, ontology):
     """Producer-side shape and digest checks; not an independent score verifier."""
+    from eio_agents.ontology import for_document
+    ontology = for_document(versioned_unscored, ontology)
     problems = [error.message for error in Draft202012Validator(_checked_schema(SCORE_SCHEMA)).iter_errors(block)]
     if not isinstance(block, dict):
         return problems
@@ -271,6 +275,8 @@ def project_native_full_per(bundle, unscored_per, verification, *, ontology):
     source-derived proof sets fail closed. Incomplete Q/E/C inputs produce
     explicit withheld axes and readiness within rc4.
     """
+    from eio_agents.ontology import for_document
+    ontology = for_document(unscored_per, ontology)
     require(isinstance(unscored_per, dict) and isinstance(verification, dict)
             and verification.get("valid") is True and verification.get("digest_match") is True
             and verification.get("per_sha256") == H(jb(unscored_per)),

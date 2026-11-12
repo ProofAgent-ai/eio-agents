@@ -7,6 +7,7 @@ bytes are pinned in `v0_8/native.per.jcs`. From L5a the list is empty (rc2-draft
 (`venv-eioagents`, where `proofagent_harness` is not importable), and one test projects the bundle with the staging area
 blocked.
 """
+from eio_agents.ontology import load, release_root
 import copy
 import hashlib
 import importlib.util
@@ -59,7 +60,9 @@ def _historical_record_bytes(rec):
 def test_the_vector_is_what_the_author_script_writes(bundle):
     """Regenerated with EIO-Agents only (never with harness code); the files are the script's output."""
     mod = _author()
-    fresh = mod.author(version=bundle["header"]["eio_agents"]["version"])
+    # the vector is a 0.8-line record of EIO 0.6.0: authored under the release it names (0.9.0 carries it as historical)
+    root = release_root(bundle["header"]["eio"]["release"])
+    fresh = mod.author(load(root) if root else None, version=bundle["header"]["eio_agents"]["version"])
     assert fresh == bundle
     body, _ = mod.pinned(fresh)
     assert _historical_record_bytes(json.loads(body)) == (NATIVE / "v0_8/native.per.jcs").read_bytes()
@@ -191,10 +194,10 @@ import eio_agents
 from eio_agents.per import canonical_bytes
 from eio_agents.per.native_preview import project_neutral
 from eio_agents.per.native_full_wire import project_unscored_per
-from eio_agents.ontology import load
+from eio_agents.ontology import load, release_root
 from eio_agents import validation
 b = Path({str(BUNDLE)!r}).read_bytes()
-ontology = load()
+ontology = load(release_root(json.loads(b)["header"]["eio"]["release"]))
 project = lambda: project_unscored_per(project_neutral(b, ontology=ontology), ontology=ontology)
 rec = project()
 golden = Path({str(NATIVE / 'v0_8/native.per.jcs')!r}).read_bytes()
